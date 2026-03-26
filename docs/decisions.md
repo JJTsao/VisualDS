@@ -85,10 +85,36 @@
 
 ---
 
+## Linked List：while 迴圈控制流
+
+**決策**：在 `stepOneLine()` 內實作真實的 while 迴圈跳躍，而非展開（unrolled）程式碼。
+
+**Why**：教學目標是讓學生看到他們實際會寫的 C++ 程式碼；`while (curr != nullptr)` 的條件 check → 進入/離開 的視覺過程本身就是教學重點。
+
+**How to apply**：
+- `findMatchingBrace(whileLineIndex)`：從 while 行往後掃，計算 `{}` 深度，回傳對應 `}` 的行號
+- `findLoopStart(closingBraceIndex)`：從 `}` 往前掃，找對應的 while 行號
+- while 行：條件為 true → `currentLine++` 進入 body；條件為 false → `currentLine = findMatchingBrace(...) + 1` 跳出
+- `}` 行：`currentLine = findLoopStart(...)` 跳回 while
+- 目前只支援 `ptr != nullptr` 一種條件（查 `state.ptrs[ptrName]` 是否為 null）
+- undo（StepHistory）快照含 `currentLine`，迴圈內回退完全正確
+
+---
+
+## Linked List：Empty State 必須在 heap region 外部
+
+**決策**：`#ll-empty-state` 是 `#ll-heap-region` 的**兄弟節點**，不是子節點。
+
+**Why**：`renderAllNodes()` 每次都執行 `llHeapRegion.innerHTML = ''`。若 empty state 是子節點，會被清除並脫離 DOM；之後對 `llEmptyState`（預先快取的 DOM ref）操作 `classList` 只影響脫離文件的節點，視覺上永遠不會顯示。
+
+**How to apply**：新單元的 empty state 一律放在渲染容器**外部**，與容器同層。
+
+---
+
 ## Line-height 改為固定 rem 值
 
-**決策**：`#code-input` 和 `.gutter-num` 的 `line-height` 都改為固定 `1.52rem`（非倍數）。
+**決策**：`#code-input` 和 `.gutter-num` 的 `line-height` 都改為固定 `1.75rem`（非倍數）。
 
 **Why**：兩者 font-size 不同時（e.g. 0.82rem vs 0.72rem），倍數 line-height 換算後絕對高度不同，導致行號與程式碼越往下越錯位。
 
-**How to apply**：調整 font-size 或 line-height 時，確保兩者 `line-height` 為相同的**固定 rem 值**。Current-line highlight overlay 的 `top` 計算依賴此值（`PADDING_TOP_REM + lineIndex * LINE_HEIGHT_REM`）。
+**How to apply**：調整 font-size 或 line-height 時，確保兩者 `line-height` 為相同的**固定 rem 值**，並同步更新 JS 的 `LINE_HEIGHT_REM` 常數（目前為 `1.75`）。Current-line highlight overlay 的 `top` 計算依賴此值（`PADDING_TOP_REM + lineIndex * LINE_HEIGHT_REM`）。

@@ -10,7 +10,8 @@
 ### index.html（首頁）
 - [x] Amber Phosphor Terminal 主題
 - [x] bootFlicker + staggered fadeSlideUp 開場動畫
-- [x] Array 卡片可點擊；Linked List / Stack / Queue 卡片顯示 LOCKED
+- [x] Array 卡片可點擊；Stack / Queue 卡片顯示 LOCKED
+- [x] Linked List 卡片解鎖（card-active）
 - [x] CRT 掃描線 + 點陣背景（CSS only）
 
 ### array-vis.html（Array 單元）
@@ -23,11 +24,18 @@
 - [x] C++ pointer arithmetic 等效顯示
 - [x] 圖例說明
 
+### linked-list-vis.html（Linked List 單元）
+- [x] 同 array-vis 的 App Shell 佈局（3 個 op tab：BUILD / LINK / TRAVERSE）
+- [x] Heap 節點視覺化：data | next 雙欄格子 + CSS-only 箭頭 + NULL 終點
+- [x] 走訪指標追蹤區（`#ll-ptr-region`）：顯示 curr 等走訪指標的當前位址
+- [x] `while (curr != nullptr)` 真實迴圈：條件求值 + 行號跳躍
+- [x] 圖例說明、Memory Model 概念卡、Console output
+
 ### js/history.js（共用 undo 工具）
 - [x] `StepHistory` class：`push` / `pop` / `clear` / `isEmpty`
 - [x] JSON deep-copy 快照（state 純物件，無 DOM ref）
 
-### js/array-vis.js（Parser & 視覺化）
+### js/array-vis.js（Array Parser & 視覺化）
 - [x] 多陣列狀態管理（`state.arrays` map）
 - [x] 支援語法：
   - `int name[size];` → 宣告＋渲染陣列格子
@@ -40,31 +48,45 @@
 - [x] error-shake 作用於 `.array-cells`（per-array）
 - [x] 上一步（◀ BACK）：快照法 undo，使用 `StepHistory`
 
+### js/linked-list-vis.js（Linked List Parser & 視覺化）
+- [x] state：`nodes`、`nodeOrder`、`ptrs`（統一管理所有 Node* 變數）、`addrCounter`
+- [x] 支援語法：
+  - `Node* x = new Node(val);` → heap 配置、spawn 動畫
+  - `Node* x = y;` / `Node* x = nullptr;` → 指標賦值
+  - `x->next = y;` / `x->next = nullptr;` → 設定 next（ptr-update 動畫）
+  - `x->data = val;` → 修改 data
+  - `cout << x->data;` → 讀取並輸出
+  - `x = x->next;` → 走訪指標移動
+  - `while (x != nullptr) { ... }` → 實際迴圈控制流
+  - 空行 / 純註解 → 略過
+- [x] `findMatchingBrace()` / `findLoopStart()`：while 迴圈跳躍
+- [x] `getChainOrder()`：按 linked list 邏輯順序渲染（跟著 nextName 走）
+- [x] `ptrsPointingTo()`：節點標籤列顯示所有指向它的指標名
+- [x] 上一步（◀ BACK）：含 while 迴圈內回退
+
 ### css/style.css（設計系統）
 - [x] 全站 CSS custom properties（`--amber`, `--text-dim` 等）
 - [x] JetBrains Mono via Google Fonts
-- [x] 動畫：highlight / value-change / error-shake
+- [x] Array 動畫：highlight / value-change / error-shake
+- [x] Linked List 動畫：node-spawn / node-highlight / node-ptr-update / node-delete
 - [x] array-group / array-cells 多陣列佈局
+- [x] ll-node-group / node-box / node-arrow / node-null / ll-ptr-tracker 佈局
 - [x] op-btn / op-grid / op-desc 操作選單
 - [x] 文字對比度修正（`--text-muted` #6b5020→#9a7530，符合 WCAG AA）
-- [x] `.array-cell` 改用 `clamp(48px, 5.5vw, 68px)` 隨 viewport 縮放
-
-### 響應式佈局（2026-03-26）
-- [x] 左欄改用 `clamp(300px, 36%, 460px)` 線性縮放（原固定 360–460px）
-- [x] ≤900px 修正：取消 overflow:hidden，整頁改為可捲動單欄
-- [x] 格子字型、地址、索引標籤同步 clamp 縮放
+- [x] 響應式：`clamp()` 縮放（格子、節點、字型）；≤900px 整頁可捲動單欄
 
 ## 已知問題 / 限制
 
-- Parser 只支援 `int` 型別（intentional scope limit）
+- Array parser 只支援 `int` 型別（intentional scope limit）
+- Linked list parser 只支援 `while (ptr != nullptr)` 一種 while 條件
 - 沒有「自動執行全部」模式，只有 step-by-step
 
 ## 下一步
 
-- [ ] Linked List 單元（linked-list-vis.html）
 - [ ] Stack 單元（stack-vis.html）
 - [ ] Queue 單元（queue-vis.html）
+- [ ] Linked List 補充操作（INSERT FRONT / INSERT BACK / DELETE）
 - [ ] Auto Run 模式（自動逐行執行，可調速）
 - [ ] 更多 Array 操作（Search / Sort 等）
 
-> **新單元開發提醒**：上一步功能已有通用實作，接入方式見 `docs/decisions.md` — 上一步功能：快照法 + 共用 history.js。
+> **新單元開發提醒**：上一步功能已有通用實作，接入方式見 `docs/decisions.md`。while 迴圈控制流實作見 `js/linked-list-vis.js`。
