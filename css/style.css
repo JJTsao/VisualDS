@@ -24,8 +24,8 @@
   --amber-glow-sm: rgba(232, 165, 0, 0.08);
 
   --text:          #d4a820;
-  --text-dim:      #a07828;   /* was #6b5000 — bumped for readability */
-  --text-muted:    #6b5020;   /* was #3a2a00 — near invisible, now legible */
+  --text-dim:      #b08c30;   /* secondary text — ~6:1 on bg */
+  --text-muted:    #9a7530;   /* tertiary text — ~4.8:1 on bg, was #6b5020 */
 
   --success:       #00c87a;
   --success-dim:   rgba(0, 200, 122, 0.12);
@@ -333,7 +333,7 @@ a { text-decoration: none; color: inherit; }
 }
 .cell-index-label {
   font-size: 0.55rem;
-  color: var(--border-mid);
+  color: var(--text-muted);
   margin-right: 1px;
 }
 
@@ -456,7 +456,6 @@ a { text-decoration: none; color: inherit; }
 .op-zh {
   font-size: 0.68rem;
   color: var(--text-muted);
-  opacity: 0.7;
   transition: color var(--transition);
 }
 
