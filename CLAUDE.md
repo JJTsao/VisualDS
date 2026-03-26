@@ -8,6 +8,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 No build system, no package manager. Open `index.html` directly in a browser.
 
+- 開發進度與待辦：[docs/progress.md](docs/progress.md)
+- 技術決策記錄：[docs/decisions.md](docs/decisions.md)
+
 ## Architecture
 
 Multi-page application — each data structure gets its own standalone HTML page:
