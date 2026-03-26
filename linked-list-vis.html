@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LINKED LIST — Data Structure Visualizer</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    /* ── Page Layout ── */
+    .page-wrapper {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ── Page Header ── */
+    .page-header {
+      padding: 0.6rem 1.5rem 0.5rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      animation: fadeSlideUp 0.4s ease 0.1s forwards;
+      opacity: 0;
+    }
+
+    .page-title-group {}
+    .page-title {
+      font-size: 1.6rem;
+      letter-spacing: 0.12em;
+      color: var(--amber);
+      text-shadow: 0 0 24px var(--amber-glow);
+    }
+    .page-title-sub {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      letter-spacing: 0.08em;
+      margin-top: 0.2rem;
+    }
+
+    .page-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+    }
+
+    .badge {
+      font-size: 0.6rem;
+      letter-spacing: 0.08em;
+      padding: 0.2rem 0.6rem;
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      color: var(--text-muted);
+    }
+
+    /* ── Main 2-column layout ── */
+    .main-grid {
+      flex: 1;
+      display: grid;
+      grid-template-columns: clamp(300px, 36%, 460px) 1fr;
+      gap: 0.75rem;
+      padding: 0.6rem 1.25rem 0.75rem;
+      align-items: stretch;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    @media (max-width: 900px) {
+      .page-wrapper {
+        height: auto;
+        min-height: 100vh;
+        overflow-y: auto;
+      }
+      .main-grid {
+        grid-template-columns: 1fr;
+        overflow: visible;
+        height: auto;
+      }
+      .left-col,
+      .right-col {
+        height: auto;
+        overflow-y: visible;
+      }
+    }
+
+    /* ── Left Column ── */
+    .left-col {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      animation: fadeSlideUp 0.4s ease 0.2s forwards;
+      opacity: 0;
+      overflow-y: auto;
+      height: 100%;
+      padding-right: 4px;
+    }
+    .left-col::-webkit-scrollbar { width: 3px; }
+    .left-col::-webkit-scrollbar-track { background: transparent; }
+    .left-col::-webkit-scrollbar-thumb { background: var(--border-mid); border-radius: 2px; }
+
+    /* Editor panel */
+    .editor-panel { }
+
+    .editor-titlebar {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.45rem 0.875rem;
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .window-dots {
+      display: flex;
+      gap: 5px;
+      margin-right: 0.25rem;
+    }
+    .wd { width: 8px; height: 8px; border-radius: 50%; }
+    .wd-r { background: #ff5f57; }
+    .wd-y { background: #febc2e; }
+    .wd-g { background: #28c840; }
+
+    .editor-filename {
+      font-size: 0.68rem;
+      letter-spacing: 0.06em;
+      color: var(--text-dim);
+    }
+
+    .editor-body {
+      display: flex;
+      background: var(--bg-input);
+      position: relative;
+    }
+
+    #current-line-highlight {
+      position: absolute;
+      left: 0; right: 0;
+      background: rgba(232, 165, 0, 0.10);
+      border-left: 2px solid var(--amber);
+      pointer-events: none;
+      z-index: 1;
+      display: none;
+    }
+
+    .line-gutter {
+      padding: 0.875rem 0.4rem 0.875rem 0.5rem;
+      background: rgba(0,0,0,0.35);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      min-width: 36px;
+      align-items: flex-end;
+      position: relative;
+      z-index: 3;
+    }
+
+    .gutter-num {
+      font-size: 1rem;
+      line-height: 1.75rem;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      user-select: none;
+      display: block;
+      width: 100%;
+      text-align: right;
+      padding-right: 2px;
+    }
+
+    .gutter-num.current-line {
+      color: var(--bg);
+      background: var(--amber);
+      border-radius: 2px;
+      font-weight: 700;
+      padding-right: 4px;
+      text-align: center;
+    }
+
+    /* Buttons row */
+    .btn-row {
+      display: flex;
+      gap: 0.6rem;
+    }
+    .btn-row .btn-primary { flex: 1; }
+
+    /* Concept card */
+    .concept-card {
+      padding: 0.75rem;
+    }
+
+    .concept-title {
+      font-size: 0.72rem;
+      letter-spacing: 0.15em;
+      color: var(--amber-dim);
+      margin-bottom: 0.75rem;
+    }
+
+    .concept-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .concept-list li {
+      font-size: 0.88rem;
+      color: var(--text-dim);
+      line-height: 1.6;
+      padding-left: 1rem;
+      position: relative;
+    }
+
+    .concept-list li::before {
+      content: '›';
+      position: absolute;
+      left: 0;
+      color: var(--amber-dim);
+    }
+
+    .concept-list code {
+      color: var(--amber);
+      background: rgba(232, 165, 0, 0.08);
+      padding: 0 3px;
+      border-radius: 2px;
+      font-size: 0.85rem;
+    }
+
+    /* Console */
+    .console-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .console-pulse {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--success);
+      animation: blink 2s step-end infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.2; }
+    }
+
+    .console-label {
+      font-size: 0.78rem;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+    }
+
+    .btn-console-clear {
+      margin-left: auto;
+      background: none;
+      border: none;
+      font-family: var(--font-mono);
+      font-size: 0.6rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      letter-spacing: 0.08em;
+      transition: color var(--transition);
+      padding: 0;
+    }
+    .btn-console-clear:hover { color: var(--text-dim); }
+
+    /* ── Right Column ── */
+    .right-col {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      animation: fadeSlideUp 0.4s ease 0.3s forwards;
+      opacity: 0;
+      overflow-y: auto;
+      height: 100%;
+    }
+    .right-col::-webkit-scrollbar { width: 3px; }
+    .right-col::-webkit-scrollbar-track { background: transparent; }
+    .right-col::-webkit-scrollbar-thumb { background: var(--border-mid); border-radius: 2px; }
+
+    .canvas-panel {}
+
+    .canvas-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .canvas-label {
+      font-size: 0.78rem;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+    }
+
+    /* Heap region: nodes flow horizontally with wrap */
+    #ll-heap-region {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      gap: 0;
+      padding: 1rem 1.25rem;
+      min-height: 120px;
+    }
+
+    /* Empty state */
+    #ll-empty-state {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      padding: 1rem 1.25rem;
+      color: var(--text-muted);
+    }
+
+    #ll-empty-state.hidden { display: none; }
+
+    .empty-glyph {
+      font-size: 1.4rem;
+      opacity: 0.25;
+      letter-spacing: -0.05em;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .empty-text {
+      font-size: 0.82rem;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+    }
+
+    .empty-hint {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      opacity: 0.6;
+      margin-top: 0.15rem;
+    }
+
+    .empty-hint code {
+      color: var(--amber-dim);
+    }
+
+    /* Memory diagram layout: main area + legend sidebar */
+    .canvas-body {
+      display: flex;
+    }
+
+    .canvas-main {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .canvas-legend {
+      width: 130px;
+      flex-shrink: 0;
+      border-left: 1px solid var(--border);
+      padding: 0.875rem 1rem;
+    }
+
+    .legend-title {
+      font-size: 0.72rem;
+      letter-spacing: 0.12em;
+      color: var(--text-muted);
+      margin-bottom: 0.7rem;
+    }
+
+    .legend-items {
+      display: flex;
+      flex-direction: column;
+      gap: 0.7rem;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .legend-cell {
+      width: 18px;
+      height: 18px;
+      border-radius: 2px;
+      border: 1px solid;
+      flex-shrink: 0;
+    }
+    .lc-uninit  { border-color: var(--border-mid); background: var(--bg-panel); }
+    .lc-init    { border-color: var(--amber-dim);  background: #0d0900; box-shadow: 0 0 5px var(--amber-glow-sm); }
+    .lc-active  { border-color: var(--amber-bright); background: #2a1a00; box-shadow: 0 0 8px rgba(255,199,64,0.4); }
+    .lc-error   { border-color: var(--error); background: #150000; }
+
+    /* op-grid override: 3 columns for linked list */
+    .op-grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      border-top: 1px solid var(--border);
+    }
+  </style>
+</head>
+<body>
+
+<div class="page-wrapper">
+
+  <!-- Nav -->
+  <nav class="site-nav">
+    <a href="index.html" class="nav-back">← BACK</a>
+    <span class="nav-sep">/</span>
+    <span class="nav-crumb">LINKED LIST MODULE</span>
+  </nav>
+
+  <!-- Page Header -->
+  <header class="page-header">
+    <div class="page-title-group">
+      <h1 class="page-title">LINKED LIST</h1>
+      <p class="page-title-sub">動態記憶體配置 · 節點串連 · 指標走訪</p>
+    </div>
+    <div class="page-badges">
+      <span class="badge">struct Node { int data; Node* next; }</span>
+      <span class="badge">sizeof(Node) = 16 bytes</span>
+      <span class="badge">heap: 0x2000+</span>
+    </div>
+  </header>
+
+  <!-- Main Grid -->
+  <main class="main-grid">
+
+    <!-- ── Left: Control Panel ── -->
+    <div class="left-col">
+
+      <!-- Operation Selector -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-dot active"></div>
+          <span style="font-size:0.65rem;letter-spacing:0.1em;color:var(--text-muted);">BASIC OPERATIONS</span>
+        </div>
+        <div class="op-grid op-grid-3">
+          <button class="op-btn active" data-op="build" onclick="loadOperation('build')">
+            <span class="op-en">BUILD</span>
+            <span class="op-zh">建立節點</span>
+          </button>
+          <button class="op-btn" data-op="link" onclick="loadOperation('link')">
+            <span class="op-en">LINK</span>
+            <span class="op-zh">串連節點</span>
+          </button>
+          <button class="op-btn" data-op="traverse" onclick="loadOperation('traverse')">
+            <span class="op-en">TRAVERSE</span>
+            <span class="op-zh">遍歷</span>
+          </button>
+        </div>
+        <div id="op-desc" class="op-desc">new Node(val) 在 Heap 配置記憶體，->data 存取欄位 — O(1)</div>
+      </div>
+
+      <!-- Code Editor -->
+      <div class="panel editor-panel">
+        <div class="editor-titlebar">
+          <div class="window-dots">
+            <div class="wd wd-r"></div>
+            <div class="wd wd-y"></div>
+            <div class="wd wd-g"></div>
+          </div>
+          <span class="editor-filename">main.cpp</span>
+          <span id="step-indicator" style="margin-left:auto;font-size:0.62rem;letter-spacing:0.06em;color:var(--text-muted);">line: — / —</span>
+        </div>
+        <div class="editor-body">
+          <div id="current-line-highlight"></div>
+          <div class="line-gutter" id="line-gutter">
+            <!-- populated by JS -->
+          </div>
+          <textarea id="code-input" spellcheck="false" rows="7">Node* head = new Node(10);
+cout &lt;&lt; head-&gt;data;</textarea>
+        </div>
+      </div>
+
+      <!-- Buttons -->
+      <div class="btn-row">
+        <button id="btn-step" class="btn btn-primary">▶ STEP</button>
+        <button id="btn-step-back" class="btn btn-secondary" disabled>◀ BACK</button>
+        <button id="btn-reset" class="btn btn-secondary">↺ RESET</button>
+      </div>
+
+    </div>
+
+    <!-- ── Right: Visualization Canvas ── -->
+    <div class="right-col">
+
+      <!-- Memory Layout Canvas -->
+      <div class="panel canvas-panel">
+        <div class="panel-header canvas-header">
+          <div class="panel-dot active"></div>
+          <span class="canvas-label">MEMORY LAYOUT — HEAP</span>
+        </div>
+
+        <div class="canvas-body">
+          <div class="canvas-main">
+
+            <!-- Pointer tracker (curr, prev, etc.) -->
+            <div id="ll-ptr-region" class="ll-ptr-tracker"></div>
+
+            <!-- Empty state (sibling of heap region, not child) -->
+            <div id="ll-empty-state">
+              <div class="empty-glyph">○→○</div>
+              <div>
+                <p class="empty-text">NO NODES ALLOCATED</p>
+                <p class="empty-hint">execute <code>new Node(val)</code> to allocate on heap</p>
+              </div>
+            </div>
+
+            <!-- Heap nodes -->
+            <div id="ll-heap-region"></div>
+
+          </div>
+
+          <!-- Legend sidebar -->
+          <div class="canvas-legend">
+            <p class="legend-title">// LEGEND</p>
+            <div class="legend-items">
+              <div class="legend-item">
+                <div class="legend-cell lc-uninit"></div>
+                <span>未初始化</span>
+              </div>
+              <div class="legend-item">
+                <div class="legend-cell lc-init"></div>
+                <span>已賦值</span>
+              </div>
+              <div class="legend-item">
+                <div class="legend-cell lc-active"></div>
+                <span>正在存取</span>
+              </div>
+              <div class="legend-item">
+                <div class="legend-cell lc-error"></div>
+                <span>越界錯誤</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Concept Card -->
+      <div class="panel concept-card">
+        <p class="concept-title">// MEMORY MODEL</p>
+        <ul class="concept-list">
+          <li><code>struct Node { int data; Node* next; };</code></li>
+          <li>每個節點在 <strong>Heap</strong> 獨立配置，位址不連續</li>
+          <li><code>head->next->next</code> ≡ 鏈式存取</li>
+          <li><code>nullptr</code> 表示鏈結終點</li>
+        </ul>
+      </div>
+
+      <!-- Console -->
+      <div class="panel">
+        <div class="panel-header console-header">
+          <div class="console-pulse"></div>
+          <span class="console-label">CONSOLE OUTPUT</span>
+          <button id="btn-clear-console" class="btn-console-clear">[ CLEAR ]</button>
+        </div>
+        <div id="console-output">
+          <span class="console-line dim">// 按下 STEP 開始執行程式碼...</span>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+</div>
+
+<script>
+  // ── Live line gutter ──────────────────────────────────────
+  (function () {
+    const gutterInput = document.getElementById('code-input');
+    const gutterEl    = document.getElementById('line-gutter');
+    const hlOverlay   = document.getElementById('current-line-highlight');
+
+    const LINE_HEIGHT_REM = 1.75;
+    const PADDING_TOP_REM = 0.875;
+
+    function updateGutter(activeLine) {
+      const lines = gutterInput.value.split('\n');
+      gutterEl.innerHTML = lines.map((_, i) => {
+        if (i === activeLine) {
+          return `<span class="gutter-num current-line">→</span>`;
+        }
+        return `<span class="gutter-num">${i + 1}</span>`;
+      }).join('');
+
+      if (activeLine >= 0 && activeLine < lines.length) {
+        const topRem = PADDING_TOP_REM + activeLine * LINE_HEIGHT_REM;
+        hlOverlay.style.top    = `${topRem}rem`;
+        hlOverlay.style.height = `${LINE_HEIGHT_REM}rem`;
+        hlOverlay.style.display = 'block';
+      } else {
+        hlOverlay.style.display = 'none';
+      }
+    }
+
+    gutterInput.addEventListener('input', () => updateGutter(-1));
+    updateGutter(-1);
+
+    window.setActiveLine = (n) => updateGutter(n);
+  })();
+</script>
+<script src="js/history.js"></script>
+<script src="js/linked-list-vis.js"></script>
+</body>
+</html>
