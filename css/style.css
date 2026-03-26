@@ -430,6 +430,9 @@ a { text-decoration: none; color: inherit; }
   grid-template-columns: repeat(5, 1fr);
   border-top: 1px solid var(--border);
 }
+.op-grid.op-grid-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
 
 .op-btn {
   display: flex;

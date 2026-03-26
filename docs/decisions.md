@@ -139,6 +139,34 @@
 
 ---
 
+## Linked List：if 巢狀於 while 的控制流
+
+**決策**：`}` 行改用 `findMatchingOpener()` 往前掃描找對應開括號，判斷是 `while` 還是 `if`，再決定跳回迴圈頭或直接往下。
+
+**Why**：原本 `RE_CLOSE_BRACE` 直接呼叫 `findLoopStart()`，隱含假設所有 `}` 都關閉 while。新增 `if (...) { break; }` 後，if 的 `}` 也會被誤判為迴圈結尾並跳回 while，造成無限迴圈或邏輯錯誤。
+
+**How to apply**：
+- `findMatchingOpener(i)`：從 `}` 往前計算 `{}`深度，回傳對應開括號所在行
+- 若開括號行匹配 `RE_WHILE` → 跳回 while（迴圈結尾）
+- 否則 → `currentLine++` 繼續往下（if / 其他區塊結尾）
+- 新增 `findEnclosingWhile(fromLine)`：從當前行往前找最近的 while，供 `break` 使用
+
+---
+
+## Linked List：插入操作的預留 slotMap 佈局
+
+**決策**：`insert_head` 和 `insert_mid` 在 `getNodePositions()` 使用固定 slotMap，替代預設的 chainIdx 順序排列。
+
+**Why**：預設佈局在 `new Node()` 執行後，新節點出現在最右側孤立位置；下一步 `head = newNode` 或鏈結操作完成後才跳到正確位置，視覺上突然竄位，讓學生措手不及。
+
+**How to apply**：
+- `insert_head`：`{ newNode:0, head:1, second:2, third:3 }`，newNode 生成即在最左側
+- `insert_mid`：`{ head:0, newNode:1, second:2, third:3 }`，newNode 生成即在預留的插入位置
+- 兩者使用 `stepWide = 265px`（vs 全局 `X_STEP = 225px`），節點間距較寬，箭頭弧線更清晰
+- 容器寬度固定按 4 slots 計算，即使 newNode 尚未建立也維持相同寬度，不會版面跳動
+
+---
+
 ## Line-height 改為固定 rem 值
 
 **決策**：`#code-input` 和 `.gutter-num` 的 `line-height` 都改為固定 `1.75rem`（非倍數）。

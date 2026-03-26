@@ -18,6 +18,21 @@ const OPERATIONS = {
     desc: 'curr 指標逐節點走訪，直到 nullptr — O(n)',
     code: `Node* head = new Node(10);\nNode* second = new Node(20);\nNode* third = new Node(30);\nhead->next = second;\nsecond->next = third;\nNode* curr = head;\nwhile (curr != nullptr) {\ncout << curr->data;\ncurr = curr->next;\n}`,
   },
+  find: {
+    label: { en: 'FIND', zh: '尋找值' },
+    desc: 'while 迴圈搜尋目標值，找到後 break 提早離開 — O(n)',
+    code: `Node* head = new Node(10);\nNode* second = new Node(20);\nNode* third = new Node(30);\nhead->next = second;\nsecond->next = third;\nthird->next = nullptr;\nint target = 20;\nNode* curr = head;\nbool found = false;\nwhile (curr != nullptr) {\nif (curr->data == target) {\nfound = true;\nbreak;\n}\ncurr = curr->next;\n}`,
+  },
+  insert_head: {
+    label: { en: 'INS HEAD', zh: '頭部插入' },
+    desc: '新節點的 next 先接原頭，再更新 head 指標 — O(1)',
+    code: `Node* head = new Node(10);\nNode* second = new Node(20);\nNode* third = new Node(30);\nhead->next = second;\nsecond->next = third;\nthird->next = nullptr;\nNode* newNode = new Node(5);\nnewNode->next = head;\nhead = newNode;`,
+  },
+  insert_mid: {
+    label: { en: 'INS MID', zh: '中間插入' },
+    desc: '順序非常重要：先牽後面再斷前面，否則鏈結斷裂 — O(1)',
+    code: `Node* head = new Node(10);\nNode* second = new Node(20);\nNode* third = new Node(30);\nhead->next = second;\nsecond->next = third;\nthird->next = nullptr;\nNode* curr = head;\nNode* newNode = new Node(15);\nnewNode->next = curr->next;\ncurr->next = newNode;`,
+  },
 };
 
 // ─── Scatter Layout Constants ─────────────────────────────────────────────────
@@ -48,6 +63,9 @@ const state = {
   // 所有 Node* 變數 → 所指向的 nodeVarName 或 null
   ptrs:         {},   // { [varName]: string|null }
 
+  // 簡單變數（int / bool）
+  vars:         {},   // { [varName]: number|boolean }
+
   addrCounter:  0x2000,
   currentOp:    'build',
 };
@@ -72,17 +90,24 @@ const llEmptyState    = document.getElementById('ll-empty-state');
 
 // ─── Regex Patterns (strict order matters) ────────────────────────────────────
 
-const RE_BLANK        = /^\s*(\/\/.*)?$/;
-const RE_NEW_NODE     = /^\s*Node\s*\*\s*(\w+)\s*=\s*new\s+Node\s*\(\s*(-?\d+)\s*\)\s*;\s*(\/\/.*)?$/;
-const RE_PTR_ASSIGN   = /^\s*Node\s*\*\s*(\w+)\s*=\s*(nullptr|NULL|\w+)\s*;\s*(\/\/.*)?$/;
-const RE_SET_NEXT     = /^\s*(\w+)\s*->\s*next\s*=\s*(nullptr|NULL|\w+)\s*;\s*(\/\/.*)?$/;
-const RE_SET_DATA     = /^\s*(\w+)\s*->\s*data\s*=\s*(-?\d+)\s*;\s*(\/\/.*)?$/;
-const RE_READ_DATA    = /^\s*int\s+(\w+)\s*=\s*(\w+)\s*->\s*data\s*;\s*(\/\/.*)?$/;
-const RE_COUT         = /^\s*cout\s*<<\s*(\w+)->data\s*(<<\s*["\s]+)?\s*;?\s*(\/\/.*)?$/;
-const RE_WHILE        = /^\s*while\s*\(\s*(\w+)\s*!=\s*(nullptr|NULL)\s*\)\s*\{?\s*$/;
-const RE_OPEN_BRACE   = /^\s*\{\s*$/;
-const RE_CLOSE_BRACE  = /^\s*\}\s*$/;
-const RE_DELETE       = /^\s*delete\s+(\w+)\s*;\s*(\/\/.*)?$/;
+const RE_BLANK         = /^\s*(\/\/.*)?$/;
+const RE_NEW_NODE      = /^\s*Node\s*\*\s*(\w+)\s*=\s*new\s+Node\s*\(\s*(-?\d+)\s*\)\s*;\s*(\/\/.*)?$/;
+const RE_PTR_ASSIGN    = /^\s*Node\s*\*\s*(\w+)\s*=\s*(nullptr|NULL|\w+)\s*;\s*(\/\/.*)?$/;
+const RE_SET_NEXT_NEXT = /^\s*(\w+)\s*->\s*next\s*=\s*(\w+)\s*->\s*next\s*;\s*(\/\/.*)?$/;
+const RE_SET_NEXT      = /^\s*(\w+)\s*->\s*next\s*=\s*(nullptr|NULL|\w+)\s*;\s*(\/\/.*)?$/;
+const RE_SET_DATA      = /^\s*(\w+)\s*->\s*data\s*=\s*(-?\d+)\s*;\s*(\/\/.*)?$/;
+const RE_READ_DATA     = /^\s*int\s+(\w+)\s*=\s*(\w+)\s*->\s*data\s*;\s*(\/\/.*)?$/;
+const RE_INT_DECL      = /^\s*int\s+(\w+)\s*=\s*(-?\d+)\s*;\s*(\/\/.*)?$/;
+const RE_BOOL_DECL     = /^\s*bool\s+(\w+)\s*=\s*(true|false)\s*;\s*(\/\/.*)?$/;
+const RE_BOOL_ASSIGN   = /^\s*(\w+)\s*=\s*(true|false)\s*;\s*(\/\/.*)?$/;
+const RE_IF_DATA_EQ    = /^\s*if\s*\(\s*(\w+)\s*->\s*data\s*==\s*(\w+|-?\d+)\s*\)\s*\{?\s*$/;
+const RE_BREAK         = /^\s*break\s*;\s*(\/\/.*)?$/;
+const RE_PTR_REASSIGN  = /^\s*(\w+)\s*=\s*(\w+|nullptr|NULL)\s*;\s*(\/\/.*)?$/;
+const RE_COUT          = /^\s*cout\s*<<\s*(\w+)->data\s*(<<\s*["\s]+)?\s*;?\s*(\/\/.*)?$/;
+const RE_WHILE         = /^\s*while\s*\(\s*(\w+)\s*!=\s*(nullptr|NULL)\s*\)\s*\{?\s*$/;
+const RE_OPEN_BRACE    = /^\s*\{\s*$/;
+const RE_CLOSE_BRACE   = /^\s*\}\s*$/;
+const RE_DELETE        = /^\s*delete\s+(\w+)\s*;\s*(\/\/.*)?$/;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -147,6 +172,33 @@ function findLoopStart(closingBraceIndex) {
   return 0;
 }
 
+/**
+ * 從 closingBraceIndex 往前搜尋對應的開括號行，回傳行號。
+ * 用來判斷 } 是關閉 while 還是 if，決定是否跳回迴圈頭。
+ */
+function findMatchingOpener(closingBraceIndex) {
+  let depth = 0;
+  for (let i = closingBraceIndex; i >= 0; i--) {
+    const l = state.lines[i].trim();
+    if (l.includes('}')) depth++;
+    if (l.includes('{')) {
+      depth--;
+      if (depth === 0) return i;
+    }
+  }
+  return -1;
+}
+
+/**
+ * 從 fromLine 往前找最近的 while 行（用於 break 跳出）。
+ */
+function findEnclosingWhile(fromLine) {
+  for (let i = fromLine; i >= 0; i--) {
+    if (RE_WHILE.test(state.lines[i].trim())) return i;
+  }
+  return -1;
+}
+
 // ─── Rendering ────────────────────────────────────────────────────────────────
 
 /**
@@ -202,10 +254,46 @@ function getChainOrder() {
  * 計算每個節點在 heap region 的絕對座標。
  * X: 依鏈結順序由左到右排列（未鏈結的孤立節點排在最後）
  * Y: 依建立順序取 Y_OFFSETS，模擬 heap 分配的不連續位址
+ *
+ * insert_mid 特例：使用固定 slot map，在 head 與 second 之間預留 slot 1
+ * 讓 newNode 建立時直接落入正確位置，視覺上不會突然竄位。
  */
 function getNodePositions() {
   const chain = getChainOrder();
   const positions = {};
+
+  if (state.currentOp === 'insert_head') {
+    // newNode=0(預留), head=1, second=2, third=3
+    // newNode 生成時直接落在最左側，避免視覺上突然竄位
+    const slotMap  = { newNode: 0, head: 1, second: 2, third: 3 };
+    const stepWide = 265;
+    chain.forEach((name) => {
+      const creationIdx = state.nodeOrder.indexOf(name);
+      const slot = slotMap[name] ?? 4;
+      positions[name] = {
+        x: X_START + slot * stepWide,
+        y: Y_OFFSETS[creationIdx % Y_OFFSETS.length],
+      };
+    });
+    return positions;
+  }
+
+  if (state.currentOp === 'insert_mid') {
+    // head=0, newNode=1(預留), second=2, third=3
+    // 使用稍大的間距，讓箭頭與節點之間有更充裕的空間
+    const slotMap  = { head: 0, newNode: 1, second: 2, third: 3 };
+    const stepWide = 265;
+    chain.forEach((name) => {
+      const creationIdx = state.nodeOrder.indexOf(name);
+      const slot = slotMap[name] ?? 4;
+      positions[name] = {
+        x: X_START + slot * stepWide,
+        y: Y_OFFSETS[creationIdx % Y_OFFSETS.length],
+      };
+    });
+    return positions;
+  }
+
   chain.forEach((name, chainIdx) => {
     const creationIdx = state.nodeOrder.indexOf(name);
     positions[name] = {
@@ -243,7 +331,11 @@ function renderAllNodes() {
   const positions = getNodePositions();
 
   // Ensure container is wide enough for all nodes + NULL indicator
-  llHeapRegion.style.minWidth = (X_START + chain.length * X_STEP + 90) + 'px';
+  // insert_mid pre-reserves 4 slots with its wider step value
+  const isWideOp      = state.currentOp === 'insert_mid' || state.currentOp === 'insert_head';
+  const slotCount     = isWideOp ? 4 : chain.length;
+  const effectiveStep = isWideOp ? 265 : X_STEP;
+  llHeapRegion.style.minWidth = (X_START + slotCount * effectiveStep + 90) + 'px';
 
   chain.forEach((name) => {
     const node = state.nodes[name];
@@ -322,9 +414,14 @@ function renderAllNodes() {
     const labelRow = document.createElement('div');
     labelRow.className = 'node-name-row';
     const labelsToShow = nodePtrs.length > 0 ? nodePtrs : [name];
+    const headNodeName = findHeadNode();
     labelsToShow.forEach(lbl => {
       const sp = document.createElement('span');
       sp.className = 'node-var-label';
+      // Mark head pointer: the label variable that points to the chain's first node
+      if (name === headNodeName && state.ptrs[lbl] === headNodeName) {
+        sp.classList.add('head-ptr-label');
+      }
       sp.textContent = lbl;
       labelRow.appendChild(sp);
     });
@@ -489,6 +586,7 @@ function stepOneLine() {
     nodes:        state.nodes,
     nodeOrder:    [...state.nodeOrder],
     ptrs:         state.ptrs,
+    vars:         state.vars,
     addrCounter:  state.addrCounter,
     consoleHTML:  consoleOutput.innerHTML,
   });
@@ -529,9 +627,14 @@ function stepOneLine() {
     return;
   }
 
-  // ── 閉括號 } — 跳回 while ────────────────────────
+  // ── 閉括號 } — while 跳回頭，if 則繼續往下 ──────
   if (RE_CLOSE_BRACE.test(line)) {
-    state.currentLine = findLoopStart(state.currentLine);
+    const openerIdx = findMatchingOpener(state.currentLine);
+    if (openerIdx >= 0 && RE_WHILE.test(state.lines[openerIdx].trim())) {
+      state.currentLine = openerIdx;
+    } else {
+      state.currentLine++;
+    }
     updateStepIndicator();
     return;
   }
@@ -590,6 +693,46 @@ function stepOneLine() {
     } else {
       logConsole(`Line ${state.currentLine + 1}: [錯誤] "${rhsName}" 未宣告`, 'error');
     }
+    state.currentLine++;
+    updateStepIndicator();
+    return;
+  }
+
+  // ── lhs->next = rhs->next  (複製 next 指標) ──────
+  const setNextNextMatch = line.match(RE_SET_NEXT_NEXT);
+  if (setNextNextMatch) {
+    const lhsPtr = setNextNextMatch[1];
+    const rhsPtr = setNextNextMatch[2];
+
+    const lhsNode = state.ptrs[lhsPtr];
+    const rhsNode = state.ptrs[rhsPtr];
+
+    if (!lhsNode || !state.nodes[lhsNode]) {
+      logConsole(`Line ${state.currentLine + 1}: [錯誤] "${lhsPtr}" 為 nullptr 或未宣告`, 'error');
+      state.currentLine++;
+      updateStepIndicator();
+      return;
+    }
+    if (!rhsNode || !state.nodes[rhsNode]) {
+      logConsole(`Line ${state.currentLine + 1}: [錯誤] "${rhsPtr}" 為 nullptr 或未宣告`, 'error');
+      state.currentLine++;
+      updateStepIndicator();
+      return;
+    }
+
+    const copiedNext = state.nodes[rhsNode].nextName;
+    state.nodes[lhsNode].nextName = copiedNext ?? null;
+
+    const displayVal = copiedNext ? toHex(state.nodes[copiedNext]?.addr ?? 0) : 'nullptr';
+    logConsole(
+      `Line ${state.currentLine + 1}: ${lhsPtr}->next = ${rhsPtr}->next  (${displayVal})`,
+      'success'
+    );
+
+    renderAllNodes();
+    renderPtrTracker();
+    triggerAnimation(document.getElementById(`nd-group-${lhsNode}`), 'node-highlight', 900);
+
     state.currentLine++;
     updateStepIndicator();
     return;
@@ -781,6 +924,136 @@ function stepOneLine() {
     return;
   }
 
+  // ── int varName = literal ─────────────────────────
+  const intDeclMatch = line.match(RE_INT_DECL);
+  if (intDeclMatch) {
+    const varName = intDeclMatch[1];
+    const val     = parseInt(intDeclMatch[2], 10);
+    state.vars[varName] = val;
+    logConsole(`Line ${state.currentLine + 1}: int ${varName} = ${val}`, 'declare');
+    state.currentLine++;
+    updateStepIndicator();
+    return;
+  }
+
+  // ── bool varName = true/false ─────────────────────
+  const boolDeclMatch = line.match(RE_BOOL_DECL);
+  if (boolDeclMatch) {
+    const varName = boolDeclMatch[1];
+    const val     = boolDeclMatch[2] === 'true';
+    state.vars[varName] = val;
+    logConsole(`Line ${state.currentLine + 1}: bool ${varName} = ${val}`, 'declare');
+    state.currentLine++;
+    updateStepIndicator();
+    return;
+  }
+
+  // ── varName = true/false  (賦值) ──────────────────
+  const boolAssignMatch = line.match(RE_BOOL_ASSIGN);
+  if (boolAssignMatch) {
+    const varName = boolAssignMatch[1];
+    const val     = boolAssignMatch[2] === 'true';
+    state.vars[varName] = val;
+    logConsole(`Line ${state.currentLine + 1}: ${varName} = ${val}`, 'success');
+    state.currentLine++;
+    updateStepIndicator();
+    return;
+  }
+
+  // ── if (ptr->data == val/var) { ───────────────────
+  const ifDataEqMatch = line.match(RE_IF_DATA_EQ);
+  if (ifDataEqMatch) {
+    const ptrName  = ifDataEqMatch[1];
+    const rhsToken = ifDataEqMatch[2];
+    const nodeName = state.ptrs[ptrName];
+
+    if (!nodeName || !state.nodes[nodeName]) {
+      logConsole(`Line ${state.currentLine + 1}: [錯誤] "${ptrName}" 為 nullptr 或未宣告`, 'error');
+      state.currentLine++;
+      updateStepIndicator();
+      return;
+    }
+
+    const dataVal = state.nodes[nodeName].data;
+    const compareVal = /^-?\d+$/.test(rhsToken)
+      ? parseInt(rhsToken, 10)
+      : (state.vars[rhsToken] !== undefined ? state.vars[rhsToken] : null);
+
+    if (compareVal === null) {
+      logConsole(`Line ${state.currentLine + 1}: [錯誤] "${rhsToken}" 未宣告`, 'error');
+      state.currentLine++;
+      updateStepIndicator();
+      return;
+    }
+
+    if (dataVal === compareVal) {
+      triggerAnimation(document.getElementById(`nd-data-${nodeName}`), 'node-highlight', 900);
+      logConsole(
+        `Line ${state.currentLine + 1}: if (${ptrName}->data == ${rhsToken}) ✓  (${dataVal} == ${compareVal})`,
+        'success'
+      );
+      state.currentLine++;
+    } else {
+      logConsole(
+        `Line ${state.currentLine + 1}: if (${ptrName}->data == ${rhsToken}) ✗  (${dataVal} ≠ ${compareVal})`,
+        'dim'
+      );
+      state.currentLine = findMatchingBrace(state.currentLine) + 1;
+    }
+    updateStepIndicator();
+    return;
+  }
+
+  // ── break ─────────────────────────────────────────
+  if (RE_BREAK.test(line)) {
+    const whileLine = findEnclosingWhile(state.currentLine - 1);
+    if (whileLine >= 0) {
+      state.currentLine = findMatchingBrace(whileLine) + 1;
+      logConsole(`Line ${state.currentLine}: break → 離開迴圈`, 'info');
+    } else {
+      state.currentLine++;
+    }
+    updateStepIndicator();
+    return;
+  }
+
+  // ── ptr = rhs  (無型別宣告的指標重新指向) ─────────
+  const ptrReassignMatch = line.match(RE_PTR_REASSIGN);
+  if (ptrReassignMatch) {
+    const lhsName = ptrReassignMatch[1];
+    const rhsName = ptrReassignMatch[2];
+
+    // 只處理已知 ptr 變數
+    if (state.ptrs[lhsName] === undefined) {
+      logConsole(`Line ${state.currentLine + 1}: [Skipped] ${line}`, 'warn');
+      state.currentLine++;
+      updateStepIndicator();
+      return;
+    }
+
+    if (rhsName === 'nullptr' || rhsName === 'NULL') {
+      state.ptrs[lhsName] = null;
+      renderAllNodes();
+      renderPtrTracker();
+      logConsole(`Line ${state.currentLine + 1}: ${lhsName} = nullptr`, 'info');
+    } else if (state.ptrs[rhsName] !== undefined) {
+      state.ptrs[lhsName] = state.ptrs[rhsName];
+      renderAllNodes();
+      renderPtrTracker();
+      const target = state.ptrs[lhsName];
+      const addrStr = target ? toHex(state.nodes[target]?.addr ?? 0) : 'nullptr';
+      logConsole(`Line ${state.currentLine + 1}: ${lhsName} = ${rhsName}  → ${addrStr}`, 'info');
+      if (target) {
+        triggerAnimation(document.getElementById(`nd-group-${target}`), 'node-ptr-update', 950);
+      }
+    } else {
+      logConsole(`Line ${state.currentLine + 1}: [錯誤] "${rhsName}" 未宣告`, 'error');
+    }
+    state.currentLine++;
+    updateStepIndicator();
+    return;
+  }
+
   logConsole(`Line ${state.currentLine + 1}: [Skipped] ${line}`, 'warn');
   state.currentLine++;
   updateStepIndicator();
@@ -796,6 +1069,7 @@ function stepBack() {
   state.nodes        = snap.nodes;
   state.nodeOrder    = snap.nodeOrder;
   state.ptrs         = snap.ptrs;
+  state.vars         = snap.vars;
   state.addrCounter  = snap.addrCounter;
 
   renderAllNodes();
@@ -820,6 +1094,7 @@ function reset() {
   state.nodes       = {};
   state.nodeOrder   = [];
   state.ptrs        = {};
+  state.vars        = {};
   state.addrCounter = 0x2000;
 
   llHeapRegion.innerHTML = '';

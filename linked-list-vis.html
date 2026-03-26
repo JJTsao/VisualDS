@@ -306,6 +306,13 @@
       overflow-y: visible;
     }
 
+    /* Head pointer label — distinct from regular node var labels */
+    .node-var-label.head-ptr-label {
+      color: #40d0ff;
+      text-shadow: 0 0 8px rgba(64, 208, 255, 0.45);
+      letter-spacing: 0.1em;
+    }
+
     /* Traversal pointer badge (curr / prev / tmp …) above the node */
     .node-ptr-indicator {
       display: flex;
@@ -497,6 +504,24 @@
           <button class="op-btn" data-op="traverse" onclick="loadOperation('traverse')">
             <span class="op-en">TRAVERSE</span>
             <span class="op-zh">遍歷</span>
+          </button>
+        </div>
+        <div class="panel-header" style="border-top:1px solid var(--border);">
+          <div class="panel-dot"></div>
+          <span style="font-size:0.65rem;letter-spacing:0.1em;color:var(--text-muted);">APPLICATIONS</span>
+        </div>
+        <div class="op-grid op-grid-3">
+          <button class="op-btn" data-op="find" onclick="loadOperation('find')">
+            <span class="op-en">FIND</span>
+            <span class="op-zh">尋找值</span>
+          </button>
+          <button class="op-btn" data-op="insert_head" onclick="loadOperation('insert_head')">
+            <span class="op-en">INS HEAD</span>
+            <span class="op-zh">頭部插入</span>
+          </button>
+          <button class="op-btn" data-op="insert_mid" onclick="loadOperation('insert_mid')">
+            <span class="op-en">INS MID</span>
+            <span class="op-zh">中間插入</span>
           </button>
         </div>
         <div id="op-desc" class="op-desc">new Node(val) 在 Heap 配置記憶體，->data 存取欄位 — O(1)</div>
