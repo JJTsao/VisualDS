@@ -3,142 +3,424 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Array Visualizer — Data Structure Visualizer</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <title>ARRAY — Data Structure Visualizer</title>
   <link rel="stylesheet" href="css/style.css" />
   <style>
-    body {
-      background: #0f172a;
+    /* ── Page Layout ── */
+    .page-wrapper {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
       min-height: 100vh;
     }
-    .grid-bg {
-      background-image:
-        linear-gradient(rgba(99, 102, 241, 0.04) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(99, 102, 241, 0.04) 1px, transparent 1px);
-      background-size: 40px 40px;
+
+    /* ── Page Header ── */
+    .page-header {
+      padding: 1.5rem 2rem 1rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      animation: fadeSlideUp 0.4s ease 0.1s forwards;
+      opacity: 0;
     }
-    /* Code Editor Area */
-    #code-input {
-      font-family: 'Courier New', Courier, monospace;
-      font-size: 0.85rem;
-      line-height: 1.8;
-      background: #0d1117;
-      color: #e2e8f0;
-      border: 1px solid #334155;
-      border-radius: 0.5rem;
-      resize: none;
-      outline: none;
+
+    .page-title-group {}
+    .page-title {
+      font-size: 1.6rem;
+      letter-spacing: 0.12em;
+      color: var(--amber);
+      text-shadow: 0 0 24px var(--amber-glow);
+    }
+    .page-title-sub {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      letter-spacing: 0.08em;
+      margin-top: 0.2rem;
+    }
+
+    .page-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+    }
+
+    .badge {
+      font-size: 0.6rem;
+      letter-spacing: 0.08em;
+      padding: 0.2rem 0.6rem;
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      color: var(--text-muted);
+    }
+
+    /* ── Main 2-column layout ── */
+    .main-grid {
+      flex: 1;
+      display: grid;
+      grid-template-columns: minmax(280px, 380px) 1fr;
+      gap: 1.5rem;
+      padding: 1.5rem 2rem 2rem;
+      align-items: start;
+    }
+
+    @media (max-width: 900px) {
+      .main-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ── Left Column ── */
+    .left-col {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      animation: fadeSlideUp 0.4s ease 0.2s forwards;
+      opacity: 0;
+    }
+
+    /* Editor panel */
+    .editor-panel { }
+
+    .editor-titlebar {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.45rem 0.875rem;
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .window-dots {
+      display: flex;
+      gap: 5px;
+      margin-right: 0.25rem;
+    }
+    .wd { width: 8px; height: 8px; border-radius: 50%; }
+    .wd-r { background: #ff5f57; }
+    .wd-y { background: #febc2e; }
+    .wd-g { background: #28c840; }
+
+    .editor-filename {
+      font-size: 0.68rem;
+      letter-spacing: 0.06em;
+      color: var(--text-dim);
+    }
+
+    /* Line number gutter */
+    .editor-body {
+      display: flex;
+      background: var(--bg-input);
+    }
+
+    .line-gutter {
+      padding: 0.875rem 0.5rem;
+      background: rgba(0,0,0,0.3);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      min-width: 32px;
+      align-items: flex-end;
+    }
+
+    .gutter-num {
+      font-size: 0.72rem;
+      line-height: 1.85;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      user-select: none;
+    }
+
+    .gutter-num.current-line {
+      color: var(--amber);
+    }
+
+    /* Buttons row */
+    .btn-row {
+      display: flex;
+      gap: 0.6rem;
+    }
+
+    .btn-row .btn-primary { flex: 1; }
+
+    /* Concept card */
+    .concept-card {
       padding: 1rem;
-      width: 100%;
-      min-height: 200px;
-      transition: border-color 0.2s;
     }
-    #code-input:focus {
-      border-color: #6366f1;
-      box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+
+    .concept-title {
+      font-size: 0.6rem;
+      letter-spacing: 0.15em;
+      color: var(--amber-dim);
+      margin-bottom: 0.75rem;
     }
-    /* Line Highlight Overlay */
-    .line-indicator {
-      font-family: 'Courier New', monospace;
-      font-size: 0.75rem;
-      color: #64748b;
+
+    .concept-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
     }
-    .line-indicator span.active-line {
-      color: #a5f3fc;
-      font-weight: bold;
+
+    .concept-list li {
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      line-height: 1.6;
+      padding-left: 1rem;
+      position: relative;
     }
-    /* Console Output */
-    #console-output {
-      font-family: 'Courier New', Courier, monospace;
-      font-size: 0.8rem;
-      background: #0d1117;
-      border: 1px solid #334155;
-      border-radius: 0.5rem;
-      padding: 0.75rem 1rem;
-      min-height: 80px;
-      max-height: 180px;
-      overflow-y: auto;
-      color: #94a3b8;
+
+    .concept-list li::before {
+      content: '›';
+      position: absolute;
+      left: 0;
+      color: var(--amber-dim);
     }
-    /* Array Container */
+
+    .concept-list code {
+      color: var(--amber);
+      background: rgba(232, 165, 0, 0.08);
+      padding: 0 3px;
+      border-radius: 2px;
+      font-size: 0.68rem;
+    }
+
+    .concept-list .warn-text { color: var(--error); }
+
+    /* Console */
+    .console-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .console-pulse {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--success);
+      animation: blink 2s step-end infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.2; }
+    }
+
+    .console-label {
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+    }
+
+    .btn-console-clear {
+      margin-left: auto;
+      background: none;
+      border: none;
+      font-family: var(--font-mono);
+      font-size: 0.6rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      letter-spacing: 0.08em;
+      transition: color var(--transition);
+      padding: 0;
+    }
+    .btn-console-clear:hover { color: var(--text-dim); }
+
+    /* ── Right Column ── */
+    .right-col {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      animation: fadeSlideUp 0.4s ease 0.3s forwards;
+      opacity: 0;
+    }
+
+    /* Memory canvas */
+    .canvas-panel {}
+
+    .canvas-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .canvas-label {
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+    }
+
+    #array-info {
+      margin-left: auto;
+      font-size: 0.6rem;
+      letter-spacing: 0.06em;
+      color: var(--amber-dim);
+    }
+
+    /* Empty state */
+    #empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 220px;
+      color: var(--text-muted);
+      gap: 0.5rem;
+    }
+
+    .empty-glyph {
+      font-size: 2.5rem;
+      opacity: 0.25;
+      letter-spacing: -0.05em;
+      font-weight: 700;
+    }
+
+    .empty-text {
+      font-size: 0.72rem;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+    }
+
+    .empty-hint {
+      font-size: 0.62rem;
+      color: var(--text-muted);
+      opacity: 0.6;
+    }
+
+    .empty-hint code {
+      color: var(--amber-dim);
+    }
+
+    /* Array wrapper */
+    #array-wrapper {
+      padding: 1.5rem 1.25rem;
+      min-height: 180px;
+      display: flex;
+      align-items: center;
+    }
+
+    #array-wrapper.hidden { display: none; }
+
     #array-container {
       display: flex;
       flex-wrap: wrap;
-      gap: 8px;
+      gap: 10px;
       align-items: flex-end;
-      min-height: 120px;
-      padding: 1rem;
     }
-    #array-wrapper {
-      min-height: 160px;
+
+    /* C++ equivalent strip */
+    #cpp-equivalent {
+      padding: 0 1.25rem 1.25rem;
+    }
+    #cpp-equivalent.hidden { display: none; }
+
+    .cpp-equiv-box {
+      background: rgba(0,0,0,0.4);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 0.65rem 0.875rem;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
+
+    .cpp-equiv-comment {
+      color: var(--text-muted);
+      font-size: 0.68rem;
+      display: block;
+      margin-bottom: 0.2rem;
+    }
+
+    #cpp-equiv-text {
+      color: var(--success);
+    }
+
+    /* Memory diagram key */
+    .legend-panel {
+      padding: 0.875rem 1.25rem;
+    }
+
+    .legend-title {
+      font-size: 0.6rem;
+      letter-spacing: 0.12em;
+      color: var(--text-muted);
+      margin-bottom: 0.7rem;
+    }
+
+    .legend-items {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.9rem 1.5rem;
+    }
+
+    .legend-item {
       display: flex;
       align-items: center;
-      justify-content: center;
+      gap: 0.5rem;
+      font-size: 0.65rem;
+      color: var(--text-muted);
     }
-    /* Step progress */
-    #step-indicator {
-      font-family: 'Courier New', monospace;
-      font-size: 0.75rem;
-      color: #64748b;
-    }
-    /* Scrollbar style */
-    #console-output::-webkit-scrollbar {
-      width: 4px;
-    }
-    #console-output::-webkit-scrollbar-track {
-      background: #1e293b;
-    }
-    #console-output::-webkit-scrollbar-thumb {
-      background: #475569;
+
+    .legend-cell {
+      width: 18px;
+      height: 18px;
       border-radius: 2px;
+      border: 1px solid;
+      flex-shrink: 0;
     }
+    .lc-uninit  { border-color: var(--border-mid); background: var(--bg-panel); }
+    .lc-init    { border-color: var(--amber-dim);  background: #0d0900; box-shadow: 0 0 5px var(--amber-glow-sm); }
+    .lc-active  { border-color: var(--amber-bright); background: #2a1a00; box-shadow: 0 0 8px rgba(255,199,64,0.4); }
+    .lc-error   { border-color: var(--error); background: #150000; }
   </style>
 </head>
-<body class="grid-bg text-white">
+<body>
 
-  <!-- Top Nav -->
-  <nav class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-10">
-    <div class="max-w-7xl mx-auto px-6 py-3 flex items-center gap-4">
-      <a href="index.html" class="text-slate-400 hover:text-white text-sm transition-colors">
-        ← 返回首頁
-      </a>
-      <span class="text-slate-700">/</span>
-      <span class="text-indigo-400 font-mono text-sm font-semibold">Array (陣列)</span>
-    </div>
+<div class="page-wrapper">
+
+  <!-- Nav -->
+  <nav class="site-nav">
+    <a href="index.html" class="nav-back">← BACK</a>
+    <span class="nav-sep">/</span>
+    <span class="nav-crumb">ARRAY MODULE</span>
   </nav>
 
   <!-- Page Header -->
-  <header class="max-w-7xl mx-auto px-6 py-8">
-    <div class="flex items-start justify-between flex-wrap gap-4">
-      <div>
-        <h1 class="text-3xl font-black text-white">Array <span class="text-slate-500 font-normal text-xl">陣列</span></h1>
-        <p class="text-slate-400 text-sm mt-1">連續記憶體配置 · 固定大小 · O(1) 隨機存取</p>
-      </div>
-      <div class="flex gap-2 text-xs font-mono">
-        <span class="px-3 py-1 rounded-full bg-slate-800 border border-slate-700 text-slate-400">int arr[N]</span>
-        <span class="px-3 py-1 rounded-full bg-slate-800 border border-slate-700 text-slate-400">sizeof(int) = 4 bytes</span>
-      </div>
+  <header class="page-header">
+    <div class="page-title-group">
+      <h1 class="page-title">ARRAY</h1>
+      <p class="page-title-sub">連續記憶體配置 · 靜態大小 · 索引存取</p>
+    </div>
+    <div class="page-badges">
+      <span class="badge">int arr[N]</span>
+      <span class="badge">sizeof(int) = 4 bytes</span>
+      <span class="badge">base addr: 0x1000</span>
     </div>
   </header>
 
-  <!-- Main Layout -->
-  <main class="max-w-7xl mx-auto px-6 pb-16 grid grid-cols-1 lg:grid-cols-5 gap-6">
+  <!-- Main Grid -->
+  <main class="main-grid">
 
-    <!-- Left: Control Panel (2 cols) -->
-    <section class="lg:col-span-2 flex flex-col gap-5">
+    <!-- ── Left: Control Panel ── -->
+    <div class="left-col">
 
-      <!-- Code Editor Card -->
-      <div class="bg-slate-900 border border-slate-700 rounded-xl overflow-hidden">
-        <!-- Editor Title Bar -->
-        <div class="px-4 py-2.5 bg-slate-800 border-b border-slate-700 flex items-center gap-2">
-          <div class="w-3 h-3 rounded-full bg-red-500/70"></div>
-          <div class="w-3 h-3 rounded-full bg-yellow-500/70"></div>
-          <div class="w-3 h-3 rounded-full bg-green-500/70"></div>
-          <span class="ml-2 text-slate-400 text-xs font-mono">main.cpp</span>
-          <span id="step-indicator" class="ml-auto">line: — / —</span>
+      <!-- Code Editor -->
+      <div class="panel editor-panel">
+        <div class="editor-titlebar">
+          <div class="window-dots">
+            <div class="wd wd-r"></div>
+            <div class="wd wd-y"></div>
+            <div class="wd wd-g"></div>
+          </div>
+          <span class="editor-filename">main.cpp</span>
+          <span id="step-indicator" style="margin-left:auto;font-size:0.62rem;letter-spacing:0.06em;color:var(--text-muted);">line: — / —</span>
         </div>
-        <!-- Textarea -->
-        <div class="p-4">
+        <div class="editor-body">
+          <div class="line-gutter" id="line-gutter">
+            <!-- populated by JS -->
+          </div>
           <textarea id="code-input" spellcheck="false" rows="9">int list[5];
 list[0] = 10;
 list[2] = 30;
@@ -147,99 +429,116 @@ list[5] = 99; // 越界測試</textarea>
       </div>
 
       <!-- Buttons -->
-      <div class="flex gap-3">
-        <button id="btn-step"
-          class="flex-1 py-3 px-6 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-bold text-sm transition-colors flex items-center justify-center gap-2 shadow-lg shadow-indigo-900/50">
-          <span>▶</span> Step (下一步)
-        </button>
-        <button id="btn-reset"
-          class="py-3 px-5 rounded-xl bg-slate-700 hover:bg-slate-600 active:bg-slate-800 text-white font-semibold text-sm transition-colors">
-          ↺ Reset
-        </button>
+      <div class="btn-row">
+        <button id="btn-step" class="btn btn-primary">▶ STEP</button>
+        <button id="btn-reset" class="btn btn-secondary">↺ RESET</button>
       </div>
 
       <!-- Concept Card -->
-      <div class="bg-slate-900 border border-slate-700 rounded-xl p-4">
-        <h3 class="text-xs font-mono text-indigo-400 uppercase tracking-widest mb-3">記憶體配置說明</h3>
-        <div class="space-y-2 text-xs text-slate-400 leading-relaxed">
-          <p>📌 <code class="text-slate-300">int list[5]</code> 宣告後，系統在 Stack 上配置連續的 <strong class="text-white">20 bytes</strong>。</p>
-          <p>📌 每個 <code class="text-slate-300">int</code> 佔 <strong class="text-white">4 bytes</strong>，位址間距固定為 4。</p>
-          <p>📌 <code class="text-slate-300">list[i]</code> 等同於 <code class="text-slate-300">*(list + i)</code>，即 base address + i × 4。</p>
-          <p>⚠️ C++ 不做越界檢查，越界存取屬 <strong class="text-red-400">Undefined Behavior</strong>。</p>
+      <div class="panel concept-card">
+        <p class="concept-title">// MEMORY MODEL</p>
+        <ul class="concept-list">
+          <li><code>int list[5]</code> 在 Stack 配置連續 <strong>20 bytes</strong></li>
+          <li>每個 <code>int</code> 佔 <strong>4 bytes</strong>，位址間距固定</li>
+          <li><code>list[i]</code> ≡ <code>*(list + i)</code>，即 base + i × 4</li>
+          <li class="warn-text">C++ 不做越界檢查 → Undefined Behavior</li>
+        </ul>
+      </div>
+
+      <!-- Console -->
+      <div class="panel">
+        <div class="panel-header console-header">
+          <div class="console-pulse"></div>
+          <span class="console-label">CONSOLE OUTPUT</span>
+          <button id="btn-clear-console" class="btn-console-clear">[ CLEAR ]</button>
+        </div>
+        <div id="console-output">
+          <span class="console-line dim">// 按下 STEP 開始執行程式碼...</span>
         </div>
       </div>
 
-      <!-- Console Output -->
-      <div class="bg-slate-900 border border-slate-700 rounded-xl overflow-hidden">
-        <div class="px-4 py-2 bg-slate-800 border-b border-slate-700 flex items-center gap-2">
-          <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
-          <span class="text-slate-400 text-xs font-mono">console output</span>
-          <button id="btn-clear-console" class="ml-auto text-slate-600 hover:text-slate-400 text-xs font-mono transition-colors">clear</button>
-        </div>
-        <div id="console-output" class="p-3">
-          <p class="text-slate-600 italic">// 按下 Step 開始執行程式碼...</p>
-        </div>
-      </div>
+    </div>
 
-    </section>
+    <!-- ── Right: Visualization Canvas ── -->
+    <div class="right-col">
 
-    <!-- Right: Visualization Canvas (3 cols) -->
-    <section class="lg:col-span-3 flex flex-col gap-5">
-
-      <!-- Array Visualization Card -->
-      <div class="bg-slate-900 border border-slate-700 rounded-xl overflow-hidden flex-1">
-        <div class="px-4 py-2.5 bg-slate-800 border-b border-slate-700 flex items-center gap-3">
-          <span class="text-slate-400 text-xs font-mono">Memory Layout — Stack</span>
-          <span id="array-info" class="ml-auto text-slate-600 text-xs font-mono"></span>
+      <!-- Memory Layout Canvas -->
+      <div class="panel canvas-panel">
+        <div class="panel-header canvas-header">
+          <div class="panel-dot active"></div>
+          <span class="canvas-label">MEMORY LAYOUT — STACK</span>
+          <span id="array-info"></span>
         </div>
 
-        <!-- Empty State -->
-        <div id="empty-state" class="flex flex-col items-center justify-center h-56 text-slate-600">
-          <div class="text-5xl mb-3 opacity-30">[ ]</div>
-          <p class="text-sm font-mono">尚未宣告陣列</p>
-          <p class="text-xs mt-1">執行 <code class="text-slate-500">int arr[N];</code> 以配置記憶體</p>
+        <!-- Empty state -->
+        <div id="empty-state">
+          <div class="empty-glyph">[ ]</div>
+          <p class="empty-text">NO ARRAY DECLARED</p>
+          <p class="empty-hint">execute <code>int arr[N];</code> to allocate memory</p>
         </div>
 
-        <!-- Array Render Area -->
-        <div id="array-wrapper" class="hidden px-4 py-6">
+        <!-- Array cells -->
+        <div id="array-wrapper" class="hidden">
           <div id="array-container"></div>
         </div>
 
-        <!-- C++ Code Equivalent -->
-        <div id="cpp-equivalent" class="hidden px-4 pb-4">
-          <div class="bg-slate-800/60 rounded-lg px-4 py-3 font-mono text-xs text-slate-400 border border-slate-700/50">
-            <span class="text-slate-600">// pointer arithmetic equivalent</span><br>
-            <span id="cpp-equiv-text" class="text-green-400"></span>
+        <!-- C++ pointer equiv -->
+        <div id="cpp-equivalent" class="hidden">
+          <div class="cpp-equiv-box">
+            <span class="cpp-equiv-comment">// pointer arithmetic equivalent</span>
+            <span id="cpp-equiv-text"></span>
           </div>
         </div>
       </div>
 
       <!-- Legend -->
-      <div class="bg-slate-900 border border-slate-700 rounded-xl p-4">
-        <h3 class="text-xs font-mono text-slate-500 uppercase tracking-widest mb-3">圖例說明</h3>
-        <div class="flex flex-wrap gap-x-6 gap-y-2 text-xs text-slate-400">
-          <div class="flex items-center gap-2">
-            <div class="w-5 h-5 rounded border-2 border-indigo-400 bg-indigo-900/40"></div>
-            <span>已初始化格子</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <div class="w-5 h-5 rounded border-2 border-slate-600 bg-slate-800"></div>
+      <div class="panel legend-panel">
+        <p class="legend-title">// LEGEND</p>
+        <div class="legend-items">
+          <div class="legend-item">
+            <div class="legend-cell lc-uninit"></div>
             <span>未初始化（垃圾值）</span>
           </div>
-          <div class="flex items-center gap-2">
-            <div class="w-5 h-5 rounded border-2 border-yellow-400 bg-yellow-900/40 animate-pulse"></div>
-            <span>正在存取（highlight）</span>
+          <div class="legend-item">
+            <div class="legend-cell lc-init"></div>
+            <span>已賦值</span>
           </div>
-          <div class="flex items-center gap-2">
-            <div class="w-5 h-5 rounded border-2 border-red-500 bg-red-900/30"></div>
+          <div class="legend-item">
+            <div class="legend-cell lc-active"></div>
+            <span>正在存取</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-cell lc-error"></div>
             <span>越界錯誤</span>
           </div>
         </div>
       </div>
 
-    </section>
+    </div>
   </main>
 
-  <script src="js/array-vis.js"></script>
+</div>
+
+<script>
+  // ── Live line gutter ──────────────────────────────────────
+  const codeInput = document.getElementById('code-input');
+  const lineGutter = document.getElementById('line-gutter');
+
+  function updateGutter(activeLine) {
+    const lines = codeInput.value.split('\n');
+    lineGutter.innerHTML = lines.map((_, i) => {
+      const cls = i === activeLine ? 'gutter-num current-line' : 'gutter-num';
+      return `<span class="${cls}">${i + 1}</span>`;
+    }).join('');
+  }
+
+  codeInput.addEventListener('input', () => updateGutter(-1));
+  updateGutter(-1);
+
+  // Hook into array-vis.js to sync active line
+  // array-vis.js will call window.setActiveLine(n) after each step
+  window.setActiveLine = (n) => updateGutter(n);
+</script>
+<script src="js/array-vis.js"></script>
 </body>
 </html>

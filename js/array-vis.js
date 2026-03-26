@@ -277,14 +277,13 @@ function stepOneLine() {
 // ─── Textarea Line Highlighting ───────────────────────────────────────────────
 
 /**
- * Colour the textarea background row to show which line is being executed.
- * Pure CSS approach: overlay a highlight div on top.
- * (Simple version: just update the step indicator.)
+ * Sync the line gutter highlight in array-vis.html.
+ * Calls window.setActiveLine() which is defined inline in the HTML.
  */
 function highlightTextareaLine(lineIndex) {
-  // We keep it lightweight: just update the step indicator text.
-  // A richer implementation would draw a highlight bar overlay.
-  updateStepIndicator();
+  if (typeof window.setActiveLine === 'function') {
+    window.setActiveLine(lineIndex);
+  }
 }
 
 // ─── Reset ────────────────────────────────────────────────────────────────────
