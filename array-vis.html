@@ -62,7 +62,7 @@
     .main-grid {
       flex: 1;
       display: grid;
-      grid-template-columns: minmax(260px, 360px) 1fr;
+      grid-template-columns: minmax(360px, 460px) 1fr;
       gap: 0.75rem;
       padding: 0.6rem 1.25rem 0.75rem;
       align-items: stretch;
@@ -269,6 +269,7 @@
       animation: fadeSlideUp 0.4s ease 0.3s forwards;
       opacity: 0;
       overflow-y: auto;
+      height: 100%;
     }
     .right-col::-webkit-scrollbar { width: 3px; }
     .right-col::-webkit-scrollbar-track { background: transparent; }
@@ -339,12 +340,13 @@
     }
 
     #array-wrapper.hidden { display: none; }
+    #empty-state.hidden   { display: none; }
 
     /* Multi-array: column of .array-group items */
     #array-container {
       display: flex;
       flex-direction: column;
-      gap: 1.75rem;
+      gap: 1rem;
       width: 100%;
     }
 
@@ -374,9 +376,21 @@
       color: var(--success);
     }
 
-    /* Memory diagram key */
-    .legend-panel {
-      padding: 0.875rem 1.25rem;
+    /* Memory diagram layout: main area + legend sidebar */
+    .canvas-body {
+      display: flex;
+    }
+
+    .canvas-main {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .canvas-legend {
+      width: 130px;
+      flex-shrink: 0;
+      border-left: 1px solid var(--border);
+      padding: 0.875rem 1rem;
     }
 
     .legend-title {
@@ -388,15 +402,15 @@
 
     .legend-items {
       display: flex;
-      flex-wrap: wrap;
-      gap: 0.9rem 1.5rem;
+      flex-direction: column;
+      gap: 0.7rem;
     }
 
     .legend-item {
       display: flex;
       align-items: center;
       gap: 0.5rem;
-      font-size: 0.82rem;
+      font-size: 0.78rem;
       color: var(--text-muted);
     }
 
@@ -517,48 +531,52 @@ list[5] = 99; // 越界測試</textarea>
           <span id="array-info"></span>
         </div>
 
-        <!-- Empty state -->
-        <div id="empty-state">
-          <div class="empty-glyph">[ ]</div>
-          <div>
-            <p class="empty-text">NO ARRAY DECLARED</p>
-            <p class="empty-hint">execute <code>int arr[N];</code> to allocate memory</p>
-          </div>
-        </div>
+        <div class="canvas-body">
+          <div class="canvas-main">
+            <!-- Empty state -->
+            <div id="empty-state">
+              <div class="empty-glyph">[ ]</div>
+              <div>
+                <p class="empty-text">NO ARRAY DECLARED</p>
+                <p class="empty-hint">execute <code>int arr[N];</code> to allocate memory</p>
+              </div>
+            </div>
 
-        <!-- Array cells -->
-        <div id="array-wrapper" class="hidden">
-          <div id="array-container"></div>
-        </div>
+            <!-- Array cells -->
+            <div id="array-wrapper" class="hidden">
+              <div id="array-container"></div>
+            </div>
 
-        <!-- C++ pointer equiv -->
-        <div id="cpp-equivalent" class="hidden">
-          <div class="cpp-equiv-box">
-            <span class="cpp-equiv-comment">// pointer arithmetic equivalent</span>
-            <span id="cpp-equiv-text"></span>
+            <!-- C++ pointer equiv -->
+            <div id="cpp-equivalent" class="hidden">
+              <div class="cpp-equiv-box">
+                <span class="cpp-equiv-comment">// pointer arithmetic equivalent</span>
+                <span id="cpp-equiv-text"></span>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
 
-      <!-- Legend -->
-      <div class="panel legend-panel">
-        <p class="legend-title">// LEGEND</p>
-        <div class="legend-items">
-          <div class="legend-item">
-            <div class="legend-cell lc-uninit"></div>
-            <span>未初始化（垃圾值）</span>
-          </div>
-          <div class="legend-item">
-            <div class="legend-cell lc-init"></div>
-            <span>已賦值</span>
-          </div>
-          <div class="legend-item">
-            <div class="legend-cell lc-active"></div>
-            <span>正在存取</span>
-          </div>
-          <div class="legend-item">
-            <div class="legend-cell lc-error"></div>
-            <span>越界錯誤</span>
+          <!-- Legend sidebar -->
+          <div class="canvas-legend">
+            <p class="legend-title">// LEGEND</p>
+            <div class="legend-items">
+              <div class="legend-item">
+                <div class="legend-cell lc-uninit"></div>
+                <span>未初始化</span>
+              </div>
+              <div class="legend-item">
+                <div class="legend-cell lc-init"></div>
+                <span>已賦值</span>
+              </div>
+              <div class="legend-item">
+                <div class="legend-cell lc-active"></div>
+                <span>正在存取</span>
+              </div>
+              <div class="legend-item">
+                <div class="legend-cell lc-error"></div>
+                <span>越界錯誤</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>

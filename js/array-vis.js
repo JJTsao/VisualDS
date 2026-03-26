@@ -34,12 +34,7 @@ int y = arr[0];`,
     zh: '元素覆寫',
     desc: '覆寫指定索引的值，原值直接被取代 — O(1)',
     code:
-`int arr[5];
-arr[0] = 10;
-arr[1] = 20;
-arr[2] = 30;
-arr[3] = 40;
-arr[4] = 50;
+`int arr[5] = {10, 20, 30, 40, 50};
 // 覆寫 index 2
 arr[2] = 99;
 arr[4] = 77;`,
@@ -49,13 +44,9 @@ arr[4] = 77;`,
     zh: '陣列複製',
     desc: '逐元素複製到新陣列，需 O(n) 時間與額外 O(n) 空間',
     code:
-`int src[4];
-src[0] = 5;
-src[1] = 12;
-src[2] = 8;
-src[3] = 3;
+`int src[4] = {5, 12, 8, 3};
 // 複製到 dst
-int dst[4];
+int dst[4] = {0, 0, 0, 0};
 dst[0] = src[0];
 dst[1] = src[1];
 dst[2] = src[2];
@@ -66,12 +57,7 @@ dst[3] = src[3];`,
     zh: '插入元素',
     desc: '在 index 2 插入 99，後續元素需逐一右移 — O(n)',
     code:
-`int arr[6];
-arr[0] = 10;
-arr[1] = 20;
-arr[2] = 30;
-arr[3] = 40;
-arr[4] = 50;
+`int arr[6] = {10, 20, 30, 40, 50, 0};
 // 在 index 2 插入 99 (先右移)
 arr[5] = arr[4];
 arr[4] = arr[3];
@@ -83,12 +69,7 @@ arr[2] = 99;`,
     zh: '刪除元素',
     desc: '刪除 index 2，後續元素需逐一左移，末位清零 — O(n)',
     code:
-`int arr[5];
-arr[0] = 10;
-arr[1] = 20;
-arr[2] = 30;
-arr[3] = 40;
-arr[4] = 50;
+`int arr[5] = {10, 20, 30, 40, 50};
 // 刪除 index 2 (左移覆蓋)
 arr[2] = arr[3];
 arr[3] = arr[4];
@@ -130,11 +111,12 @@ const opDesc          = document.getElementById('op-desc');
 
 // ─── Regex Patterns ───────────────────────────────────────────────────────────
 
-const RE_DECLARE    = /^\s*int\s+(\w+)\s*\[\s*(\d+)\s*\];\s*(\/\/.*)?$/;
-const RE_ASSIGN_LIT = /^\s*(\w+)\s*\[\s*(\d+)\s*\]\s*=\s*(-?\d+)\s*;\s*(\/\/.*)?$/;
-const RE_ASSIGN_ARR = /^\s*(\w+)\s*\[\s*(\d+)\s*\]\s*=\s*(\w+)\s*\[\s*(\d+)\s*\];\s*(\/\/.*)?$/;
-const RE_READ       = /^\s*int\s+\w+\s*=\s*(\w+)\s*\[\s*(\d+)\s*\];\s*(\/\/.*)?$/;
-const RE_BLANK      = /^\s*(\/\/.*)?$/;
+const RE_DECLARE      = /^\s*int\s+(\w+)\s*\[\s*(\d+)\s*\];\s*(\/\/.*)?$/;
+const RE_DECLARE_INIT = /^\s*int\s+(\w+)\s*\[\s*(\d+)\s*\]\s*=\s*\{([^}]*)\};\s*(\/\/.*)?$/;
+const RE_ASSIGN_LIT   = /^\s*(\w+)\s*\[\s*(\d+)\s*\]\s*=\s*(-?\d+)\s*;\s*(\/\/.*)?$/;
+const RE_ASSIGN_ARR   = /^\s*(\w+)\s*\[\s*(\d+)\s*\]\s*=\s*(\w+)\s*\[\s*(\d+)\s*\];\s*(\/\/.*)?$/;
+const RE_READ         = /^\s*int\s+\w+\s*=\s*(\w+)\s*\[\s*(\d+)\s*\];\s*(\/\/.*)?$/;
+const RE_BLANK        = /^\s*(\/\/.*)?$/;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -319,6 +301,30 @@ function stepOneLine() {
     renderAllArrays();
 
     logConsole(`Line ${state.currentLine}: Declared  int ${name}[${size}]`, 'declare');
+    logConsole(`  → ${size * 4} bytes at ${toHex(base)} – ${toHex(base + size * 4 - 1)}`, 'info');
+    return;
+  }
+
+  // ── Declaration with init: int name[size] = {v0, v1, ...}; ─
+  const declInitMatch = line.match(RE_DECLARE_INIT);
+  if (declInitMatch) {
+    const name   = declInitMatch[1];
+    const size   = parseInt(declInitMatch[2], 10);
+    const tokens = declInitMatch[3].split(',').map(s => s.trim()).filter(s => s !== '');
+    const base   = state.addrCounter;
+    state.addrCounter += size * 4 + 0x100;
+
+    const values = new Array(size).fill(null);
+    for (let i = 0; i < size && i < tokens.length; i++) {
+      const v = parseInt(tokens[i], 10);
+      if (!isNaN(v)) values[i] = v;
+    }
+
+    state.arrays[name] = { size, values, baseAddr: base };
+    state.arrayOrder.push(name);
+    renderAllArrays();
+
+    logConsole(`Line ${state.currentLine}: Declared  int ${name}[${size}] = {${tokens.slice(0, size).join(', ')}}`, 'declare');
     logConsole(`  → ${size * 4} bytes at ${toHex(base)} – ${toHex(base + size * 4 - 1)}`, 'info');
     return;
   }

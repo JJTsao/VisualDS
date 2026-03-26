@@ -24,7 +24,7 @@ js/array-vis.js   → Array parser + visualizer (self-contained, no framework)
 
 ### Page pattern for each `*-vis.html`
 
-Layout: CSS Grid, two columns — left control panel (`minmax(260px, 360px)`) / right canvas (`1fr`).
+Layout: CSS Grid, two columns — left control panel (`minmax(360px, 460px)`) / right canvas (`1fr`).
 
 Page uses App Shell pattern: `page-wrapper` is `height: 100vh; overflow: hidden`. Both columns are `overflow-y: auto; height: 100%` for independent scrolling.
 
@@ -36,7 +36,7 @@ Required DOM IDs (consumed by the JS):
 - `#cpp-equivalent`, `#cpp-equiv-text`
 - `#op-desc` — operation description text
 
-Panel layout — left col: Op selector + code editor + buttons. Right col: Memory Layout + Legend + Memory Model + Console Output.
+Panel layout — left col: Op selector + code editor + buttons. Right col: Memory Layout (含內嵌 Legend sidebar) + Memory Model + Console Output.
 
 Inline `<script>` in the HTML handles the line-gutter only. It must be wrapped in an IIFE to avoid `const` redeclaration conflicts with the external JS file. It exposes `window.setActiveLine(n)` for the JS to call.
 
@@ -47,7 +47,7 @@ Each unit script is self-contained. Key structure:
 ```
 OPERATIONS  → preset code snippets keyed by op name
 state       → { currentLine, lines, arrays{}, arrayOrder[], addrCounter }
-Regex       → RE_DECLARE, RE_ASSIGN_LIT, RE_ASSIGN_ARR, RE_READ, RE_BLANK
+Regex       → RE_DECLARE, RE_DECLARE_INIT, RE_ASSIGN_LIT, RE_ASSIGN_ARR, RE_READ, RE_BLANK
 stepOneLine() → main parser, called on each Step click
 reset()       → clears state + DOM
 window.loadOperation(key) → loads preset, resets, syncs gutter
@@ -55,7 +55,7 @@ window.loadOperation(key) → loads preset, resets, syncs gutter
 
 Multi-array support: `state.arrays` is a map `name → { size, values[], baseAddr }`. Each array gets base address `state.addrCounter`; counter advances by `size * 4 + 0x100` per declaration. Cell IDs follow `cell-${arrayName}-${index}` and `cell-value-${arrayName}-${index}`.
 
-Regex parse order in `stepOneLine()` matters — check `RE_ASSIGN_ARR` before `RE_ASSIGN_LIT` (both can match assignment lines).
+Regex parse order in `stepOneLine()` matters — check `RE_DECLARE_INIT` before `RE_READ` (both start with `int`), and `RE_ASSIGN_ARR` before `RE_ASSIGN_LIT` (both can match assignment lines).
 
 ### Animation system
 
