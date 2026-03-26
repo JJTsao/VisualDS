@@ -72,6 +72,19 @@
 
 ---
 
+## 響應式設計策略：clamp() + 900px 單欄切換
+
+**決策**：不用 viewport-relative 單位做全局縮放，而是對各元件個別使用 `clamp(min, preferred, max)` 實現流體縮放。
+
+**Why**：全局 `vw`/`vh` 縮放會讓所有元素等比縮小，在大型桌面螢幕上反而太小。`clamp()` 讓每個元件有自己的縮放範圍，在桌面最大尺寸維持設計上限。
+
+**How to apply**：
+- 左欄寬度：`clamp(300px, 36%, 460px)`（900–1278px 間線性縮放）
+- 格子/節點大小：`clamp(下限px, Xvw, 上限px)`，上限即桌面設計尺寸
+- ≤900px 單欄時：`page-wrapper` 改 `height: auto; overflow-y: auto`，兩欄改 `height: auto; overflow-y: visible`，否則 App Shell 的 overflow:hidden 會截斷內容
+
+---
+
 ## Line-height 改為固定 rem 值
 
 **決策**：`#code-input` 和 `.gutter-num` 的 `line-height` 都改為固定 `1.52rem`（非倍數）。

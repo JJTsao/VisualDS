@@ -46,6 +46,13 @@
 - [x] 動畫：highlight / value-change / error-shake
 - [x] array-group / array-cells 多陣列佈局
 - [x] op-btn / op-grid / op-desc 操作選單
+- [x] 文字對比度修正（`--text-muted` #6b5020→#9a7530，符合 WCAG AA）
+- [x] `.array-cell` 改用 `clamp(48px, 5.5vw, 68px)` 隨 viewport 縮放
+
+### 響應式佈局（2026-03-26）
+- [x] 左欄改用 `clamp(300px, 36%, 460px)` 線性縮放（原固定 360–460px）
+- [x] ≤900px 修正：取消 overflow:hidden，整頁改為可捲動單欄
+- [x] 格子字型、地址、索引標籤同步 clamp 縮放
 
 ## 已知問題 / 限制
 
