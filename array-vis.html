@@ -321,17 +321,16 @@
     #array-wrapper {
       padding: 1.5rem 1.25rem;
       min-height: 180px;
-      display: flex;
-      align-items: center;
     }
 
     #array-wrapper.hidden { display: none; }
 
+    /* Multi-array: column of .array-group items */
     #array-container {
       display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      align-items: flex-end;
+      flex-direction: column;
+      gap: 1.75rem;
+      width: 100%;
     }
 
     /* C++ equivalent strip */
@@ -428,6 +427,37 @@
 
     <!-- ── Left: Control Panel ── -->
     <div class="left-col">
+
+      <!-- Operation Selector -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-dot active"></div>
+          <span style="font-size:0.65rem;letter-spacing:0.1em;color:var(--text-muted);">BASIC OPERATIONS</span>
+        </div>
+        <div class="op-grid">
+          <button class="op-btn active" data-op="access" onclick="loadOperation('access')">
+            <span class="op-en">ACCESS</span>
+            <span class="op-zh">元素檢索</span>
+          </button>
+          <button class="op-btn" data-op="write" onclick="loadOperation('write')">
+            <span class="op-en">WRITE</span>
+            <span class="op-zh">元素覆寫</span>
+          </button>
+          <button class="op-btn" data-op="copy" onclick="loadOperation('copy')">
+            <span class="op-en">COPY</span>
+            <span class="op-zh">陣列複製</span>
+          </button>
+          <button class="op-btn" data-op="insert" onclick="loadOperation('insert')">
+            <span class="op-en">INSERT</span>
+            <span class="op-zh">插入元素</span>
+          </button>
+          <button class="op-btn" data-op="delete" onclick="loadOperation('delete')">
+            <span class="op-en">DELETE</span>
+            <span class="op-zh">刪除元素</span>
+          </button>
+        </div>
+        <div id="op-desc" class="op-desc">透過索引直接存取元素，定址公式：base + i × 4 — O(1)</div>
+      </div>
 
       <!-- Code Editor -->
       <div class="panel editor-panel">
