@@ -44,6 +44,34 @@
 
 ---
 
+## 上一步功能：快照法 + 共用 history.js
+
+**決策**：以「執行前快照」實作 undo，共用工具抽出為 `js/history.js`（`StepHistory` class）。
+
+**Why**：
+- 解譯器是純函式式的（無非同步 I/O），state 是純 JSON 物件，`JSON.parse(JSON.stringify(...))` 即可完整深拷貝。
+- Console 以 `innerHTML` 字串快照，還原時直接覆寫，不需要逐筆 log 追蹤。
+- 抽成獨立 module 讓未來單元直接複用，不重複設計。
+
+**快照欄位規格（以 Array 單元為例）**：
+```js
+{
+  currentLine, arrays, arrayOrder, addrCounter,  // interpreter state
+  consoleHTML,   // console DOM 的 innerHTML 字串
+  cppEquivText,  // null = 隱藏，string = 顯示內容
+}
+```
+
+**How to apply（新單元開發規範）**：
+1. 在 `*-vis.html` 引入 `<script src="js/history.js"></script>`（放在 unit script 之前）
+2. 在 unit JS 頂層建立 `const history = new StepHistory()`
+3. `stepOneLine()` 第一行：`history.push({...state, consoleHTML: ...})`；同時 `btnStepBack.disabled = false`
+4. `stepBack()`：`history.pop()` → 還原 state → 呼叫 `renderAll()` → 同步 UI indicators
+5. `reset()`：`history.clear()`；`btnStepBack.disabled = true`
+6. State 設計原則：**所有欄位必須是 JSON-serialisable**（不放 DOM ref、不放 Function）
+
+---
+
 ## Line-height 改為固定 rem 值
 
 **決策**：`#code-input` 和 `.gutter-num` 的 `line-height` 都改為固定 `1.52rem`（非倍數）。

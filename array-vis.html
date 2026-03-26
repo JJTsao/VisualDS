@@ -485,6 +485,7 @@ list[5] = 99; // 越界測試</textarea>
       <!-- Buttons -->
       <div class="btn-row">
         <button id="btn-step" class="btn btn-primary">▶ STEP</button>
+        <button id="btn-step-back" class="btn btn-secondary" disabled>◀ BACK</button>
         <button id="btn-reset" class="btn btn-secondary">↺ RESET</button>
       </div>
 
@@ -614,6 +615,7 @@ list[5] = 99; // 越界測試</textarea>
     window.setActiveLine = (n) => updateGutter(n);
   })();
 </script>
+<script src="js/history.js"></script>
 <script src="js/array-vis.js"></script>
 </body>
 </html>

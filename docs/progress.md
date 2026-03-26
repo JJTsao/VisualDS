@@ -23,6 +23,10 @@
 - [x] C++ pointer arithmetic 等效顯示
 - [x] 圖例說明
 
+### js/history.js（共用 undo 工具）
+- [x] `StepHistory` class：`push` / `pop` / `clear` / `isEmpty`
+- [x] JSON deep-copy 快照（state 純物件，無 DOM ref）
+
 ### js/array-vis.js（Parser & 視覺化）
 - [x] 多陣列狀態管理（`state.arrays` map）
 - [x] 支援語法：
@@ -34,6 +38,7 @@
 - [x] 5 個 OPERATIONS 預設範例（ACCESS / WRITE / COPY / INSERT / DELETE）
 - [x] `triggerAnimation()` reflow 重觸發機制
 - [x] error-shake 作用於 `.array-cells`（per-array）
+- [x] 上一步（◀ BACK）：快照法 undo，使用 `StepHistory`
 
 ### css/style.css（設計系統）
 - [x] 全站 CSS custom properties（`--amber`, `--text-dim` 等）
@@ -54,3 +59,5 @@
 - [ ] Queue 單元（queue-vis.html）
 - [ ] Auto Run 模式（自動逐行執行，可調速）
 - [ ] 更多 Array 操作（Search / Sort 等）
+
+> **新單元開發提醒**：上一步功能已有通用實作，接入方式見 `docs/decisions.md` — 上一步功能：快照法 + 共用 history.js。

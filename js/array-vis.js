@@ -107,10 +107,15 @@ const state = {
   currentOp:    null,
 };
 
+// ─── History ──────────────────────────────────────────────────────────────────
+
+const history = new StepHistory();
+
 // ─── DOM References ───────────────────────────────────────────────────────────
 
 const codeInput       = document.getElementById('code-input');
 const btnStep         = document.getElementById('btn-step');
+const btnStepBack     = document.getElementById('btn-step-back');
 const btnReset        = document.getElementById('btn-reset');
 const btnClearConsole = document.getElementById('btn-clear-console');
 const consoleOutput   = document.getElementById('console-output');
@@ -216,6 +221,7 @@ function renderAllArrays() {
       valueSpan.className = 'cell-value';
       valueSpan.id = cellValueId(name, i);
       valueSpan.textContent = arr.values[i] !== null ? arr.values[i] : '?';
+      if (arr.values[i] !== null) cell.classList.add('initialized');
       cell.appendChild(valueSpan);
 
       const indexEl = document.createElement('div');
@@ -276,6 +282,18 @@ function stepOneLine() {
     btnStep.disabled = true;
     return;
   }
+
+  // Snapshot BEFORE any mutation so stepBack() can restore this moment
+  history.push({
+    currentLine:  state.currentLine,
+    arrays:       state.arrays,
+    arrayOrder:   state.arrayOrder,
+    addrCounter:  state.addrCounter,
+    consoleHTML:  consoleOutput.innerHTML,
+    cppEquivText: cppEquivalent.classList.contains('hidden')
+      ? null : cppEquivText.textContent,
+  });
+  btnStepBack.disabled = false;
 
   const rawLine = state.lines[state.currentLine];
   const line    = rawLine.trim();
@@ -399,6 +417,48 @@ function stepOneLine() {
   logConsole(`Line ${state.currentLine}: [Skipped] ${line}`, 'warn');
 }
 
+// ─── Step Back ───────────────────────────────────────────────────────────────
+
+function stepBack() {
+  const snap = history.pop();
+  if (!snap) return;
+
+  // Restore interpreter state
+  state.currentLine  = snap.currentLine;
+  state.arrays       = snap.arrays;
+  state.arrayOrder   = snap.arrayOrder;
+  state.addrCounter  = snap.addrCounter;
+
+  // Re-render memory layout from restored state
+  if (state.arrayOrder.length === 0) {
+    arrayContainer.innerHTML = '';
+    arrayWrapper.classList.add('hidden');
+    emptyState.classList.remove('hidden');
+    arrayInfo.textContent = '';
+  } else {
+    renderAllArrays();
+  }
+
+  // Restore console and cpp-equiv panel
+  consoleOutput.innerHTML = snap.consoleHTML;
+  if (snap.cppEquivText !== null) {
+    cppEquivText.textContent = snap.cppEquivText;
+    cppEquivalent.classList.remove('hidden');
+  } else {
+    cppEquivalent.classList.add('hidden');
+  }
+
+  // Sync indicators
+  updateStepIndicator();
+  if (typeof window.setActiveLine === 'function') {
+    window.setActiveLine(state.currentLine - 1);
+  }
+
+  // Re-enable step; disable back if stack is now empty
+  btnStep.disabled = false;
+  btnStepBack.disabled = history.isEmpty;
+}
+
 // ─── Reset ───────────────────────────────────────────────────────────────────
 
 function reset() {
@@ -417,6 +477,8 @@ function reset() {
     '<span class="console-line dim console-placeholder">// 按下 STEP 開始執行...</span>';
 
   btnStep.disabled = false;
+  history.clear();
+  btnStepBack.disabled = true;
   if (typeof window.setActiveLine === 'function') window.setActiveLine(-1);
   updateStepIndicator();
 }
@@ -445,6 +507,7 @@ window.loadOperation = function (key) {
 // ─── Event Listeners ─────────────────────────────────────────────────────────
 
 btnStep.addEventListener('click', stepOneLine);
+btnStepBack.addEventListener('click', stepBack);
 btnReset.addEventListener('click', reset);
 btnClearConsole.addEventListener('click', () => {
   consoleOutput.innerHTML = '<span class="console-line dim">// console cleared</span>';
