@@ -12,12 +12,13 @@
       z-index: 1;
       display: flex;
       flex-direction: column;
-      min-height: 100vh;
+      height: 100vh;
+      overflow: hidden;
     }
 
     /* ── Page Header ── */
     .page-header {
-      padding: 1.5rem 2rem 1rem;
+      padding: 0.6rem 1.5rem 0.5rem;
       border-bottom: 1px solid var(--border);
       display: flex;
       align-items: flex-end;
@@ -61,10 +62,12 @@
     .main-grid {
       flex: 1;
       display: grid;
-      grid-template-columns: minmax(280px, 380px) 1fr;
-      gap: 1.5rem;
-      padding: 1.5rem 2rem 2rem;
-      align-items: start;
+      grid-template-columns: minmax(260px, 360px) 1fr;
+      gap: 0.75rem;
+      padding: 0.6rem 1.25rem 0.75rem;
+      align-items: stretch;
+      min-height: 0;
+      overflow: hidden;
     }
 
     @media (max-width: 900px) {
@@ -75,10 +78,16 @@
     .left-col {
       display: flex;
       flex-direction: column;
-      gap: 1rem;
+      gap: 0.5rem;
       animation: fadeSlideUp 0.4s ease 0.2s forwards;
       opacity: 0;
+      overflow-y: auto;
+      height: 100%;
+      padding-right: 4px;
     }
+    .left-col::-webkit-scrollbar { width: 3px; }
+    .left-col::-webkit-scrollbar-track { background: transparent; }
+    .left-col::-webkit-scrollbar-thumb { background: var(--border-mid); border-radius: 2px; }
 
     /* Editor panel */
     .editor-panel { }
@@ -140,8 +149,8 @@
     }
 
     .gutter-num {
-      font-size: 0.82rem;    /* match textarea exactly */
-      line-height: 1.52rem;  /* fixed — same as textarea */
+      font-size: 1rem;       /* match textarea exactly */
+      line-height: 1.75rem;  /* fixed — same as textarea */
       color: var(--text-muted);
       font-family: var(--font-mono);
       user-select: none;
@@ -170,11 +179,11 @@
 
     /* Concept card */
     .concept-card {
-      padding: 1rem;
+      padding: 0.75rem;
     }
 
     .concept-title {
-      font-size: 0.6rem;
+      font-size: 0.72rem;
       letter-spacing: 0.15em;
       color: var(--amber-dim);
       margin-bottom: 0.75rem;
@@ -188,7 +197,7 @@
     }
 
     .concept-list li {
-      font-size: 0.7rem;
+      font-size: 0.88rem;
       color: var(--text-dim);
       line-height: 1.6;
       padding-left: 1rem;
@@ -207,7 +216,7 @@
       background: rgba(232, 165, 0, 0.08);
       padding: 0 3px;
       border-radius: 2px;
-      font-size: 0.68rem;
+      font-size: 0.85rem;
     }
 
     .concept-list .warn-text { color: var(--error); }
@@ -233,7 +242,7 @@
     }
 
     .console-label {
-      font-size: 0.65rem;
+      font-size: 0.78rem;
       letter-spacing: 0.1em;
       color: var(--text-muted);
     }
@@ -256,10 +265,14 @@
     .right-col {
       display: flex;
       flex-direction: column;
-      gap: 1rem;
+      gap: 0.5rem;
       animation: fadeSlideUp 0.4s ease 0.3s forwards;
       opacity: 0;
+      overflow-y: auto;
     }
+    .right-col::-webkit-scrollbar { width: 3px; }
+    .right-col::-webkit-scrollbar-track { background: transparent; }
+    .right-col::-webkit-scrollbar-thumb { background: var(--border-mid); border-radius: 2px; }
 
     /* Memory canvas */
     .canvas-panel {}
@@ -271,7 +284,7 @@
     }
 
     .canvas-label {
-      font-size: 0.65rem;
+      font-size: 0.78rem;
       letter-spacing: 0.1em;
       color: var(--text-muted);
     }
@@ -286,31 +299,33 @@
     /* Empty state */
     #empty-state {
       display: flex;
-      flex-direction: column;
+      flex-direction: row;
       align-items: center;
       justify-content: center;
-      min-height: 220px;
+      gap: 0.75rem;
+      padding: 1rem 1.25rem;
       color: var(--text-muted);
-      gap: 0.5rem;
     }
 
     .empty-glyph {
-      font-size: 2.5rem;
+      font-size: 1.4rem;
       opacity: 0.25;
       letter-spacing: -0.05em;
       font-weight: 700;
+      flex-shrink: 0;
     }
 
     .empty-text {
-      font-size: 0.72rem;
+      font-size: 0.82rem;
       letter-spacing: 0.06em;
       color: var(--text-muted);
     }
 
     .empty-hint {
-      font-size: 0.62rem;
+      font-size: 0.72rem;
       color: var(--text-muted);
       opacity: 0.6;
+      margin-top: 0.15rem;
     }
 
     .empty-hint code {
@@ -319,8 +334,8 @@
 
     /* Array wrapper */
     #array-wrapper {
-      padding: 1.5rem 1.25rem;
-      min-height: 180px;
+      padding: 1rem 1.25rem;
+      min-height: 130px;
     }
 
     #array-wrapper.hidden { display: none; }
@@ -365,7 +380,7 @@
     }
 
     .legend-title {
-      font-size: 0.6rem;
+      font-size: 0.72rem;
       letter-spacing: 0.12em;
       color: var(--text-muted);
       margin-bottom: 0.7rem;
@@ -381,7 +396,7 @@
       display: flex;
       align-items: center;
       gap: 0.5rem;
-      font-size: 0.65rem;
+      font-size: 0.82rem;
       color: var(--text-muted);
     }
 
@@ -475,7 +490,7 @@
           <div class="line-gutter" id="line-gutter">
             <!-- populated by JS -->
           </div>
-          <textarea id="code-input" spellcheck="false" rows="9">int list[5];
+          <textarea id="code-input" spellcheck="false" rows="7">int list[5];
 list[0] = 10;
 list[2] = 30;
 list[5] = 99; // 越界測試</textarea>
@@ -487,29 +502,6 @@ list[5] = 99; // 越界測試</textarea>
         <button id="btn-step" class="btn btn-primary">▶ STEP</button>
         <button id="btn-step-back" class="btn btn-secondary" disabled>◀ BACK</button>
         <button id="btn-reset" class="btn btn-secondary">↺ RESET</button>
-      </div>
-
-      <!-- Concept Card -->
-      <div class="panel concept-card">
-        <p class="concept-title">// MEMORY MODEL</p>
-        <ul class="concept-list">
-          <li><code>int list[5]</code> 在 Stack 配置連續 <strong>20 bytes</strong></li>
-          <li>每個 <code>int</code> 佔 <strong>4 bytes</strong>，位址間距固定</li>
-          <li><code>list[i]</code> ≡ <code>*(list + i)</code>，即 base + i × 4</li>
-          <li class="warn-text">C++ 不做越界檢查 → Undefined Behavior</li>
-        </ul>
-      </div>
-
-      <!-- Console -->
-      <div class="panel">
-        <div class="panel-header console-header">
-          <div class="console-pulse"></div>
-          <span class="console-label">CONSOLE OUTPUT</span>
-          <button id="btn-clear-console" class="btn-console-clear">[ CLEAR ]</button>
-        </div>
-        <div id="console-output">
-          <span class="console-line dim">// 按下 STEP 開始執行程式碼...</span>
-        </div>
       </div>
 
     </div>
@@ -528,8 +520,10 @@ list[5] = 99; // 越界測試</textarea>
         <!-- Empty state -->
         <div id="empty-state">
           <div class="empty-glyph">[ ]</div>
-          <p class="empty-text">NO ARRAY DECLARED</p>
-          <p class="empty-hint">execute <code>int arr[N];</code> to allocate memory</p>
+          <div>
+            <p class="empty-text">NO ARRAY DECLARED</p>
+            <p class="empty-hint">execute <code>int arr[N];</code> to allocate memory</p>
+          </div>
         </div>
 
         <!-- Array cells -->
@@ -569,6 +563,29 @@ list[5] = 99; // 越界測試</textarea>
         </div>
       </div>
 
+      <!-- Concept Card -->
+      <div class="panel concept-card">
+        <p class="concept-title">// MEMORY MODEL</p>
+        <ul class="concept-list">
+          <li><code>int list[5]</code> 在 Stack 配置連續 <strong>20 bytes</strong></li>
+          <li>每個 <code>int</code> 佔 <strong>4 bytes</strong>，位址間距固定</li>
+          <li><code>list[i]</code> ≡ <code>*(list + i)</code>，即 base + i × 4</li>
+          <li class="warn-text">C++ 不做越界檢查 → Undefined Behavior</li>
+        </ul>
+      </div>
+
+      <!-- Console -->
+      <div class="panel">
+        <div class="panel-header console-header">
+          <div class="console-pulse"></div>
+          <span class="console-label">CONSOLE OUTPUT</span>
+          <button id="btn-clear-console" class="btn-console-clear">[ CLEAR ]</button>
+        </div>
+        <div id="console-output">
+          <span class="console-line dim">// 按下 STEP 開始執行程式碼...</span>
+        </div>
+      </div>
+
     </div>
   </main>
 
@@ -583,8 +600,8 @@ list[5] = 99; // 越界測試</textarea>
     const gutterEl    = document.getElementById('line-gutter');
     const hlOverlay   = document.getElementById('current-line-highlight');
 
-    // Must match css: font-size 0.82rem, line-height 1.52rem, padding-top 0.875rem
-    const LINE_HEIGHT_REM  = 1.52;
+    // Must match css: font-size 1rem, line-height 1.75rem, padding-top 0.875rem
+    const LINE_HEIGHT_REM  = 1.75;
     const PADDING_TOP_REM  = 0.875;
     // Gutter width offset so overlay starts at gutter left edge
     const GUTTER_LEFT_OFFSET = 0; // overlay covers full width including gutter

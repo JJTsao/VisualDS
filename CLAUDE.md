@@ -24,7 +24,9 @@ js/array-vis.js   → Array parser + visualizer (self-contained, no framework)
 
 ### Page pattern for each `*-vis.html`
 
-Layout: CSS Grid, two columns — left control panel (`minmax(280px, 380px)`) / right canvas (`1fr`).
+Layout: CSS Grid, two columns — left control panel (`minmax(260px, 360px)`) / right canvas (`1fr`).
+
+Page uses App Shell pattern: `page-wrapper` is `height: 100vh; overflow: hidden`. Both columns are `overflow-y: auto; height: 100%` for independent scrolling.
 
 Required DOM IDs (consumed by the JS):
 - `#code-input` — textarea
@@ -33,6 +35,8 @@ Required DOM IDs (consumed by the JS):
 - `#array-container`, `#array-wrapper`, `#empty-state`, `#array-info`
 - `#cpp-equivalent`, `#cpp-equiv-text`
 - `#op-desc` — operation description text
+
+Panel layout — left col: Op selector + code editor + buttons. Right col: Memory Layout + Legend + Memory Model + Console Output.
 
 Inline `<script>` in the HTML handles the line-gutter only. It must be wrapped in an IIFE to avoid `const` redeclaration conflicts with the external JS file. It exposes `window.setActiveLine(n)` for the JS to call.
 

@@ -123,7 +123,7 @@ a { text-decoration: none; color: inherit; }
   background: rgba(7, 5, 1, 0.92);
   border-bottom: 1px solid var(--border);
   backdrop-filter: blur(8px);
-  padding: 0.6rem 2rem;
+  padding: 0.35rem 1.5rem;
   display: flex;
   align-items: center;
   gap: 1rem;
@@ -131,7 +131,7 @@ a { text-decoration: none; color: inherit; }
 
 .nav-back {
   color: var(--text-dim);
-  font-size: 0.75rem;
+  font-size: 0.85rem;
   transition: color var(--transition);
 }
 .nav-back:hover { color: var(--amber); }
@@ -140,7 +140,7 @@ a { text-decoration: none; color: inherit; }
 
 .nav-crumb {
   color: var(--amber);
-  font-size: 0.75rem;
+  font-size: 0.85rem;
   font-weight: 700;
   letter-spacing: 0.08em;
 }
@@ -177,8 +177,8 @@ a { text-decoration: none; color: inherit; }
 /* ─── Code Input ─────────────────────────────────── */
 #code-input {
   font-family: var(--font-mono);
-  font-size: 0.82rem;
-  line-height: 1.52rem;        /* fixed rem so gutter can match exactly */
+  font-size: 1rem;
+  line-height: 1.75rem;        /* fixed rem so gutter can match exactly */
   background: transparent;     /* let highlight overlay show through */
   color: var(--amber-bright);
   border: none;
@@ -198,7 +198,7 @@ a { text-decoration: none; color: inherit; }
 /* ─── Buttons ────────────────────────────────────── */
 .btn {
   font-family: var(--font-mono);
-  font-size: 0.75rem;
+  font-size: 0.85rem;
   font-weight: 700;
   letter-spacing: 0.1em;
   border: 1px solid;
@@ -237,12 +237,12 @@ a { text-decoration: none; color: inherit; }
 /* ─── Console Output ─────────────────────────────── */
 #console-output {
   font-family: var(--font-mono);
-  font-size: 0.75rem;
+  font-size: 0.9rem;
   background: var(--bg-input);
   color: var(--text-dim);
-  padding: 0.75rem;
-  min-height: 90px;
-  max-height: 200px;
+  padding: 0.6rem 0.875rem;
+  min-height: 70px;
+  max-height: 180px;
   overflow-y: auto;
   line-height: 1.7;
 }
@@ -277,7 +277,7 @@ a { text-decoration: none; color: inherit; }
 
 .cell-address {
   font-family: var(--font-mono);
-  font-size: 0.6rem;
+  font-size: 0.72rem;
   color: var(--text-muted);
   letter-spacing: 0.04em;
   user-select: none;
@@ -293,7 +293,7 @@ a { text-decoration: none; color: inherit; }
   border-radius: 3px;
   background: var(--bg-panel);
   font-family: var(--font-mono);
-  font-size: 1.05rem;
+  font-size: 1.15rem;
   font-weight: 700;
   color: var(--text-dim);
   position: relative;
@@ -327,7 +327,7 @@ a { text-decoration: none; color: inherit; }
 
 .cell-index {
   font-family: var(--font-mono);
-  font-size: 0.6rem;
+  font-size: 0.72rem;
   color: var(--text-muted);
   user-select: none;
 }
@@ -404,7 +404,7 @@ a { text-decoration: none; color: inherit; }
 }
 
 .array-group-name {
-  font-size: 0.82rem;
+  font-size: 0.95rem;
   font-weight: 700;
   color: var(--amber);
   letter-spacing: 0.08em;
@@ -412,7 +412,7 @@ a { text-decoration: none; color: inherit; }
 }
 
 .array-group-meta {
-  font-size: 0.62rem;
+  font-size: 0.75rem;
   color: var(--text-muted);
   letter-spacing: 0.04em;
 }
@@ -447,14 +447,14 @@ a { text-decoration: none; color: inherit; }
 .op-btn:last-child { border-right: none; }
 
 .op-en {
-  font-size: 0.6rem;
+  font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.1em;
   color: var(--text-muted);
   transition: color var(--transition);
 }
 .op-zh {
-  font-size: 0.58rem;
+  font-size: 0.68rem;
   color: var(--text-muted);
   opacity: 0.7;
   transition: color var(--transition);
@@ -470,7 +470,7 @@ a { text-decoration: none; color: inherit; }
 
 .op-desc {
   padding: 0.45rem 0.875rem;
-  font-size: 0.63rem;
+  font-size: 0.75rem;
   color: var(--text-muted);
   border-top: 1px solid var(--border);
   letter-spacing: 0.03em;
