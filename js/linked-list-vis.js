@@ -33,6 +33,11 @@ const OPERATIONS = {
     desc: '順序非常重要：先牽後面再斷前面，否則鏈結斷裂 — O(1)',
     code: `Node* head = new Node(10);\nNode* second = new Node(20);\nNode* third = new Node(30);\nhead->next = second;\nsecond->next = third;\nthird->next = nullptr;\nNode* curr = head;\nNode* newNode = new Node(15);\nnewNode->next = curr->next;\ncurr->next = newNode;`,
   },
+  delete_mid: {
+    label: { en: 'DELETE', zh: '刪除節點' },
+    desc: '先用 temp 記住目標節點，再讓 prev 跳過它，最後 delete 釋放記憶體 — O(1)',
+    code: `Node* head = new Node(10);\nNode* second = new Node(20);\nNode* third = new Node(30);\nhead->next = second;\nsecond->next = third;\nthird->next = nullptr;\nNode* prev = head;\n// 先記住要刪除的節點\nNode* temp = prev->next;\n// 讓 prev 繞過 temp,直接指向下一個\nprev->next = temp->next;\n// 釋放記憶體\ndelete temp;`,
+  },
 };
 
 // ─── Scatter Layout Constants ─────────────────────────────────────────────────
@@ -107,6 +112,7 @@ const RE_COUT          = /^\s*cout\s*<<\s*(\w+)->data\s*(<<\s*["\s]+)?\s*;?\s*(\
 const RE_WHILE         = /^\s*while\s*\(\s*(\w+)\s*!=\s*(nullptr|NULL)\s*\)\s*\{?\s*$/;
 const RE_OPEN_BRACE    = /^\s*\{\s*$/;
 const RE_CLOSE_BRACE   = /^\s*\}\s*$/;
+const RE_PTR_FROM_NEXT = /^\s*Node\s*\*\s*(\w+)\s*=\s*(\w+)\s*->\s*next\s*;\s*(\/\/.*)?$/;
 const RE_DELETE        = /^\s*delete\s+(\w+)\s*;\s*(\/\/.*)?$/;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -294,6 +300,20 @@ function getNodePositions() {
     return positions;
   }
 
+  if (state.currentOp === 'delete_mid') {
+    // head=0, second=1(被刪目標), third=2 — 固定座標，讓節點在操作過程中不跑位
+    const slotMap  = { head: 0, second: 1, third: 2 };
+    chain.forEach((name) => {
+      const creationIdx = state.nodeOrder.indexOf(name);
+      const slot = slotMap[name] ?? 3;
+      positions[name] = {
+        x: X_START + slot * X_STEP,
+        y: Y_OFFSETS[creationIdx % Y_OFFSETS.length],
+      };
+    });
+    return positions;
+  }
+
   chain.forEach((name, chainIdx) => {
     const creationIdx = state.nodeOrder.indexOf(name);
     positions[name] = {
@@ -333,7 +353,7 @@ function renderAllNodes() {
   // Ensure container is wide enough for all nodes + NULL indicator
   // insert_mid pre-reserves 4 slots with its wider step value
   const isWideOp      = state.currentOp === 'insert_mid' || state.currentOp === 'insert_head';
-  const slotCount     = isWideOp ? 4 : chain.length;
+  const slotCount     = isWideOp ? 4 : (state.currentOp === 'delete_mid' ? 3 : chain.length);
   const effectiveStep = isWideOp ? 265 : X_STEP;
   llHeapRegion.style.minWidth = (X_START + slotCount * effectiveStep + 90) + 'px';
 
@@ -853,6 +873,41 @@ function stepOneLine() {
     const dataEl = document.getElementById(`nd-data-${nodeName}`);
     triggerAnimation(dataEl, 'node-highlight', 900);
     logConsole(`Line ${state.currentLine + 1}: int ${lhsVar} = ${ptrName}->data  →  ${val}`, 'success');
+    state.currentLine++;
+    updateStepIndicator();
+    return;
+  }
+
+  // ── Node* temp = ptr->next  (宣告新指標並指向某節點的 next) ──
+  const ptrFromNextMatch = line.match(RE_PTR_FROM_NEXT);
+  if (ptrFromNextMatch) {
+    const lhsName = ptrFromNextMatch[1];
+    const rhsPtr  = ptrFromNextMatch[2];
+    const rhsNode = state.ptrs[rhsPtr];
+
+    if (!rhsNode || !state.nodes[rhsNode]) {
+      logConsole(`Line ${state.currentLine + 1}: [錯誤] "${rhsPtr}" 為 nullptr 或未宣告`, 'error');
+      state.currentLine++;
+      updateStepIndicator();
+      return;
+    }
+
+    const nextNode = state.nodes[rhsNode].nextName;
+    if (nextNode === undefined || nextNode === null) {
+      logConsole(`Line ${state.currentLine + 1}: [錯誤] "${rhsPtr}->next" 尚未設定或為 nullptr`, 'error');
+      state.currentLine++;
+      updateStepIndicator();
+      return;
+    }
+
+    state.ptrs[lhsName] = nextNode;
+    renderAllNodes();
+    renderPtrTracker();
+
+    const addrStr = toHex(state.nodes[nextNode]?.addr ?? 0);
+    logConsole(`Line ${state.currentLine + 1}: Node* ${lhsName} = ${rhsPtr}->next  → ${addrStr}`, 'declare');
+    triggerAnimation(document.getElementById(`nd-group-${nextNode}`), 'node-ptr-update', 950);
+
     state.currentLine++;
     updateStepIndicator();
     return;

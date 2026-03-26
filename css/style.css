@@ -433,6 +433,9 @@ a { text-decoration: none; color: inherit; }
 .op-grid.op-grid-3 {
   grid-template-columns: repeat(3, 1fr);
 }
+.op-grid.op-grid-4 {
+  grid-template-columns: repeat(4, 1fr);
+}
 
 .op-btn {
   display: flex;

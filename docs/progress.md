@@ -32,7 +32,7 @@
 - [x] 圖例說明、Memory Model 概念卡、Console output
 - [x] **Heap scatter 佈局**：節點改用 absolute 定位，Y 位置由建立順序決定，視覺呈現 heap 不連續分配；節點間箭頭改為 SVG（支援斜向、弧線）
 - [x] **走訪指標 badge**：`curr` / `prev` 等走訪指標在節點上方顯示綠色 badge + 下向三角，同時節點框變綠色 glow；與節點宣告指標（`head` 等）分層顯示
-- [x] **APPLICATIONS 操作組**（FIND / INS HEAD / INS MID）：新增第二段操作選單，支援搜尋值、頭部插入、中間插入三個操作
+- [x] **APPLICATIONS 操作組**（FIND / INS HEAD / INS MID / DELETE）：新增第二段操作選單，支援搜尋值、頭部插入、中間插入、刪除中間節點四個操作
 
 ### js/history.js（共用 undo 工具）
 - [x] `StepHistory` class：`push` / `pop` / `clear` / `isEmpty`
@@ -59,6 +59,8 @@
   - `x = y;` → 指標重新指向（無型別宣告，`RE_PTR_REASSIGN`）
   - `x->next = y;` / `x->next = nullptr;` → 設定 next（ptr-update 動畫）
   - `x->next = y->next;` → 複製 next 指標（`RE_SET_NEXT_NEXT`）
+  - `Node* x = y->next;` → 宣告新指標並指向某節點的 next（`RE_PTR_FROM_NEXT`）
+  - `delete ptr;` → 釋放節點記憶體，從 heap 移除（node-delete 動畫）
   - `x->data = val;` → 修改 data
   - `cout << x->data;` → 讀取並輸出
   - `x = x->next;` → 走訪指標移動
@@ -73,7 +75,7 @@
 - [x] `getChainOrder()`：按 linked list 邏輯順序渲染（跟著 nextName 走）
 - [x] `ptrsPointingTo()`：節點標籤列顯示所有指向它的指標名
 - [x] 上一步（◀ BACK）：含 while/if 巢狀迴圈內回退，快照含 `vars`
-- [x] `getNodePositions()`：依鏈結順序分配 X，依建立順序取 `Y_OFFSETS` 分配 Y，模擬 heap scatter；`insert_head` / `insert_mid` 使用固定 slotMap 預留節點位置（避免視覺竄位）
+- [x] `getNodePositions()`：依鏈結順序分配 X，依建立順序取 `Y_OFFSETS` 分配 Y，模擬 heap scatter；`insert_head` / `insert_mid` / `delete_mid` 使用固定 slotMap 鎖住節點位置，操作過程中只有箭頭改變，節點不跑位
 - [x] `renderArrows()`：SVG 覆蓋層繪製節點間箭頭（弧線）與 NULL 終止符
 - [x] 走訪/宣告指標分類：`traversalPtrs`（非節點名稱）顯示為上方 badge；`nodePtrs` 顯示為下方標籤
 - [x] **Head pointer 視覺區分**：鏈結頭節點的 `head` 標籤以 cyan (#40d0ff + glow) 顯示，與其他 amber 標籤明確區分
@@ -101,7 +103,7 @@
 
 - [ ] Stack 單元（stack-vis.html）
 - [ ] Queue 單元（queue-vis.html）
-- [ ] Linked List 補充操作（DELETE / INSERT BACK 等）
+- [ ] Linked List 補充操作（INSERT BACK 等）
 - [ ] Auto Run 模式（自動逐行執行，可調速）
 - [ ] 更多 Array 操作（Search / Sort 等）
 

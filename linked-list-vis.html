@@ -510,7 +510,7 @@
           <div class="panel-dot"></div>
           <span style="font-size:0.65rem;letter-spacing:0.1em;color:var(--text-muted);">APPLICATIONS</span>
         </div>
-        <div class="op-grid op-grid-3">
+        <div class="op-grid op-grid-4">
           <button class="op-btn" data-op="find" onclick="loadOperation('find')">
             <span class="op-en">FIND</span>
             <span class="op-zh">尋找值</span>
@@ -522,6 +522,10 @@
           <button class="op-btn" data-op="insert_mid" onclick="loadOperation('insert_mid')">
             <span class="op-en">INS MID</span>
             <span class="op-zh">中間插入</span>
+          </button>
+          <button class="op-btn" data-op="delete_mid" onclick="loadOperation('delete_mid')">
+            <span class="op-en">DELETE</span>
+            <span class="op-zh">刪除節點</span>
           </button>
         </div>
         <div id="op-desc" class="op-desc">new Node(val) 在 Heap 配置記憶體，->data 存取欄位 — O(1)</div>

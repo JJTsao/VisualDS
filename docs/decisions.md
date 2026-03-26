@@ -167,6 +167,16 @@
 
 ---
 
+## Linked List：delete_mid 的固定 slotMap 佈局
+
+**決策**：`delete_mid` 在 `getNodePositions()` 使用固定 slotMap `{ head:0, second:1, third:2 }`。
+
+**Why**：執行 `prev->next = temp->next` 後，鏈結順序由 head→second→third 變為 head→third，`getChainOrder()` 回傳順序改變，導致 third 被重新分配到 slot 1，視覺上節點突然跑位，與實際「節點在 heap 中位置不變」的概念矛盾。
+
+**How to apply**：刪除操作固定 3 slots（`X_STEP = 225px`），容器寬度也按 3 slots 固定計算，避免 `delete` 完成後因 `chain.length` 從 3 變 2 導致容器縮水。
+
+---
+
 ## Line-height 改為固定 rem 值
 
 **決策**：`#code-input` 和 `.gutter-num` 的 `line-height` 都改為固定 `1.75rem`（非倍數）。
