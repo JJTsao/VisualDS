@@ -112,29 +112,52 @@
     .editor-body {
       display: flex;
       background: var(--bg-input);
+      position: relative;
+    }
+
+    /* Highlight overlay — sits behind textarea via z-index */
+    #current-line-highlight {
+      position: absolute;
+      left: 0; right: 0;
+      background: rgba(232, 165, 0, 0.10);
+      border-left: 2px solid var(--amber);
+      pointer-events: none;
+      z-index: 1;
+      display: none;
     }
 
     .line-gutter {
-      padding: 0.875rem 0.5rem;
-      background: rgba(0,0,0,0.3);
+      padding: 0.875rem 0.4rem 0.875rem 0.5rem;
+      background: rgba(0,0,0,0.35);
       border-right: 1px solid var(--border);
       display: flex;
       flex-direction: column;
       gap: 0;
-      min-width: 32px;
+      min-width: 36px;
       align-items: flex-end;
+      position: relative;
+      z-index: 3;            /* above overlay */
     }
 
     .gutter-num {
-      font-size: 0.72rem;
-      line-height: 1.85;
+      font-size: 0.82rem;    /* match textarea exactly */
+      line-height: 1.52rem;  /* fixed — same as textarea */
       color: var(--text-muted);
       font-family: var(--font-mono);
       user-select: none;
+      display: block;
+      width: 100%;
+      text-align: right;
+      padding-right: 2px;
     }
 
     .gutter-num.current-line {
-      color: var(--amber);
+      color: var(--bg);
+      background: var(--amber);
+      border-radius: 2px;
+      font-weight: 700;
+      padding-right: 4px;
+      text-align: center;
     }
 
     /* Buttons row */
@@ -418,6 +441,7 @@
           <span id="step-indicator" style="margin-left:auto;font-size:0.62rem;letter-spacing:0.06em;color:var(--text-muted);">line: — / —</span>
         </div>
         <div class="editor-body">
+          <div id="current-line-highlight"></div>
           <div class="line-gutter" id="line-gutter">
             <!-- populated by JS -->
           </div>
@@ -521,23 +545,44 @@ list[5] = 99; // 越界測試</textarea>
 
 <script>
   // ── Live line gutter ──────────────────────────────────────
-  const codeInput = document.getElementById('code-input');
-  const lineGutter = document.getElementById('line-gutter');
+  // Uses an IIFE to avoid polluting global scope and conflicting
+  // with array-vis.js which also declares codeInput.
+  (function () {
+    const gutterInput = document.getElementById('code-input');
+    const gutterEl    = document.getElementById('line-gutter');
+    const hlOverlay   = document.getElementById('current-line-highlight');
 
-  function updateGutter(activeLine) {
-    const lines = codeInput.value.split('\n');
-    lineGutter.innerHTML = lines.map((_, i) => {
-      const cls = i === activeLine ? 'gutter-num current-line' : 'gutter-num';
-      return `<span class="${cls}">${i + 1}</span>`;
-    }).join('');
-  }
+    // Must match css: font-size 0.82rem, line-height 1.52rem, padding-top 0.875rem
+    const LINE_HEIGHT_REM  = 1.52;
+    const PADDING_TOP_REM  = 0.875;
+    // Gutter width offset so overlay starts at gutter left edge
+    const GUTTER_LEFT_OFFSET = 0; // overlay covers full width including gutter
 
-  codeInput.addEventListener('input', () => updateGutter(-1));
-  updateGutter(-1);
+    function updateGutter(activeLine) {
+      const lines = gutterInput.value.split('\n');
+      gutterEl.innerHTML = lines.map((_, i) => {
+        if (i === activeLine) {
+          return `<span class="gutter-num current-line">→</span>`;
+        }
+        return `<span class="gutter-num">${i + 1}</span>`;
+      }).join('');
 
-  // Hook into array-vis.js to sync active line
-  // array-vis.js will call window.setActiveLine(n) after each step
-  window.setActiveLine = (n) => updateGutter(n);
+      // Position the highlight overlay
+      if (activeLine >= 0 && activeLine < lines.length) {
+        const topRem    = PADDING_TOP_REM + activeLine * LINE_HEIGHT_REM;
+        hlOverlay.style.top    = `${topRem}rem`;
+        hlOverlay.style.height = `${LINE_HEIGHT_REM}rem`;
+        hlOverlay.style.display = 'block';
+      } else {
+        hlOverlay.style.display = 'none';
+      }
+    }
+
+    gutterInput.addEventListener('input', () => updateGutter(-1));
+    updateGutter(-1);
+
+    window.setActiveLine = (n) => updateGutter(n);
+  })();
 </script>
 <script src="js/array-vis.js"></script>
 </body>

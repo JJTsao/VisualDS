@@ -23,9 +23,9 @@
   --amber-glow:    rgba(232, 165, 0, 0.18);
   --amber-glow-sm: rgba(232, 165, 0, 0.08);
 
-  --text:          #c49000;
-  --text-dim:      #6b5000;
-  --text-muted:    #3a2a00;
+  --text:          #d4a820;
+  --text-dim:      #a07828;   /* was #6b5000 — bumped for readability */
+  --text-muted:    #6b5020;   /* was #3a2a00 — near invisible, now legible */
 
   --success:       #00c87a;
   --success-dim:   rgba(0, 200, 122, 0.12);
@@ -178,8 +178,8 @@ a { text-decoration: none; color: inherit; }
 #code-input {
   font-family: var(--font-mono);
   font-size: 0.82rem;
-  line-height: 1.85;
-  background: var(--bg-input);
+  line-height: 1.52rem;        /* fixed rem so gutter can match exactly */
+  background: transparent;     /* let highlight overlay show through */
   color: var(--amber-bright);
   border: none;
   outline: none;
@@ -187,6 +187,8 @@ a { text-decoration: none; color: inherit; }
   width: 100%;
   padding: 0.875rem;
   caret-color: var(--amber-bright);
+  position: relative;
+  z-index: 2;
 }
 
 #code-input::selection {
