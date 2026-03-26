@@ -1,0 +1,159 @@
+/* ===================================================
+   Data Structure Visualizer — Shared & Animation Styles
+   =================================================== */
+
+/* ---------- Array Cell Structure ---------- */
+.array-cell-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.cell-address {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.62rem;
+  color: #64748b;
+  letter-spacing: 0.03em;
+  user-select: none;
+}
+
+.array-cell {
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #475569;
+  border-radius: 6px;
+  background: #1e293b;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #94a3b8;
+  position: relative;
+  transition: border-color 0.3s ease, background-color 0.3s ease, color 0.3s ease;
+  box-sizing: border-box;
+}
+
+.array-cell.initialized {
+  border-color: #6366f1;
+  background: #1e1b4b;
+  color: #e0e7ff;
+}
+
+.cell-index {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.65rem;
+  color: #475569;
+  user-select: none;
+}
+
+.cell-index-label {
+  font-size: 0.6rem;
+  color: #334155;
+  margin-right: 1px;
+}
+
+/* ---------- Animation: .highlight ---------- */
+/* Background flashes yellow to simulate memory access */
+@keyframes highlightFlash {
+  0%   { background-color: #1e293b; border-color: #6366f1; }
+  20%  { background-color: #854d0e; border-color: #eab308; box-shadow: 0 0 18px rgba(234, 179, 8, 0.7); }
+  40%  { background-color: #713f12; border-color: #f59e0b; }
+  60%  { background-color: #854d0e; border-color: #eab308; box-shadow: 0 0 18px rgba(234, 179, 8, 0.7); }
+  80%  { background-color: #422006; border-color: #d97706; }
+  100% { background-color: #1e1b4b; border-color: #6366f1; }
+}
+
+.highlight {
+  animation: highlightFlash 0.9s ease forwards;
+}
+
+/* ---------- Animation: .value-change ---------- */
+/* Number fades in with a slight scale-up on update */
+@keyframes valueChange {
+  0%   { opacity: 0; transform: scale(0.5); color: #fbbf24; }
+  50%  { opacity: 1; transform: scale(1.35); color: #fde68a; }
+  100% { opacity: 1; transform: scale(1);   color: #e0e7ff; }
+}
+
+.value-change {
+  animation: valueChange 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+/* Wrapper for the cell value to animate independently */
+.cell-value {
+  display: inline-block;
+}
+
+/* ---------- Animation: .error-shake ---------- */
+/* Violent left-right shake simulating Segfault / memory corruption */
+@keyframes errorShake {
+  0%   { transform: translateX(0); }
+  10%  { transform: translateX(-10px); }
+  20%  { transform: translateX(10px); }
+  30%  { transform: translateX(-12px); }
+  40%  { transform: translateX(12px); }
+  50%  { transform: translateX(-8px); }
+  60%  { transform: translateX(8px); }
+  70%  { transform: translateX(-5px); }
+  80%  { transform: translateX(5px); }
+  90%  { transform: translateX(-2px); }
+  100% { transform: translateX(0); }
+}
+
+@keyframes errorRedPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+  50%       { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0.3); }
+}
+
+.error-shake {
+  animation: errorShake 0.6s cubic-bezier(.36,.07,.19,.97) both;
+}
+
+/* Cells inside an erroring container flash red */
+#array-container.error-shake .array-cell {
+  border-color: #ef4444 !important;
+  background-color: #450a0a !important;
+  color: #fca5a5 !important;
+  animation: errorRedPulse 0.6s ease both;
+}
+
+/* ---------- Console Log Styles ---------- */
+.console-line {
+  display: block;
+  line-height: 1.7;
+  padding: 1px 0;
+}
+
+.console-line.info {
+  color: #94a3b8;
+}
+
+.console-line.success {
+  color: #4ade80;
+}
+
+.console-line.warn {
+  color: #fbbf24;
+}
+
+.console-line.error {
+  color: #f87171;
+  font-weight: 700;
+}
+
+.console-line.declare {
+  color: #a78bfa;
+}
+
+.console-line.dim {
+  color: #475569;
+}
+
+/* ---------- Utility ---------- */
+.font-mono-sm {
+  font-family: 'Courier New', monospace;
+  font-size: 0.8rem;
+}
