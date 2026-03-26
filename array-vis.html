@@ -62,7 +62,7 @@
     .main-grid {
       flex: 1;
       display: grid;
-      grid-template-columns: minmax(360px, 460px) 1fr;
+      grid-template-columns: clamp(300px, 36%, 460px) 1fr;
       gap: 0.75rem;
       padding: 0.6rem 1.25rem 0.75rem;
       align-items: stretch;
@@ -70,8 +70,23 @@
       overflow: hidden;
     }
 
+    /* Tablet portrait / narrow window — single scrollable column */
     @media (max-width: 900px) {
-      .main-grid { grid-template-columns: 1fr; }
+      .page-wrapper {
+        height: auto;
+        min-height: 100vh;
+        overflow-y: auto;
+      }
+      .main-grid {
+        grid-template-columns: 1fr;
+        overflow: visible;
+        height: auto;
+      }
+      .left-col,
+      .right-col {
+        height: auto;
+        overflow-y: visible;
+      }
     }
 
     /* ── Left Column ── */
