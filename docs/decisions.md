@@ -111,6 +111,34 @@
 
 ---
 
+## Linked List：Heap Scatter 佈局 + SVG 箭頭
+
+**決策**：節點改用 `position: absolute` 在 `#ll-heap-region` 內定位；X 依鏈結邏輯順序等間距排列，Y 依建立順序取預設 `Y_OFFSETS` 陣列（模擬 heap 不連續分配）；節點間箭頭改為 SVG `<path>` 弧線。
+
+**Why**：原本 `display: flex` 佈局讓所有節點黏在同一高度，無法直覺呈現 linked list 「節點散落在 heap 各處、靠指標串起」的核心特性。斜向 SVG 箭頭也能更清楚表達「next 指標跨越不連續位址」的概念。
+
+**How to apply**：
+- `Y_OFFSETS` 陣列以建立順序決定垂直位置，cycle 可支援超過 10 個節點
+- SVG 箭頭用二次 Bezier 曲線（`Q` 命令）：水平方向向上弧，斜向方向接近直線
+- Arrow/NULL 終止符的座標基於數學常數（`ND_*`），**不讀取 DOM rect**，避免 `node-spawn` transform 動畫期間座標錯位
+- 所有節點的 `node-ptr-indicator` 行（28px）一律保留，確保 box 中心 Y 固定，SVG 箭頭始終對準
+
+---
+
+## Linked List：走訪指標與宣告指標分層顯示
+
+**決策**：`curr` / `prev` 等走訪指標顯示在節點**上方** badge；`head` / `second` 等宣告指標顯示在節點**下方**標籤。兩者以「是否為節點 varName（`state.nodes[name]` 存在）」區分。
+
+**Why**：原本所有指標混在同一標籤列，TRAVERSE 操作中 `curr` 移動時視覺變化不明顯，學生難以追蹤。分層後 `curr` badge 加上脈衝動畫和綠色 glow，節點當下被走訪的狀態一目了然。
+
+**How to apply**：
+- `traversalPtrs = pointingPtrs.filter(p => !state.nodes[p])`
+- `nodePtrs = pointingPtrs.filter(p => state.nodes[p])`
+- badge 有 `node-has-traverse-ptr` class 觸發 `.node-box` 的綠色邊框
+- `--success` (#00c87a) 作為走訪指標的語義色，與 amber 系列（宣告指標）區分
+
+---
+
 ## Line-height 改為固定 rem 值
 
 **決策**：`#code-input` 和 `.gutter-num` 的 `line-height` 都改為固定 `1.75rem`（非倍數）。

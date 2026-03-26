@@ -20,6 +20,21 @@ const OPERATIONS = {
   },
 };
 
+// ─── Scatter Layout Constants ─────────────────────────────────────────────────
+
+// Vertical offsets (px) per creation-order index — simulates non-contiguous heap
+const Y_OFFSETS = [5, 95, 45, 110, 22, 78, 58, 18, 88, 35];
+const X_STEP    = 225;   // px between consecutive node left edges
+const X_START   = 20;    // px left padding inside heap region
+
+// Approximate node dimensions (based on CSS clamp max values at desktop widths)
+const ND_INDICATOR_H = 28;  // traversal-ptr badge row (always reserved, keeps box Y stable)
+const ND_ADDR_ROW_H  = 20;
+const ND_BOX_H       = 70;
+const ND_DATA_W      = 72;
+const ND_NEXT_W      = 96;
+const ND_BOX_W       = ND_DATA_W + 1 + ND_NEXT_W; // 169px
+
 // ─── State ────────────────────────────────────────────────────────────────────
 
 const state = {
@@ -184,6 +199,24 @@ function getChainOrder() {
 }
 
 /**
+ * 計算每個節點在 heap region 的絕對座標。
+ * X: 依鏈結順序由左到右排列（未鏈結的孤立節點排在最後）
+ * Y: 依建立順序取 Y_OFFSETS，模擬 heap 分配的不連續位址
+ */
+function getNodePositions() {
+  const chain = getChainOrder();
+  const positions = {};
+  chain.forEach((name, chainIdx) => {
+    const creationIdx = state.nodeOrder.indexOf(name);
+    positions[name] = {
+      x: X_START + chainIdx * X_STEP,
+      y: Y_OFFSETS[creationIdx % Y_OFFSETS.length],
+    };
+  });
+  return positions;
+}
+
+/**
  * 找出指向某個節點的所有 ptr 變數名（含 head, curr 等）
  */
 function ptrsPointingTo(nodeName) {
@@ -201,22 +234,51 @@ function renderAllNodes() {
 
   if (chain.length === 0) {
     llEmptyState.classList.remove('hidden');
+    llHeapRegion.style.minWidth = '';
     return;
   }
 
   llEmptyState.classList.add('hidden');
 
-  chain.forEach((name, idx) => {
+  const positions = getNodePositions();
+
+  // Ensure container is wide enough for all nodes + NULL indicator
+  llHeapRegion.style.minWidth = (X_START + chain.length * X_STEP + 90) + 'px';
+
+  chain.forEach((name) => {
     const node = state.nodes[name];
     if (!node) return;
 
+    const pos = positions[name];
     const dataAddr = toHex(node.addr);
     const nextAddr = toHex(node.addr + 4);
 
-    // ── node group ──
+    // ── node group (absolutely positioned) ──
     const group = document.createElement('div');
     group.className = 'll-node-group';
     group.id = `nd-group-${name}`;
+    group.style.position = 'absolute';
+    group.style.left = pos.x + 'px';
+    group.style.top  = pos.y + 'px';
+
+    // Classify pointers: traversal (curr/prev/tmp…) vs node-own (head/second/…)
+    const pointingPtrs  = ptrsPointingTo(name);
+    const traversalPtrs = pointingPtrs.filter(p => !state.nodes[p]);
+    const nodePtrs      = pointingPtrs.filter(p =>  state.nodes[p]);
+
+    // ── traversal-ptr indicator row (always rendered to keep box Y stable) ──
+    const indicatorRow = document.createElement('div');
+    indicatorRow.className = 'node-ptr-indicator';
+    if (traversalPtrs.length > 0) {
+      group.classList.add('node-has-traverse-ptr');
+      traversalPtrs.forEach(ptr => {
+        const badge = document.createElement('span');
+        badge.className = 'node-ptr-badge';
+        badge.textContent = ptr;
+        indicatorRow.appendChild(badge);
+      });
+    }
+    group.appendChild(indicatorRow);
 
     // addr row
     const addrRow = document.createElement('div');
@@ -256,12 +318,10 @@ function renderAllNodes() {
     box.appendChild(divider);
     box.appendChild(nextCell);
 
-    // var labels (all ptrs pointing to this node)
+    // label row: node-own pointers (head, second, …) only
     const labelRow = document.createElement('div');
     labelRow.className = 'node-name-row';
-    const pointingPtrs = ptrsPointingTo(name);
-    // Always show the node's own var name if it's in ptrs
-    const labelsToShow = pointingPtrs.length > 0 ? pointingPtrs : [name];
+    const labelsToShow = nodePtrs.length > 0 ? nodePtrs : [name];
     labelsToShow.forEach(lbl => {
       const sp = document.createElement('span');
       sp.className = 'node-var-label';
@@ -274,32 +334,10 @@ function renderAllNodes() {
     group.appendChild(labelRow);
 
     llHeapRegion.appendChild(group);
-
-    // ── arrow or null after node ──
-    const isLast = idx === chain.length - 1;
-    const hasNext = node.nextName !== null && node.nextName !== undefined;
-
-    if (hasNext && !isLast) {
-      const arrow = document.createElement('div');
-      arrow.className = 'node-arrow';
-      arrow.id = `nd-arrow-${name}`;
-      llHeapRegion.appendChild(arrow);
-    } else if (node.nextName === null) {
-      // explicit nullptr
-      const nullDiv = document.createElement('div');
-      nullDiv.className = 'node-null';
-      nullDiv.id = `nd-arrow-${name}`;
-      nullDiv.innerHTML = `<span class="node-null-label">NULL</span>`;
-      llHeapRegion.appendChild(nullDiv);
-    } else if (!hasNext && isLast) {
-      // next not set yet — show question mark
-      const nullDiv = document.createElement('div');
-      nullDiv.className = 'node-null';
-      nullDiv.id = `nd-arrow-${name}`;
-      nullDiv.innerHTML = `<span class="node-null-label" style="color:var(--text-muted);">?</span>`;
-      llHeapRegion.appendChild(nullDiv);
-    }
   });
+
+  // SVG arrows are drawn after layout (arrows/NULL replace old flex dividers)
+  requestAnimationFrame(renderArrows);
 }
 
 function renderPtrTracker() {
@@ -323,6 +361,117 @@ function renderPtrTracker() {
       `<span class="ptr-badge-val">${targetDisplay}</span>`;
     llPtrRegion.appendChild(badge);
   });
+}
+
+// ─── SVG Arrow Rendering ──────────────────────────────────────────────────────
+
+/**
+ * 在 #ll-heap-region 上覆蓋 SVG 層，繪製節點間的指標箭頭與 NULL 終止符。
+ * 使用預先計算的節點座標（ND_* 常數），避免 transform 動畫影響 getBoundingClientRect。
+ */
+function renderArrows() {
+  if (state.nodeOrder.length === 0) return;
+
+  // Create or clear the SVG overlay
+  let svg = document.getElementById('ll-arrows-svg');
+  if (!svg) {
+    svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.id = 'll-arrows-svg';
+    svg.style.cssText =
+      'position:absolute;top:0;left:0;width:100%;height:100%;overflow:visible;pointer-events:none;';
+    llHeapRegion.appendChild(svg);
+  } else {
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+  }
+
+  // Arrowhead marker
+  const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+  const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+  marker.setAttribute('id', 'll-ah');
+  marker.setAttribute('markerWidth', '8');
+  marker.setAttribute('markerHeight', '8');
+  marker.setAttribute('refX', '7');
+  marker.setAttribute('refY', '3');
+  marker.setAttribute('orient', 'auto');
+  const mPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  mPath.setAttribute('d', 'M0,0 L0,6 L8,3 z');
+  mPath.setAttribute('fill', '#8a6300');
+  marker.appendChild(mPath);
+  defs.appendChild(marker);
+  svg.appendChild(defs);
+
+  const positions = getNodePositions();
+  const chain = getChainOrder();
+
+  // Y center of the node box (in group-local coords; indicator row always reserved)
+  const boxCenterY = ND_INDICATOR_H + ND_ADDR_ROW_H + ND_BOX_H / 2;
+
+  for (const name of chain) {
+    const node = state.nodes[name];
+    if (!node) continue;
+    const pos = positions[name];
+    if (!pos) continue;
+
+    // Arrow source: right edge of next cell, vertically centered on box
+    const x1 = pos.x + ND_BOX_W;
+    const y1 = pos.y + boxCenterY;
+
+    if (node.nextName === null) {
+      svgNullTerminator(svg, x1, y1);
+    } else if (node.nextName) {
+      const tPos = positions[node.nextName];
+      if (!tPos) continue;
+      const x2 = tPos.x;
+      const y2 = tPos.y + boxCenterY;
+      svgArrow(svg, x1, y1, x2, y2);
+    }
+    // nextName === undefined: next not set, show nothing (cell already shows "?")
+  }
+}
+
+function svgArrow(svg, x1, y1, x2, y2) {
+  const dy = y2 - y1;
+  const mx = (x1 + x2) / 2;
+  const my = (y1 + y2) / 2;
+  // Arc upward when roughly horizontal, straight-ish for diagonals
+  const lift = Math.abs(dy) < 18 ? -30 : (dy > 0 ? -12 : 12);
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', `M${x1},${y1} Q${mx},${my + lift} ${x2},${y2}`);
+  path.setAttribute('stroke', '#8a6300');
+  path.setAttribute('stroke-width', '1.5');
+  path.setAttribute('fill', 'none');
+  path.setAttribute('marker-end', 'url(#ll-ah)');
+  svg.appendChild(path);
+}
+
+function svgNullTerminator(svg, x1, y1) {
+  // Short dashed stem
+  const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  line.setAttribute('x1', x1);      line.setAttribute('y1', y1);
+  line.setAttribute('x2', x1 + 26); line.setAttribute('y2', y1);
+  line.setAttribute('stroke', '#4a3600');
+  line.setAttribute('stroke-width', '1');
+  line.setAttribute('stroke-dasharray', '4,3');
+  svg.appendChild(line);
+  // NULL box
+  const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  rect.setAttribute('x', x1 + 26);   rect.setAttribute('y', y1 - 10);
+  rect.setAttribute('width', '38');  rect.setAttribute('height', '20');
+  rect.setAttribute('rx', '2');
+  rect.setAttribute('fill', '#0a0700');
+  rect.setAttribute('stroke', '#3a2800');
+  rect.setAttribute('stroke-width', '1');
+  svg.appendChild(rect);
+  // NULL text
+  const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  text.setAttribute('x', x1 + 45);  text.setAttribute('y', y1 + 4);
+  text.setAttribute('text-anchor', 'middle');
+  text.setAttribute('font-family', "'JetBrains Mono', monospace");
+  text.setAttribute('font-size', '9');
+  text.setAttribute('letter-spacing', '0.05em');
+  text.setAttribute('fill', '#5a4a30');
+  text.textContent = 'NULL';
+  svg.appendChild(text);
 }
 
 // ─── Parser ───────────────────────────────────────────────────────────────────

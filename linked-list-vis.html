@@ -298,14 +298,59 @@
       color: var(--text-muted);
     }
 
-    /* Heap region: nodes flow horizontally with wrap */
+    /* Heap region: absolutely-positioned nodes simulate non-contiguous heap */
     #ll-heap-region {
+      position: relative;
+      min-height: 280px;
+      overflow-x: auto;
+      overflow-y: visible;
+    }
+
+    /* Traversal pointer badge (curr / prev / tmp …) above the node */
+    .node-ptr-indicator {
       display: flex;
-      flex-wrap: wrap;
-      align-items: flex-start;
-      gap: 0;
-      padding: 1rem 1.25rem;
-      min-height: 120px;
+      justify-content: center;
+      gap: 4px;
+      height: 22px;          /* always reserved — keeps box Y stable for SVG arrows */
+      align-items: flex-end;
+      margin-bottom: 6px;
+    }
+
+    .node-ptr-badge {
+      position: relative;
+      font-family: var(--font-mono);
+      font-size: 0.62rem;
+      font-weight: 700;
+      letter-spacing: 0.07em;
+      color: var(--success);
+      background: rgba(0, 200, 122, 0.10);
+      border: 1px solid rgba(0, 200, 122, 0.45);
+      padding: 2px 7px;
+      border-radius: 2px;
+      animation: ptrBadgePulse 2s ease-in-out infinite;
+    }
+
+    /* Downward caret pointing at the node */
+    .node-ptr-badge::after {
+      content: '';
+      position: absolute;
+      bottom: -6px;
+      left: 50%;
+      transform: translateX(-50%);
+      border-left: 4px solid transparent;
+      border-right: 4px solid transparent;
+      border-top: 5px solid rgba(0, 200, 122, 0.55);
+    }
+
+    /* Node box highlight when a traversal ptr points here */
+    .node-has-traverse-ptr .node-box {
+      border-color: rgba(0, 200, 122, 0.55);
+      box-shadow: 0 0 10px rgba(0, 200, 122, 0.18), inset 0 0 6px rgba(0, 200, 122, 0.06);
+    }
+
+    @keyframes ptrBadgePulse {
+      0%, 100% { box-shadow: none; }
+      50%       { box-shadow: 0 0 8px rgba(0, 200, 122, 0.45); }
     }
 
     /* Empty state */

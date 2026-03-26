@@ -26,10 +26,12 @@
 
 ### linked-list-vis.html（Linked List 單元）
 - [x] 同 array-vis 的 App Shell 佈局（3 個 op tab：BUILD / LINK / TRAVERSE）
-- [x] Heap 節點視覺化：data | next 雙欄格子 + CSS-only 箭頭 + NULL 終點
+- [x] Heap 節點視覺化：data | next 雙欄格子 + NULL 終點
 - [x] 走訪指標追蹤區（`#ll-ptr-region`）：顯示 curr 等走訪指標的當前位址
 - [x] `while (curr != nullptr)` 真實迴圈：條件求值 + 行號跳躍
 - [x] 圖例說明、Memory Model 概念卡、Console output
+- [x] **Heap scatter 佈局**：節點改用 absolute 定位，Y 位置由建立順序決定，視覺呈現 heap 不連續分配；節點間箭頭改為 SVG（支援斜向、弧線）
+- [x] **走訪指標 badge**：`curr` / `prev` 等走訪指標在節點上方顯示綠色 badge + 下向三角，同時節點框變綠色 glow；與節點宣告指標（`head` 等）分層顯示
 
 ### js/history.js（共用 undo 工具）
 - [x] `StepHistory` class：`push` / `pop` / `clear` / `isEmpty`
@@ -63,6 +65,9 @@
 - [x] `getChainOrder()`：按 linked list 邏輯順序渲染（跟著 nextName 走）
 - [x] `ptrsPointingTo()`：節點標籤列顯示所有指向它的指標名
 - [x] 上一步（◀ BACK）：含 while 迴圈內回退
+- [x] `getNodePositions()`：依鏈結順序分配 X，依建立順序取 `Y_OFFSETS` 分配 Y，模擬 heap scatter
+- [x] `renderArrows()`：SVG 覆蓋層繪製節點間箭頭（弧線）與 NULL 終止符
+- [x] 走訪/宣告指標分類：`traversalPtrs`（非節點名稱）顯示為上方 badge；`nodePtrs` 顯示為下方標籤
 
 ### css/style.css（設計系統）
 - [x] 全站 CSS custom properties（`--amber`, `--text-dim` 等）
@@ -70,10 +75,12 @@
 - [x] Array 動畫：highlight / value-change / error-shake
 - [x] Linked List 動畫：node-spawn / node-highlight / node-ptr-update / node-delete
 - [x] array-group / array-cells 多陣列佈局
-- [x] ll-node-group / node-box / node-arrow / node-null / ll-ptr-tracker 佈局
+- [x] ll-node-group / node-box / ll-ptr-tracker 佈局（node-arrow / node-null 已由 SVG 取代）
 - [x] op-btn / op-grid / op-desc 操作選單
 - [x] 文字對比度修正（`--text-muted` #6b5020→#9a7530，符合 WCAG AA）
 - [x] 響應式：`clamp()` 縮放（格子、節點、字型）；≤900px 整頁可捲動單欄
+- [x] `.node-ptr-indicator` / `.node-ptr-badge`：走訪指標綠色 badge + ptrBadgePulse 動畫
+- [x] `.node-has-traverse-ptr .node-box`：被走訪指標指向的節點綠色邊框 glow
 
 ## 已知問題 / 限制
 
