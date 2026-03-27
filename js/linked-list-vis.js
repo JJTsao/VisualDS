@@ -517,32 +517,40 @@ function renderArrows() {
   defs.appendChild(marker);
   svg.appendChild(defs);
 
-  const positions = getNodePositions();
   const chain = getChainOrder();
 
-  // Y center of the node box (in group-local coords; indicator row always reserved)
-  const boxCenterY = ND_INDICATOR_H + ND_ADDR_ROW_H + ND_BOX_H / 2;
+  // Use actual rendered positions so arrows stay correct across all viewport sizes.
+  // getBoundingClientRect() is safe here because renderArrows runs inside
+  // requestAnimationFrame, after the fresh DOM has been laid out with no active
+  // CSS transform animations on these elements.
+  const containerRect = llHeapRegion.getBoundingClientRect();
 
   for (const name of chain) {
     const node = state.nodes[name];
     if (!node) continue;
-    const pos = positions[name];
-    if (!pos) continue;
 
-    // Arrow source: right edge of next cell, vertically centered on box
-    const x1 = pos.x + ND_BOX_W;
-    const y1 = pos.y + boxCenterY;
+    const boxEl      = document.getElementById(`nd-box-${name}`);
+    const nextCellEl = document.getElementById(`nd-next-${name}`);
+    if (!boxEl || !nextCellEl) continue;
+
+    const boxRect      = boxEl.getBoundingClientRect();
+    const nextCellRect = nextCellEl.getBoundingClientRect();
+
+    // Arrow source: right edge of the next cell, vertically centred on the box
+    const x1 = nextCellRect.right  - containerRect.left;
+    const y1 = boxRect.top - containerRect.top + boxRect.height / 2;
 
     if (node.nextName === null) {
       svgNullTerminator(svg, x1, y1);
     } else if (node.nextName) {
-      const tPos = positions[node.nextName];
-      if (!tPos) continue;
-      const x2 = tPos.x;
-      const y2 = tPos.y + boxCenterY;
+      const tBoxEl = document.getElementById(`nd-box-${node.nextName}`);
+      if (!tBoxEl) continue;
+      const tBoxRect = tBoxEl.getBoundingClientRect();
+      const x2 = tBoxRect.left - containerRect.left;
+      const y2 = tBoxRect.top  - containerRect.top + tBoxRect.height / 2;
       svgArrow(svg, x1, y1, x2, y2);
     }
-    // nextName === undefined: next not set, show nothing (cell already shows "?")
+    // nextName === undefined: next not yet set, show nothing (cell already shows "?")
   }
 }
 
@@ -1204,4 +1212,11 @@ codeInput.addEventListener('input', () => {
 
 (function init() {
   window.loadOperation('build');
+
+  // Re-draw arrows when viewport is resized so clamp()-based widths stay in sync
+  let resizeTimer;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => requestAnimationFrame(renderArrows), 100);
+  });
 })();
