@@ -343,10 +343,11 @@
       border: 1px solid;
       flex-shrink: 0;
     }
-    .lc-uninit  { border-color: var(--border-mid); background: var(--bg-panel); }
-    .lc-init    { border-color: var(--amber-dim);  background: #0d0900; box-shadow: 0 0 5px var(--amber-glow-sm); }
-    .lc-active  { border-color: var(--amber-bright); background: #2a1a00; box-shadow: 0 0 8px rgba(255,199,64,0.4); }
-    .lc-error   { border-color: var(--error); background: #150000; }
+    .lc-uninit    { border-color: var(--border-mid); background: var(--bg-panel); }
+    .lc-init      { border-color: var(--amber-dim);  background: #0d0900; box-shadow: 0 0 5px var(--amber-glow-sm); }
+    .lc-active    { border-color: var(--amber-bright); background: #2a1a00; box-shadow: 0 0 8px rgba(255,199,64,0.4); }
+    .lc-residual  { border-color: var(--border-mid); border-style: dashed; background: var(--bg-panel); opacity: 0.7; }
+    .lc-error     { border-color: var(--error); background: #150000; }
 
     /* Stack empty state */
     #stack-empty {
@@ -478,6 +479,19 @@
     }
 
     #cpp-equiv-text { color: var(--success); }
+
+    /* ── Residual cell state ── */
+    /* A cell that has been popped: top moved past it, but bits still in memory */
+    .array-cell.stack-cell-residual {
+      border-color: var(--border-mid);
+      border-style: dashed;
+      background: var(--bg-panel);
+      box-shadow: none;
+      opacity: 0.55;
+    }
+    .array-cell.stack-cell-residual .cell-value {
+      color: var(--text-muted);
+    }
 
     /* ── Stack-specific Animations ── */
 
@@ -661,6 +675,10 @@ stk[++top] = 30;</textarea>
                 <span>正在存取</span>
               </div>
               <div class="legend-item">
+                <div class="legend-cell lc-residual"></div>
+                <span>殘值（已 pop）</span>
+              </div>
+              <div class="legend-item">
                 <div class="legend-cell lc-error"></div>
                 <span>溢出 / 下溢</span>
               </div>
@@ -676,7 +694,7 @@ stk[++top] = 30;</textarea>
           <li>Stack 底部在低位址 (<code>stk[0]</code>)，向高位址生長</li>
           <li><code>top = -1</code> 表示空 Stack；<code>top = N-1</code> 表示已滿</li>
           <li><code>push</code>：<code>stk[++top] = x</code>  ·  <code>pop</code>：<code>x = stk[top--]</code></li>
-          <li class="warn-text">Pop 後舊值仍殘留在記憶體，直到下次 Push 覆蓋</li>
+          <li class="warn-text">Pop 後舊值以殘值（虛線框）留在記憶體，直到下次 Push 覆蓋</li>
         </ul>
       </div>
 

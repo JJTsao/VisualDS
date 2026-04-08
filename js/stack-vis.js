@@ -5,8 +5,13 @@
  *   int stk[5];             → declare the stack array
  *   int top = -1;           → initialise the top pointer
  *   stk[++top] = value;     → push
- *   int var = stk[top--];   → pop  (value lingers in memory for ~400ms)
+ *   int var = stk[top--];   → pop  (value stays as residual in memory)
  *   int var = stk[top];     → peek (top unchanged)
+ *
+ * Three visual states for each cell:
+ *   initialized — i <= top  (logically part of the stack)
+ *   residual    — i > top but was previously pushed (bits still in memory)
+ *   uninit      — never written (never pushed since last reset)
  */
 
 'use strict';
@@ -89,8 +94,9 @@ int val = stk[top--];`,
 const state = {
   currentLine:  0,
   lines:        [],
-  cells:        new Array(CAPACITY).fill(null), // null = uninitialised
+  cells:        new Array(CAPACITY).fill(null), // null = never written
   top:          -1,
+  residual:     [],   // indices of cells that were popped (bits still in memory)
   vars:         {},
   addrCounter:  0x1000,
   baseAddr:     null,
@@ -175,16 +181,23 @@ function renderStack() {
       ptrCol.innerHTML = '<span class="top-arrow">→ top</span>';
     }
 
-    // Center: cell
+    // Center: cell — three visual states
     const cell = document.createElement('div');
-    cell.className = 'array-cell stack-cell';
     cell.id = `stack-cell-${i}`;
-    if (state.cells[i] !== null) cell.classList.add('initialized');
+    const isActive   = i <= state.top;
+    const isResidual = !isActive && state.residual.includes(i);
+    if (isActive) {
+      cell.className = 'array-cell stack-cell initialized';
+    } else if (isResidual) {
+      cell.className = 'array-cell stack-cell stack-cell-residual';
+    } else {
+      cell.className = 'array-cell stack-cell';
+    }
 
     const valueSpan = document.createElement('span');
     valueSpan.className = 'cell-value';
     valueSpan.id = `stack-val-${i}`;
-    valueSpan.textContent = state.cells[i] !== null ? state.cells[i] : '?';
+    valueSpan.textContent = (isActive || isResidual) ? state.cells[i] : '?';
     cell.appendChild(valueSpan);
 
     // Right: index label
@@ -251,6 +264,7 @@ function stepOneLine() {
     currentLine:  state.currentLine,
     cells:        [...state.cells],
     top:          state.top,
+    residual:     [...state.residual],
     vars:         { ...state.vars },
     addrCounter:  state.addrCounter,
     baseAddr:     state.baseAddr,
@@ -327,6 +341,8 @@ function stepOneLine() {
     state.top++;
     state.cells[state.top] = value;
     state.vars['top']      = state.top;
+    // Overwriting a residual slot clears its residual status
+    state.residual = state.residual.filter(i => i !== state.top);
 
     const addr = state.baseAddr !== null
       ? toHex(state.baseAddr + state.top * 4)
@@ -369,34 +385,23 @@ function stepOneLine() {
       ? toHex(state.baseAddr + oldTop * 4)
       : '—';
 
-    // Mutate state immediately (for correct stepBack snapshots)
-    state.vars[varName] = val;
-    state.vars['top']   = state.top - 1;
+    // Move top pointer down; cell value stays in state.cells (residual memory)
+    state.vars[varName]  = val;
+    state.vars['top']    = state.top - 1;
     state.top--;
-    state.cells[oldTop] = null; // logically popped
+    state.residual.push(oldTop); // mark as residual — bits still in memory
 
-    // Re-render (this draws oldTop cell as uninitialized / '?')
     renderStack();
 
-    // Cosmetic: briefly restore residual value in the DOM to simulate
-    // C++ memory semantics (bits are still there until overwritten)
-    const cellEl  = document.getElementById(`stack-cell-${oldTop}`);
-    const valSpan = document.getElementById(`stack-val-${oldTop}`);
-    if (cellEl && valSpan) {
-      valSpan.textContent = val;          // show residual value
-      cellEl.classList.add('initialized');
-      triggerAnimation(cellEl, 'stack-cell-pop', 600);
-      setTimeout(() => {
-        if (valSpan) valSpan.textContent = '?';
-        if (cellEl)  cellEl.classList.remove('initialized');
-      }, 400);
-    }
+    // Pop animation on the cell that just became residual
+    const cellEl = document.getElementById(`stack-cell-${oldTop}`);
+    if (cellEl) triggerAnimation(cellEl, 'stack-cell-pop', 600);
 
     logConsole(
       `Line ${state.currentLine}: Pop  stk[${oldTop}] = ${val}  →  ${varName}  (${addr})`,
       'success'
     );
-    logConsole(`  → Memory at ${addr} still holds ${val} until overwritten`, 'dim');
+    logConsole(`  → stk[${oldTop}] still holds ${val} in memory (residual)`, 'dim');
     cppEquivText.textContent =
       `int ${varName} = stk[top--];  // ${varName} = ${val}, top now = ${state.top}`;
     cppEquivalent.classList.remove('hidden');
@@ -449,6 +454,7 @@ function stepBack() {
   state.currentLine = snap.currentLine;
   state.cells       = snap.cells;
   state.top         = snap.top;
+  state.residual    = snap.residual;
   state.vars        = snap.vars;
   state.addrCounter = snap.addrCounter;
   state.baseAddr    = snap.baseAddr;
@@ -487,6 +493,7 @@ function reset() {
   state.currentLine = 0;
   state.cells       = new Array(CAPACITY).fill(null);
   state.top         = -1;
+  state.residual    = [];
   state.vars        = {};
   state.addrCounter = 0x1000;
   state.baseAddr    = null;
