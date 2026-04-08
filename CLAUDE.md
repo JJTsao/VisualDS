@@ -16,10 +16,13 @@ No build system, no package manager. Open `index.html` directly in a browser.
 Multi-page application — each data structure gets its own standalone HTML page:
 
 ```
-index.html        → navigation hub (card grid)
-array-vis.html    → Array unit (only implemented unit so far)
-css/style.css     → shared design tokens + component styles + all animation classes
-js/array-vis.js   → Array parser + visualizer (self-contained, no framework)
+index.html              → navigation hub (card grid)
+array-vis.html          → Array unit
+linked-list-vis.html    → Linked List unit
+css/style.css           → shared design tokens + component styles + all animation classes
+js/array-vis.js         → Array parser + visualizer (self-contained, no framework)
+js/linked-list-vis.js   → Linked List parser + visualizer
+js/history.js           → shared StepHistory class (undo stack, JSON deep-copy snapshots)
 ```
 
 ### Page pattern for each `*-vis.html`
@@ -40,33 +43,48 @@ Panel layout — left col: Op selector + code editor + buttons. Right col: Memor
 
 Inline `<script>` in the HTML handles the line-gutter only. It must be wrapped in an IIFE to avoid `const` redeclaration conflicts with the external JS file. It exposes `window.setActiveLine(n)` for the JS to call.
 
-### JS architecture (`js/array-vis.js`)
+### JS architecture
 
-Each unit script is self-contained. Key structure:
+Each unit script is self-contained. Common structure across all units:
 
 ```
 OPERATIONS  → preset code snippets keyed by op name
-state       → { currentLine, lines, arrays{}, arrayOrder[], addrCounter }
-Regex       → RE_DECLARE, RE_DECLARE_INIT, RE_ASSIGN_LIT, RE_ASSIGN_ARR, RE_READ, RE_BLANK
+state       → unit-specific state object
 stepOneLine() → main parser, called on each Step click
-reset()       → clears state + DOM
+stepBack()    → pop snapshot from history, restore state + re-render
+reset()       → clears state + DOM + history
 window.loadOperation(key) → loads preset, resets, syncs gutter
 ```
 
-Multi-array support: `state.arrays` is a map `name → { size, values[], baseAddr }`. Each array gets base address `state.addrCounter`; counter advances by `size * 4 + 0x100` per declaration. Cell IDs follow `cell-${arrayName}-${index}` and `cell-value-${arrayName}-${index}`.
+**`js/array-vis.js`** — `state` holds `{ currentLine, lines, arrays{}, arrayOrder[], addrCounter }`. Multi-array support: `state.arrays` is a map `name → { size, values[], baseAddr }`. Cell IDs follow `cell-${arrayName}-${index}`. Regex parse order matters — check `RE_DECLARE_INIT` before `RE_READ`, and `RE_ASSIGN_ARR` before `RE_ASSIGN_LIT`.
 
-Regex parse order in `stepOneLine()` matters — check `RE_DECLARE_INIT` before `RE_READ` (both start with `int`), and `RE_ASSIGN_ARR` before `RE_ASSIGN_LIT` (both can match assignment lines).
+**`js/linked-list-vis.js`** — `state` holds `{ currentLine, lines, nodes{}, nodeOrder[], ptrs{}, vars{}, addrCounter }`. Key distinctions:
+- `nodes` — heap objects `{ addr, data, nextName, freed }`
+- `ptrs` — all `Node*` variables → target node var name or null
+- `vars` — simple `int`/`bool` variables
+- Supports real control flow: `while (ptr != nullptr)`, `if (ptr->data == val)`, `break`
+- `findMatchingBrace()` / `findMatchingOpener()` / `findEnclosingWhile()` handle nested while+if
+- `RE_CLOSE_BRACE` uses `findMatchingOpener()` to distinguish `}` of while vs if (avoids incorrect loop-back jump)
+- Node layout: `getNodePositions()` assigns X by linked-list order, Y by creation order via `Y_OFFSETS[]` (simulates heap scatter); `insert_head/mid/delete_mid` use a fixed `slotMap` so nodes don't shift during operation
+- `renderArrows()` draws SVG overlay for inter-node arrows (arcs) and NULL terminators
+
+**`js/history.js`** — `StepHistory` class with `push(snapshot)` / `pop()` / `clear()` / `isEmpty`. Snapshots are deep-copied via JSON round-trip — all state fields must be plain JSON-serialisable (no DOM refs, no functions). Load this before any `*-vis.js` in HTML.
 
 ### Animation system
 
-Three CSS animation classes, triggered by JS `triggerAnimation(el, className, ms)`:
+All animations use `triggerAnimation(el, className, ms)`: removes the class, forces reflow (`void el.offsetWidth`), re-adds it, then removes after timeout. This reflow pattern must be preserved for re-triggering.
+
+**Array animations:**
 - `.highlight` — amber flash on a cell (read or write access)
 - `.value-change` — applied to `.cell-value` span (scale+fade on update)
-- `.error-shake` — applied to `.array-cells` div (shake + red pulse on OOB)
+- `.error-shake` — applied to `.array-cells` div (shake + red pulse on OOB); selector is `.array-cells.error-shake .array-cell` — per named array, not global
 
-`triggerAnimation` removes the class, forces reflow (`void el.offsetWidth`), re-adds it, then removes after timeout. This pattern must be preserved for re-triggering.
-
-`error-shake` selector is `.array-cells.error-shake .array-cell` — applied per named array, not globally.
+**Linked List animations:**
+- `.node-spawn` — fade-in scale for newly allocated nodes
+- `.node-highlight` — amber glow when reading data
+- `.node-ptr-update` — pulse when `->next` changes
+- `.node-delete` — fade-out for freed nodes
+- `.node-ptr-badge` / `.ptrBadgePulse` — green traversal pointer badge above node
 
 ### Styling system (`css/style.css`)
 
@@ -85,10 +103,12 @@ Page atmosphere: `body::after` = CRT scanline overlay; `body::before` = dot-grid
 
 ### Adding a new data structure unit
 
-1. Create `<name>-vis.html` — same left/right layout, same required DOM IDs
-2. Create `js/<name>-vis.js` — own `state` object, own `OPERATIONS`, own `stepOneLine()`
+1. Create `<name>-vis.html` — same left/right layout, same required DOM IDs; load `js/history.js` before the unit script
+2. Create `js/<name>-vis.js` — own `state`, own `OPERATIONS`, own `stepOneLine()`; implement `stepBack()` using `StepHistory`
 3. Activate the card in `index.html`: change `card-unavailable` → `card-active`, wrap in `<a href>`
 4. Add any new animation classes to `css/style.css`
+
+For undo (Back button): push a JSON-serialisable snapshot at the start of `stepOneLine()` before any mutation. `stepBack()` pops and restores state + re-renders. See `js/linked-list-vis.js` for the full pattern.
 
 ### Simulated memory model
 
