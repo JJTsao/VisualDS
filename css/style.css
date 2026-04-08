@@ -696,3 +696,34 @@ a { text-decoration: none; color: inherit; }
   100% { opacity: 0; transform: scale(0.55) translateY(-10px); }
 }
 .node-delete { animation: nodeDelete 0.55s ease forwards; }
+
+/* ─── Queue Animations ───────────────────────────── */
+
+/* Enqueue: 格子從右側滑入 */
+@keyframes queueEnqueue {
+  0%   { transform: translateX(16px); opacity: 0.3; }
+  100% { transform: translateX(0);    opacity: 1;   }
+}
+.queue-cell-enqueue {
+  animation: queueEnqueue 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* Dequeue: 格子向左淡出 */
+@keyframes queueDequeue {
+  0%   { transform: translateX(0)     scaleX(1.0);  opacity: 1.0; }
+  55%  { transform: translateX(-14px) scaleX(0.75); opacity: 0.4; }
+  100% { transform: translateX(-22px) scaleX(0.4);  opacity: 0.0; }
+}
+.queue-cell-dequeue {
+  animation: queueDequeue 0.45s ease forwards;
+}
+
+/* Overflow: 紅色 pulse */
+@keyframes queueOverflow {
+  0%   { border-color: var(--error); box-shadow: 0 0 0 rgba(255,60,60,0); }
+  40%  { border-color: var(--error); box-shadow: 0 0 10px rgba(255,60,60,0.6); background: #1a0000; }
+  100% { border-color: var(--error); box-shadow: 0 0 0 rgba(255,60,60,0); }
+}
+.queue-cell-overflow {
+  animation: queueOverflow 0.7s ease forwards;
+}
