@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SORTING — Data Structure Visualizer</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    /* ── Page Layout ── */
+    .page-wrapper {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .page-header {
+      padding: 0.6rem 1.5rem 0.5rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      animation: fadeSlideUp 0.4s ease 0.1s forwards;
+      opacity: 0;
+    }
+
+    .page-title {
+      font-size: 1.6rem;
+      letter-spacing: 0.12em;
+      color: var(--amber);
+      text-shadow: 0 0 24px var(--amber-glow);
+    }
+    .page-title-sub {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      letter-spacing: 0.08em;
+      margin-top: 0.2rem;
+    }
+
+    .page-badges { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+    .badge {
+      font-size: 0.6rem;
+      letter-spacing: 0.08em;
+      padding: 0.2rem 0.6rem;
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      color: var(--text-muted);
+    }
+
+    /* ── Main 2-column layout ── */
+    .main-grid {
+      flex: 1;
+      display: grid;
+      grid-template-columns: clamp(300px, 36%, 460px) 1fr;
+      gap: 0.75rem;
+      padding: 0.6rem 1.25rem 0.75rem;
+      align-items: stretch;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    @media (max-width: 900px) {
+      .page-wrapper { height: auto; min-height: 100vh; overflow-y: auto; }
+      .main-grid { grid-template-columns: 1fr; overflow: visible; height: auto; }
+      .left-col, .right-col { height: auto; overflow-y: visible; }
+    }
+
+    .left-col {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      animation: fadeSlideUp 0.4s ease 0.2s forwards;
+      opacity: 0;
+      overflow-y: auto;
+      height: 100%;
+      padding-right: 4px;
+    }
+    .left-col::-webkit-scrollbar { width: 3px; }
+    .left-col::-webkit-scrollbar-track { background: transparent; }
+    .left-col::-webkit-scrollbar-thumb { background: var(--border-mid); border-radius: 2px; }
+    .left-col > .panel { flex-shrink: 0; }
+
+    .right-col {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      animation: fadeSlideUp 0.4s ease 0.3s forwards;
+      opacity: 0;
+      overflow-y: auto;
+      height: 100%;
+    }
+    .right-col::-webkit-scrollbar { width: 3px; }
+    .right-col::-webkit-scrollbar-track { background: transparent; }
+    .right-col::-webkit-scrollbar-thumb { background: var(--border-mid); border-radius: 2px; }
+
+    /* ── Control body shared ── */
+    .control-body {
+      padding: 0.85rem 0.875rem 0.95rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.7rem;
+    }
+
+    .control-label {
+      font-size: 0.62rem;
+      letter-spacing: 0.16em;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+    .control-label .ctrl-val {
+      color: var(--amber);
+      font-weight: 700;
+      letter-spacing: 0.08em;
+    }
+
+    /* ── Slider (range input) — terminal styled ── */
+    .slider {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 4px;
+      background: linear-gradient(
+        to right,
+        var(--amber) 0%,
+        var(--amber) var(--fill, 50%),
+        var(--border) var(--fill, 50%),
+        var(--border) 100%
+      );
+      border-radius: 2px;
+      outline: none;
+      cursor: pointer;
+      transition: filter var(--transition);
+    }
+    .slider:hover { filter: brightness(1.15); }
+    .slider:disabled { opacity: 0.35; cursor: not-allowed; }
+
+    .slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--amber-bright);
+      border: 1px solid var(--amber);
+      box-shadow: 0 0 6px var(--amber-glow), 0 0 2px var(--amber);
+      cursor: pointer;
+      transition: transform var(--transition), box-shadow var(--transition);
+    }
+    .slider::-webkit-slider-thumb:hover {
+      transform: scale(1.15);
+      box-shadow: 0 0 12px var(--amber), 0 0 3px var(--amber-bright);
+    }
+    .slider::-moz-range-thumb {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--amber-bright);
+      border: 1px solid var(--amber);
+      box-shadow: 0 0 6px var(--amber-glow);
+      cursor: pointer;
+    }
+
+    /* Slider tick marks beneath the rail */
+    .slider-track-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.55rem;
+      color: var(--text-muted);
+      letter-spacing: 0.06em;
+      margin-top: -2px;
+    }
+
+    /* ── Algorithm selector grid ── */
+    .algo-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+    .algo-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      padding: 0.55rem 0.2rem;
+      background: var(--bg-card);
+      border: none;
+      border-right: 1px solid var(--border);
+      cursor: pointer;
+      font-family: var(--font-mono);
+      transition: background var(--transition);
+    }
+    .algo-btn:last-child { border-right: none; }
+    .algo-btn:hover:not(:disabled) { background: var(--bg-card-hover); }
+    .algo-btn:disabled { cursor: not-allowed; opacity: 0.35; }
+
+    .algo-en {
+      font-size: 0.66rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      transition: color var(--transition);
+    }
+    .algo-zh {
+      font-size: 0.6rem;
+      color: var(--text-muted);
+      transition: color var(--transition);
+    }
+    .algo-btn:hover:not(:disabled) .algo-en { color: var(--text-dim); }
+    .algo-btn.active {
+      background: rgba(232, 165, 0, 0.07);
+      border-bottom: 2px solid var(--amber);
+      margin-bottom: -1px;
+    }
+    .algo-btn.active .algo-en { color: var(--amber); }
+    .algo-btn.active .algo-zh { color: var(--amber-dim); }
+
+    .algo-desc {
+      padding: 0.5rem 0.875rem;
+      font-size: 0.74rem;
+      color: var(--text-muted);
+      letter-spacing: 0.03em;
+      line-height: 1.55;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+    }
+    .algo-complexity {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: var(--amber-dim);
+      letter-spacing: 0.05em;
+      white-space: nowrap;
+    }
+
+    /* ── Buttons row ── */
+    .btn-row {
+      display: flex;
+      gap: 0.5rem;
+    }
+    .btn-row .btn { flex: 1; padding: 0.65rem 0.5rem; }
+    .btn-row.btn-row-primary .btn-primary { flex: 1.4; }
+
+    /* ── Concept card ── */
+    .concept-card { padding: 0.75rem 0.875rem 0.9rem; }
+    .concept-title {
+      font-size: 0.72rem;
+      letter-spacing: 0.15em;
+      color: var(--amber-dim);
+      margin-bottom: 0.7rem;
+    }
+    .concept-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+    .concept-list li {
+      font-size: 0.84rem;
+      color: var(--text-dim);
+      line-height: 1.55;
+      padding-left: 1rem;
+      position: relative;
+    }
+    .concept-list li::before {
+      content: '›';
+      position: absolute;
+      left: 0;
+      color: var(--amber-dim);
+    }
+    .concept-list code {
+      color: var(--amber);
+      background: rgba(232, 165, 0, 0.08);
+      padding: 0 3px;
+      border-radius: 2px;
+      font-size: 0.8rem;
+    }
+
+    /* ── Console ── */
+    .console-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .console-pulse {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--success);
+      animation: blink 2s step-end infinite;
+    }
+    @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.2; } }
+    .console-label {
+      font-size: 0.78rem;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+    }
+    .btn-console-clear {
+      margin-left: auto;
+      background: none; border: none;
+      font-family: var(--font-mono);
+      font-size: 0.6rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      letter-spacing: 0.08em;
+      transition: color var(--transition);
+      padding: 0;
+    }
+    .btn-console-clear:hover { color: var(--text-dim); }
+
+    /* ── Canvas ── */
+    .canvas-panel { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+    .canvas-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .canvas-label {
+      font-size: 0.78rem;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+    }
+    .canvas-info {
+      margin-left: auto;
+      font-size: 0.66rem;
+      letter-spacing: 0.08em;
+      color: var(--amber-dim);
+    }
+
+    /* ── Bars stage ── */
+    #bars-stage {
+      position: relative;
+      flex: 1;
+      min-height: 360px;
+      padding: 1.1rem 1.25rem 0.5rem;
+      background:
+        radial-gradient(ellipse at 50% 100%, rgba(232,165,0,0.06), transparent 65%),
+        var(--bg-input);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    #bars-container {
+      flex: 1;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      gap: 2px;
+      padding-bottom: 26px;          /* room for index/value label below */
+      position: relative;
+    }
+
+    /* Baseline rule */
+    #bars-container::after {
+      content: '';
+      position: absolute;
+      left: 0; right: 0;
+      bottom: 22px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border-mid), transparent);
+      pointer-events: none;
+    }
+
+    /* Individual bar — vertical column anchored to bottom */
+    .bar {
+      flex: 1 1 0;
+      min-width: 4px;
+      position: relative;
+      border-radius: 2px 2px 0 0;
+      background: linear-gradient(180deg, var(--amber-dim), #4a3600);
+      border: 1px solid var(--amber-dim);
+      border-bottom: none;
+      box-shadow: 0 0 6px var(--amber-glow-sm), inset 0 0 4px rgba(0,0,0,0.4);
+      transition:
+        height 0.18s cubic-bezier(0.4, 0, 0.2, 1),
+        background 0.15s ease,
+        border-color 0.15s ease,
+        box-shadow 0.15s ease,
+        transform 0.18s ease;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      will-change: height;
+    }
+
+    /* Numeric value pinned at the bar's top (only shown when bars are wide enough) */
+    .bar-value {
+      position: absolute;
+      top: -16px;
+      font-family: var(--font-mono);
+      font-size: 0.62rem;
+      color: var(--text-muted);
+      letter-spacing: 0.02em;
+      pointer-events: none;
+      transition: color 0.15s ease, opacity 0.15s ease;
+    }
+    .bars-narrow .bar-value { display: none; }
+
+    /* State: comparing — amber-bright pulse */
+    .bar-comparing {
+      background: linear-gradient(180deg, var(--amber-bright), var(--amber));
+      border-color: var(--amber-bright);
+      box-shadow:
+        0 0 14px rgba(255, 199, 64, 0.55),
+        inset 0 0 6px rgba(255, 199, 64, 0.25);
+    }
+    .bar-comparing .bar-value { color: var(--amber-bright); }
+
+    /* State: swapping — strong red flash */
+    .bar-swapping {
+      background: linear-gradient(180deg, #ff6060, #b50000);
+      border-color: #ff8080;
+      box-shadow:
+        0 0 16px rgba(255, 60, 60, 0.65),
+        inset 0 0 8px rgba(255, 60, 60, 0.3);
+      transform: translateY(-3px);
+    }
+    .bar-swapping .bar-value { color: #ffd0d0; }
+
+    /* State: pivot — purple sustained */
+    .bar-pivot {
+      background: linear-gradient(180deg, #c9a0ff, #6a3ebd);
+      border-color: #c9a0ff;
+      box-shadow:
+        0 0 14px rgba(180, 100, 255, 0.55),
+        inset 0 0 8px rgba(180, 100, 255, 0.25);
+    }
+    .bar-pivot .bar-value { color: #e6d4ff; }
+
+    /* State: sorted — green, holds */
+    .bar-sorted {
+      background: linear-gradient(180deg, #4dffa8, #006b3d);
+      border-color: #4dffa8;
+      box-shadow:
+        0 0 12px rgba(0, 200, 122, 0.55),
+        inset 0 0 6px rgba(0, 200, 122, 0.2);
+    }
+    .bar-sorted .bar-value { color: #b8ffd6; }
+
+    /* State: range (sub-array being merged in merge sort) — dim purple wash */
+    .bar-range {
+      background: linear-gradient(180deg, #8a6fb5, #3a2870);
+      border-color: #8a6fb5;
+      box-shadow: 0 0 8px rgba(138, 111, 181, 0.4);
+    }
+    .bar-range .bar-value { color: #d8c8ff; }
+
+    /* Boundary marker — used as the "i" pointer in quick sort partition */
+    .bar-boundary {
+      outline: 2px solid #40d0ff;
+      outline-offset: -2px;
+      box-shadow:
+        0 0 14px rgba(64, 208, 255, 0.5),
+        inset 0 0 6px rgba(64, 208, 255, 0.15);
+    }
+
+    /* Brief flash when a value is overwritten (merge sort writes, insertion overwrites) */
+    @keyframes barWrite {
+      0%   { filter: brightness(1); }
+      30%  { filter: brightness(1.7) saturate(1.2); }
+      100% { filter: brightness(1); }
+    }
+    .bar-write { animation: barWrite 0.28s ease; }
+
+    /* Subtle finishing wave — sequentially trigger after sort completes */
+    @keyframes sortedFlash {
+      0%   { transform: translateY(0)   scaleY(1);    box-shadow: 0 0 12px rgba(0,200,122,0.55), inset 0 0 6px rgba(0,200,122,0.2); }
+      40%  { transform: translateY(-8px) scaleY(1.05); box-shadow: 0 0 22px rgba(77,255,168,0.85), inset 0 0 10px rgba(77,255,168,0.4); }
+      100% { transform: translateY(0)   scaleY(1);    box-shadow: 0 0 12px rgba(0,200,122,0.55), inset 0 0 6px rgba(0,200,122,0.2); }
+    }
+    .bar-finale { animation: sortedFlash 0.45s ease; }
+
+    /* ── Legend ── */
+    .legend-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.85rem 1.25rem;
+      padding: 0.55rem 1rem;
+      border-top: 1px solid var(--border);
+      background: var(--bg-card);
+      flex-shrink: 0;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.66rem;
+      color: var(--text-muted);
+      letter-spacing: 0.04em;
+    }
+    .legend-swatch {
+      width: 14px;
+      height: 14px;
+      border-radius: 2px;
+      border: 1px solid;
+    }
+    .ls-default   { background: linear-gradient(180deg, var(--amber-dim), #4a3600); border-color: var(--amber-dim); }
+    .ls-comparing { background: linear-gradient(180deg, var(--amber-bright), var(--amber)); border-color: var(--amber-bright); }
+    .ls-swapping  { background: linear-gradient(180deg, #ff6060, #b50000); border-color: #ff8080; }
+    .ls-pivot     { background: linear-gradient(180deg, #c9a0ff, #6a3ebd); border-color: #c9a0ff; }
+    .ls-sorted    { background: linear-gradient(180deg, #4dffa8, #006b3d); border-color: #4dffa8; }
+
+    /* ── Stat strip (counters) ── */
+    .stat-strip {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      padding: 0.55rem 0.875rem;
+      border-top: 1px solid var(--border);
+      background: var(--bg-card);
+      gap: 0.75rem;
+      flex-shrink: 0;
+    }
+    .stat-block {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 2px;
+    }
+    .stat-label {
+      font-size: 0.55rem;
+      letter-spacing: 0.16em;
+      color: var(--text-muted);
+    }
+    .stat-value {
+      font-family: var(--font-mono);
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--amber);
+      letter-spacing: 0.04em;
+    }
+    .stat-block.status .stat-value { color: var(--success); font-size: 0.78rem; letter-spacing: 0.08em; }
+    .stat-block.status .stat-value.busy { color: var(--amber-bright); }
+  </style>
+</head>
+<body>
+
+<div class="page-wrapper">
+
+  <!-- Nav -->
+  <nav class="site-nav">
+    <a href="index.html" class="nav-back">← BACK</a>
+    <span class="nav-sep">/</span>
+    <span class="nav-crumb">SORTING ALGORITHMS MODULE</span>
+  </nav>
+
+  <!-- Page Header -->
+  <header class="page-header">
+    <div class="page-title-group">
+      <h1 class="page-title">SORTING ALGORITHMS</h1>
+      <p class="page-title-sub">五種經典演算法 · 比較 · 交換 · 合併 · 分割</p>
+    </div>
+    <div class="page-badges">
+      <span class="badge">O(N²) · Bubble · Selection · Insertion</span>
+      <span class="badge">O(N log N) · Merge · Quick</span>
+      <span class="badge">async / await pacing</span>
+    </div>
+  </header>
+
+  <!-- Main Grid -->
+  <main class="main-grid">
+
+    <!-- ── Left: Control Panel ── -->
+    <div class="left-col">
+
+      <!-- Array generator -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-dot active"></div>
+          <span style="font-size:0.65rem;letter-spacing:0.1em;color:var(--text-muted);">CONTROLS — DATASET</span>
+        </div>
+        <div class="control-body">
+          <label class="control-label" for="size-slider">
+            <span>// ARRAY SIZE</span>
+            <span class="ctrl-val"><span id="size-value">30</span> elements</span>
+          </label>
+          <input id="size-slider" class="slider" type="range" min="10" max="50" value="30" />
+          <div class="slider-track-row"><span>10</span><span>30</span><span>50</span></div>
+
+          <label class="control-label" for="speed-slider" style="margin-top:0.3rem;">
+            <span>// ANIMATION SPEED</span>
+            <span class="ctrl-val"><span id="speed-value">50</span> %</span>
+          </label>
+          <input id="speed-slider" class="slider" type="range" min="1" max="100" value="50" />
+          <div class="slider-track-row"><span>slow</span><span>medium</span><span>fast</span></div>
+
+          <button id="btn-generate" class="btn btn-secondary" style="margin-top:0.4rem;">↻ GENERATE NEW ARRAY</button>
+        </div>
+      </div>
+
+      <!-- Algorithm selector -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-dot active"></div>
+          <span style="font-size:0.65rem;letter-spacing:0.1em;color:var(--text-muted);">CONTROLS — ALGORITHM</span>
+        </div>
+        <div class="algo-grid">
+          <button class="algo-btn active" data-algo="bubble">
+            <span class="algo-en">BUBBLE</span>
+            <span class="algo-zh">氣泡</span>
+          </button>
+          <button class="algo-btn" data-algo="selection">
+            <span class="algo-en">SELECT</span>
+            <span class="algo-zh">選擇</span>
+          </button>
+          <button class="algo-btn" data-algo="insertion">
+            <span class="algo-en">INSERT</span>
+            <span class="algo-zh">插入</span>
+          </button>
+          <button class="algo-btn" data-algo="merge">
+            <span class="algo-en">MERGE</span>
+            <span class="algo-zh">合併</span>
+          </button>
+          <button class="algo-btn" data-algo="quick">
+            <span class="algo-en">QUICK</span>
+            <span class="algo-zh">快速</span>
+          </button>
+        </div>
+        <div class="algo-desc">
+          <span id="algo-desc-text">相鄰兩元素比較，較大者向右浮升 — 每輪確定一個尾端元素</span>
+          <span id="algo-complexity" class="algo-complexity">O(N²)</span>
+        </div>
+
+        <div class="control-body" style="padding-top:0.6rem;">
+          <div class="btn-row btn-row-primary">
+            <button id="btn-sort" class="btn btn-primary">▶ SORT</button>
+            <button id="btn-stop" class="btn btn-secondary" disabled>■ STOP</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Concept -->
+      <div class="panel concept-card">
+        <p class="concept-title">// HOW TO READ THE STAGE</p>
+        <ul class="concept-list">
+          <li>每根直條 = 一個整數值 · 高度與數值成正比</li>
+          <li>顏色：<code>amber</code> 預設、<code>bright</code> 比較中、<code>red</code> 交換、<code>purple</code> pivot、<code>green</code> 已排序</li>
+          <li>右下角統計：comparisons / swaps / status</li>
+          <li>調慢 speed slider 可看清每一步操作</li>
+        </ul>
+      </div>
+
+      <!-- Console -->
+      <div class="panel">
+        <div class="panel-header console-header">
+          <div class="console-pulse"></div>
+          <span class="console-label">CONSOLE OUTPUT</span>
+          <button id="btn-clear-console" class="btn-console-clear">[ CLEAR ]</button>
+        </div>
+        <div id="console-output">
+          <span class="console-line dim">// 選擇演算法並按下 SORT 開始排序...</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ── Right: Visualization Canvas ── -->
+    <div class="right-col">
+
+      <div class="panel canvas-panel">
+        <div class="panel-header canvas-header">
+          <div class="panel-dot active"></div>
+          <span class="canvas-label">SORTING STAGE</span>
+          <span id="stage-info" class="canvas-info">— · n=30</span>
+        </div>
+
+        <div id="bars-stage">
+          <div id="bars-container"></div>
+        </div>
+
+        <!-- Legend -->
+        <div class="legend-bar">
+          <div class="legend-item"><div class="legend-swatch ls-default"></div><span>DEFAULT</span></div>
+          <div class="legend-item"><div class="legend-swatch ls-comparing"></div><span>COMPARING</span></div>
+          <div class="legend-item"><div class="legend-swatch ls-swapping"></div><span>SWAPPING</span></div>
+          <div class="legend-item"><div class="legend-swatch ls-pivot"></div><span>PIVOT</span></div>
+          <div class="legend-item"><div class="legend-swatch ls-sorted"></div><span>SORTED</span></div>
+        </div>
+
+        <!-- Counters -->
+        <div class="stat-strip">
+          <div class="stat-block">
+            <span class="stat-label">// COMPARISONS</span>
+            <span class="stat-value" id="stat-comparisons">0</span>
+          </div>
+          <div class="stat-block">
+            <span class="stat-label">// SWAPS / WRITES</span>
+            <span class="stat-value" id="stat-swaps">0</span>
+          </div>
+          <div class="stat-block status">
+            <span class="stat-label">// STATUS</span>
+            <span class="stat-value" id="stat-status">READY</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+</div>
+
+<script src="js/sorting-vis.js"></script>
+</body>
+</html>
