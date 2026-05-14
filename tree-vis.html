@@ -102,6 +102,12 @@
     .left-col::-webkit-scrollbar-track { background: transparent; }
     .left-col::-webkit-scrollbar-thumb { background: var(--border-mid); border-radius: 2px; }
 
+    /* Phase 4 added a 5th panel — total content can now exceed the column's
+       height. Stop panels from being compressed (they'd clip via .panel's
+       overflow:hidden, hiding Insert/Clear etc.); instead let .left-col's
+       overflow-y: auto provide a scrollbar. */
+    .left-col > .panel { flex-shrink: 0; }
+
     /* ── Right Column ── */
     .right-col {
       display: flex;
@@ -211,6 +217,34 @@
     }
     .traversal-btn:hover:not(:disabled) .t-sub { color: var(--text-dim); }
     .traversal-btn:disabled .t-sub { color: var(--text-muted); opacity: 0.4; }
+
+    /* Advanced (Phase 4) — 2×2 grid of two-line bonus buttons */
+    .bonus-btn-row {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.45rem;
+    }
+    .bonus-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      padding: 0.55rem 0.45rem;
+      line-height: 1.2;
+    }
+    .bonus-btn .b-label {
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+    }
+    .bonus-btn .b-sub {
+      font-size: 0.55rem;
+      letter-spacing: 0.04em;
+      color: var(--text-muted);
+      opacity: 0.85;
+    }
+    .bonus-btn:hover:not(:disabled) .b-sub { color: var(--text-dim); }
+    .bonus-btn:disabled .b-sub { color: var(--text-muted); opacity: 0.4; }
 
     .input-hint {
       font-size: 0.66rem;
@@ -368,6 +402,46 @@
       font-weight: 700;
     }
     .traversal-mode-tag:empty { display: none; }
+
+    /* Toast — used by GET DEPTH to show the result over the canvas. */
+    .tree-toast {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translate(-50%, -12px);
+      background: rgba(180, 100, 255, 0.18);
+      border: 1px solid rgba(180, 100, 255, 0.65);
+      color: #f0d8ff;
+      padding: 0.55rem 1rem;
+      border-radius: 3px;
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      letter-spacing: 0.1em;
+      pointer-events: none;
+      opacity: 0;
+      box-shadow: 0 0 24px rgba(180, 100, 255, 0.5);
+      z-index: 10;
+      transition: opacity 0.35s ease, transform 0.35s ease;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    .tree-toast.show {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
+    .tree-toast-label {
+      font-size: 0.62rem;
+      letter-spacing: 0.18em;
+      color: #c9a0ff;
+    }
+    .tree-toast-value {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #f6e6ff;
+      text-shadow: 0 0 12px rgba(180, 100, 255, 0.8);
+    }
 
     /* SVG layer for edges — sits beneath nodes */
     #tree-edges {
@@ -528,6 +602,37 @@
         </div>
       </div>
 
+      <!-- Advanced (Phase 4 bonus operations) -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-dot active"></div>
+          <span style="font-size:0.65rem;letter-spacing:0.1em;color:var(--text-muted);">CONTROLS — ADVANCED</span>
+        </div>
+        <div class="control-body">
+          <div class="bonus-btn-row">
+            <button id="btn-invert" class="btn btn-secondary bonus-btn">
+              <span class="b-label">⇄ INVERT</span>
+              <span class="b-sub">LC 226 · swap L/R</span>
+            </button>
+            <button id="btn-max-depth" class="btn btn-secondary bonus-btn">
+              <span class="b-label">↧ DEPTH</span>
+              <span class="b-sub">LC 104 · longest path</span>
+            </button>
+            <button id="btn-rotate-left" class="btn btn-secondary bonus-btn">
+              <span class="b-label">↶ L-ROT</span>
+              <span class="b-sub">AVL · pivot root</span>
+            </button>
+            <button id="btn-rotate-right" class="btn btn-secondary bonus-btn">
+              <span class="b-label">↷ R-ROT</span>
+              <span class="b-sub">AVL · pivot root</span>
+            </button>
+          </div>
+          <p class="input-hint">
+            INVERT 翻轉所有節點的左右子樹 · DEPTH 標出最深路徑（紫色）· ROT 對 root 做標準二元樹旋轉
+          </p>
+        </div>
+      </div>
+
       <!-- Concept -->
       <div class="panel concept-card">
         <p class="concept-title">// BST INVARIANT</p>
@@ -577,6 +682,9 @@
             <p class="empty-text">EMPTY BST</p>
             <p class="empty-hint">enter a value and press <code>INSERT</code></p>
           </div>
+
+          <!-- Toast (Phase 4 — GET DEPTH result, etc.) -->
+          <div id="tree-toast" class="tree-toast"></div>
         </div>
 
         <!-- Traversal Output bar (sequence of visited values) -->

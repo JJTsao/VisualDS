@@ -19,6 +19,12 @@ const SUCCESSOR_HOLD_MS      = 620;  // hold green on the in-order successor
 const VALUE_SWAP_MS          = 560;  // value text scale-flash during Case 3 swap
 const FADE_OUT_MS            = 500;  // node + edge fade-out duration
 const EDGE_ANIM_MS           = 400;  // edge interpolation matches `.tree-node` transition
+// Phase 4 — advanced ops pacing
+const SWAP_PULSE_MS          = 450;  // cyan flash duration when a node's L/R were swapped
+const DEEPEST_STAGGER_MS     = 220;  // delay between successive nodes lighting up in deepest path
+const ROTATION_PIVOT_HOLD_MS = 650;  // hold red/green on pivot pair before rotating
+const LAYOUT_SETTLE_MS       = EDGE_ANIM_MS + 100;  // wait for nodes/edges to finish gliding
+const TOAST_DURATION_MS      = 3000; // how long the depth toast stays on screen
 
 // ─── BST Node ─────────────────────────────────────────────────────────────────
 
@@ -56,25 +62,32 @@ const btnClear        = document.getElementById('btn-clear');
 const btnClearConsole = document.getElementById('btn-clear-console');
 const consoleOutput   = document.getElementById('console-output');
 
-// Phase 2 + 3 controls
+// Phase 2 + 3 + 4 controls
 const searchInput     = document.getElementById('search-input');
 const btnSearch       = document.getElementById('btn-search');
 const btnDelete       = document.getElementById('btn-delete');
 const btnPreorder     = document.getElementById('btn-preorder');
 const btnInorder      = document.getElementById('btn-inorder');
 const btnPostorder    = document.getElementById('btn-postorder');
+const btnInvert       = document.getElementById('btn-invert');
+const btnMaxDepth     = document.getElementById('btn-max-depth');
+const btnRotateLeft   = document.getElementById('btn-rotate-left');
+const btnRotateRight  = document.getElementById('btn-rotate-right');
 const traversalOutput = document.getElementById('traversal-output');
 const traversalMode   = document.getElementById('traversal-mode');
+const treeToast       = document.getElementById('tree-toast');
 
 // Every control that must be disabled while an animation is in progress.
 const ALL_CONTROLS = [
   btnInsert, btnClear, valueInput,
   btnSearch, btnDelete, searchInput,
   btnPreorder, btnInorder, btnPostorder,
+  btnInvert, btnMaxDepth, btnRotateLeft, btnRotateRight,
 ];
 
-// Marker classes applied to .tree-node during search / traversal / delete —
-// cleared at the start of each new operation so previous runs don't bleed in.
+// Marker classes applied to .tree-node during search / traversal / delete /
+// advanced — cleared at the start of each new operation so previous runs
+// don't bleed in.
 const NODE_MARKER_CLASSES = [
   'tree-node-visit',
   'tree-node-active',
@@ -84,6 +97,13 @@ const NODE_MARKER_CLASSES = [
   'tree-node-miss',
   'tree-node-target',
   'tree-node-successor',
+  'tree-node-swap',
+  'tree-node-deepest',
+];
+
+// Edge marker classes — currently just the purple deepest-path highlight.
+const EDGE_MARKER_CLASSES = [
+  'tree-edge-deepest',
 ];
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -769,6 +789,252 @@ async function deleteValue(rawValue) {
   }
 }
 
+// ─── Phase 4: Bonus operations ───────────────────────────────────────────────
+// Three classroom-flavoured operations:
+//   - INVERT  (LeetCode 226): recursively swap left/right pointers.
+//   - DEPTH   (LeetCode 104): max root-to-leaf depth + highlight the path.
+//   - L/R-ROT (AVL foundation): standard binary-tree rotation around the root.
+//
+// All three reuse the existing layout/edge animation machinery so nodes glide
+// to their new positions instead of teleporting.
+
+/** Brief cyan flash on a node whose left/right pointers were just swapped. */
+async function pulseSwap(node) {
+  node.el.classList.remove('tree-node-swap');
+  void node.el.offsetWidth;
+  node.el.classList.add('tree-node-swap');
+  await sleep(SWAP_PULSE_MS);
+  node.el.classList.remove('tree-node-swap');
+}
+
+/** Small toast over the canvas — used by GET DEPTH for the result popup. */
+function showToast(labelHtml, valueHtml, durationMs = TOAST_DURATION_MS) {
+  treeToast.innerHTML =
+    `<span class="tree-toast-label">${labelHtml}</span>` +
+    `<span class="tree-toast-value">${valueHtml}</span>`;
+  // Force re-trigger if a previous toast is still up.
+  treeToast.classList.remove('show');
+  void treeToast.offsetWidth;
+  treeToast.classList.add('show');
+  setTimeout(() => treeToast.classList.remove('show'), durationMs);
+}
+
+// ─── INVERT TREE (LeetCode 226) ──────────────────────────────────────────────
+// Top-down: visit a node, swap its pointers, re-layout (children physically
+// move to opposite sides), then recurse into the now-swapped subtrees. Leaves
+// short-circuit since swapping (null, null) has no visual effect.
+
+async function invertNode(node) {
+  if (!node) return;
+
+  // Leaf — nothing to swap. Brief visit pulse keeps the recursion legible.
+  if (node.left === null && node.right === null) {
+    await visitAnimate(node);
+    return;
+  }
+
+  // Mark "currently processing this internal node"
+  node.el.classList.add('tree-node-active');
+  await sleep(TRAVERSE_STEP_MS);
+
+  // The swap — single line of actual logic.
+  [node.left, node.right] = [node.right, node.left];
+
+  // Drop "active" so the cyan swap flash isn't fighting the amber pulse.
+  node.el.classList.remove('tree-node-active');
+  // Show the swap visually + recompute layout (subtrees glide to new sides).
+  recomputeLayout();
+  await pulseSwap(node);
+  // Make sure the layout glide has finished before recursing — otherwise
+  // the next active mark appears on a node mid-flight.
+  await sleep(LAYOUT_SETTLE_MS - SWAP_PULSE_MS);
+
+  // Recurse into the (now-swapped) children.
+  await invertNode(node.left);
+  await invertNode(node.right);
+}
+
+async function invertTree() {
+  if (state.busy) return;
+  if (state.root === null) {
+    logConsole('Tree is empty — nothing to invert.', 'warn');
+    return;
+  }
+  state.busy = true;
+  setControlsDisabled(true);
+  resetNodeStates();
+  logConsole('Invert tree — recursively swapping every node\'s left/right pointers (top-down)...', 'info');
+  try {
+    await invertNode(state.root);
+    logConsole('Tree inverted. (LeetCode 226)', 'success');
+  } finally {
+    setControlsDisabled(false);
+    state.busy = false;
+  }
+}
+
+// ─── GET MAX DEPTH (LeetCode 104) ────────────────────────────────────────────
+// Recursive depth computation in post-order so the visit pulse mirrors the
+// actual return-up-the-stack timing. Returns both the depth and a single
+// representative deepest path (ties broken left-preferred).
+
+async function computeDepthAnimated(node) {
+  if (!node) return { depth: 0, path: [] };
+  const left  = await computeDepthAnimated(node.left);
+  const right = await computeDepthAnimated(node.right);
+  await visitAnimate(node);  // post-order — "this node now knows its depth"
+  const longer = left.depth >= right.depth ? left : right;
+  return { depth: 1 + longer.depth, path: [node, ...longer.path] };
+}
+
+/**
+ * Light up the deepest path with a staggered purple reveal:
+ *   - node N gets `.tree-node-deepest`
+ *   - then the edge from N-1 → N (i.e. N.edge) gets `.tree-edge-deepest`
+ * Persists until the next operation calls resetNodeStates().
+ */
+async function highlightDeepestPath(path) {
+  for (let i = 0; i < path.length; i++) {
+    const node = path[i];
+    node.el.classList.add('tree-node-deepest');
+    if (i > 0 && node.edge) node.edge.classList.add('tree-edge-deepest');
+    await sleep(DEEPEST_STAGGER_MS);
+  }
+}
+
+async function getMaxDepth() {
+  if (state.busy) return;
+  if (state.root === null) {
+    logConsole('Tree is empty — max depth is 0.', 'info');
+    showToast('MAX DEPTH', '0');
+    return;
+  }
+  state.busy = true;
+  setControlsDisabled(true);
+  resetNodeStates();
+  logConsole('Computing max depth — post-order traversal to bubble up depths...', 'info');
+  try {
+    const { depth, path } = await computeDepthAnimated(state.root);
+    await highlightDeepestPath(path);
+    const pathStr = path.map(n => n.value).join(' → ');
+    showToast('MAX DEPTH', String(depth));
+    logConsole(
+      `Max depth: ${depth}  ·  longest path: [${pathStr}]  (LeetCode 104)`,
+      'success'
+    );
+  } finally {
+    setControlsDisabled(false);
+    state.busy = false;
+  }
+}
+
+// ─── ROTATIONS (AVL foundation) ──────────────────────────────────────────────
+// Standard binary-tree rotation around the root. Both operations preserve the
+// BST property given a valid input.
+//
+//   Left rotation around x (= state.root), where x.right = y:
+//        x                 y
+//       / \               / \
+//      a   y     →       x   c
+//         / \           / \
+//        b   c         a   b
+//
+//   Right rotation is symmetric (mirror image).
+
+/**
+ * Shared helper: animate the pivot pair (highlight + structural rewire +
+ * relayout + new edge for the demoted node), then clean up.
+ *
+ *   oldRoot — the node being demoted to a child (red highlight)
+ *   newRoot — the node being promoted to root (green highlight)
+ *
+ * Caller does the actual pointer surgery via `rewire` (between the highlight
+ * pause and the relayout) so left/right variants share this scaffold.
+ */
+async function performRotation(oldRoot, newRoot, rewire, label) {
+  state.busy = true;
+  setControlsDisabled(true);
+  resetNodeStates();
+  try {
+    // Highlight: oldRoot demoted (red), newRoot promoted (green).
+    oldRoot.el.classList.add('tree-node-target');
+    newRoot.el.classList.add('tree-node-successor');
+    await sleep(ROTATION_PIVOT_HOLD_MS);
+
+    // newRoot's incoming edge (was oldRoot → newRoot) is no longer valid —
+    // the new root has no parent. Drop it before re-layout sees it.
+    if (newRoot.edge && newRoot.edge.parentNode) {
+      newRoot.edge.parentNode.removeChild(newRoot.edge);
+    }
+    newRoot.edge = null;
+
+    // Structural rotation (callsite-specific pointer surgery).
+    rewire();
+    state.root = newRoot;
+
+    // Re-layout — existing edges glide via animateEdgeTo, nodes via CSS
+    // transition. Any child whose parent changed (e.g. y's old left
+    // becoming x's right) is auto re-targeted because updateEdges walks
+    // the new tree from state.root.
+    recomputeLayout();
+
+    // oldRoot now needs an incoming edge (it just became a child).
+    createEdge(newRoot, oldRoot);
+
+    await sleep(LAYOUT_SETTLE_MS);
+    oldRoot.el.classList.remove('tree-node-target');
+    newRoot.el.classList.remove('tree-node-successor');
+
+    logConsole(
+      `${label}: ${oldRoot.value} demoted, ${newRoot.value} promoted to root.`,
+      'success'
+    );
+  } finally {
+    setControlsDisabled(false);
+    state.busy = false;
+  }
+}
+
+async function rotateLeft() {
+  if (state.busy) return;
+  if (state.root === null) {
+    logConsole('Tree is empty — no rotation possible.', 'warn');
+    return;
+  }
+  if (state.root.right === null) {
+    logConsole('Left-rotate skipped: root has no right child to pivot on.', 'warn');
+    flashCanvasMiss();
+    return;
+  }
+  const x = state.root;
+  const y = x.right;
+  await performRotation(x, y, () => {
+    // y's old left subtree becomes x's new right subtree.
+    x.right = y.left;
+    y.left  = x;
+  }, 'Left rotation');
+}
+
+async function rotateRight() {
+  if (state.busy) return;
+  if (state.root === null) {
+    logConsole('Tree is empty — no rotation possible.', 'warn');
+    return;
+  }
+  if (state.root.left === null) {
+    logConsole('Right-rotate skipped: root has no left child to pivot on.', 'warn');
+    flashCanvasMiss();
+    return;
+  }
+  const y = state.root;
+  const x = y.left;
+  await performRotation(y, x, () => {
+    // x's old right subtree becomes y's new left subtree.
+    y.left  = x.right;
+    x.right = y;
+  }, 'Right rotation');
+}
+
 // ─── UI helpers ───────────────────────────────────────────────────────────────
 
 function setControlsDisabled(disabled) {
@@ -787,10 +1053,14 @@ function parseIntStrict(rawValue) {
   return { ok: true, value: parseInt(trimmed, 10) };
 }
 
-/** Strip every per-operation marker class from every node in the tree. */
+/** Strip every per-operation marker class from every node + edge in the tree. */
 function resetNodeStates() {
   const nodeEls = treeNodes.querySelectorAll('.tree-node');
   for (const el of nodeEls) el.classList.remove(...NODE_MARKER_CLASSES);
+  const edgeEls = treeEdges.querySelectorAll('.tree-edge');
+  for (const line of edgeEls) line.classList.remove(...EDGE_MARKER_CLASSES);
+  // Also hide the depth toast if it was left up by a previous Phase 4 op.
+  if (treeToast) treeToast.classList.remove('show');
 }
 
 function computeHeight(node) {
@@ -832,6 +1102,12 @@ searchInput.addEventListener('keydown', (e) => {
     else            searchValue(searchInput.value);
   }
 });
+
+// Phase 4: advanced ops wiring
+btnInvert.addEventListener('click',      invertTree);
+btnMaxDepth.addEventListener('click',    getMaxDepth);
+btnRotateLeft.addEventListener('click',  rotateLeft);
+btnRotateRight.addEventListener('click', rotateRight);
 
 // Re-flow on viewport resize so the tree stays centred and proportional.
 let resizeRaf = 0;

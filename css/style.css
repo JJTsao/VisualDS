@@ -954,3 +954,39 @@ a { text-decoration: none; color: inherit; }
   transition: none !important;
   z-index: 7;
 }
+
+/* ─── Phase 4: Advanced ops ──────────────────────────────────────────────── */
+
+/* Invert swap — quick cyan flash on a node whose left/right pointers were
+   just exchanged. Reverts to base on completion. */
+@keyframes treeNodeSwap {
+  0%   { background: #0d0900;             border-color: var(--amber-dim);    color: var(--amber);   box-shadow: 0 0 8px var(--amber-glow-sm); transform: translate(-50%, -50%) scale(1); }
+  35%  { background: rgba(64,208,255,0.40); border-color: #40d0ff;            color: #e0f5ff;        box-shadow: 0 0 26px rgba(64,208,255,0.75), inset 0 0 14px rgba(64,208,255,0.30); transform: translate(-50%, -50%) scale(1.22); }
+  70%  { background: rgba(64,208,255,0.20); border-color: #40d0ff;            color: #b0e0ff;        box-shadow: 0 0 14px rgba(64,208,255,0.4); transform: translate(-50%, -50%) scale(1.08); }
+  100% { background: #0d0900;             border-color: var(--amber-dim);    color: var(--amber);   box-shadow: 0 0 8px var(--amber-glow-sm); transform: translate(-50%, -50%) scale(1); }
+}
+.tree-node-swap {
+  animation: treeNodeSwap 0.45s ease;
+  z-index: 5;
+}
+
+/* Deepest path — purple sustained highlight on each node along the longest
+   root-to-leaf path; persists until the next operation calls resetNodeStates. */
+@keyframes treeNodeDeepest {
+  0%   { background: #0d0900;             border-color: var(--amber-dim);  color: var(--amber);   box-shadow: 0 0 8px var(--amber-glow-sm); transform: translate(-50%, -50%) scale(1); }
+  45%  { background: rgba(180,100,255,0.45); border-color: #c9a0ff;         color: #f3deff;        box-shadow: 0 0 28px rgba(180,100,255,0.75), inset 0 0 16px rgba(180,100,255,0.3); transform: translate(-50%, -50%) scale(1.20); }
+  100% { background: rgba(180,100,255,0.20); border-color: #b48bff;         color: #e8d4ff;        box-shadow: 0 0 16px rgba(180,100,255,0.55);                                       transform: translate(-50%, -50%) scale(1.08); }
+}
+.tree-node-deepest {
+  animation: treeNodeDeepest 0.55s ease forwards;
+  z-index: 5;
+}
+
+/* Edge on the deepest path — purple stroke with a soft glow. */
+.tree-edge.tree-edge-deepest {
+  stroke: #c9a0ff;
+  stroke-width: 2.4;
+  opacity: 1;
+  filter: drop-shadow(0 0 5px rgba(180, 100, 255, 0.7));
+  transition: stroke 0.3s ease, stroke-width 0.3s ease;
+}
