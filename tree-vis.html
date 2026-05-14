@@ -162,13 +162,28 @@
     }
     .btn-row .btn-primary { flex: 1; }
 
-    /* Search + Traversal rows */
-    .search-row {
+    /* Search + Delete + Traversal rows */
+    .lookup-btn-row {
       display: flex;
       gap: 0.5rem;
     }
-    .search-row .value-input { flex: 1; min-width: 0; }
-    .search-row .btn { flex-shrink: 0; padding: 0.55rem 0.85rem; }
+    .lookup-btn-row .btn { flex: 1; padding: 0.55rem 0.85rem; }
+
+    /* Subtle red tint for DELETE — destructive but not alarming. */
+    .btn-danger {
+      border-color: rgba(255, 60, 60, 0.4);
+      color: #ff8080;
+    }
+    .btn-danger:hover:not(:disabled) {
+      border-color: var(--error);
+      color: #ffb0b0;
+      background: rgba(255, 60, 60, 0.08);
+      box-shadow: 0 0 12px rgba(255, 60, 60, 0.25);
+    }
+    .btn-danger:disabled {
+      border-color: rgba(255, 60, 60, 0.15);
+      color: rgba(255, 128, 128, 0.4);
+    }
 
     .traversal-btn-row {
       display: grid;
@@ -477,17 +492,18 @@
           <span style="font-size:0.65rem;letter-spacing:0.1em;color:var(--text-muted);">CONTROLS — SEARCH &amp; TRAVERSALS</span>
         </div>
         <div class="control-body">
-          <label for="search-input" class="control-label">// SEARCH VALUE</label>
-          <div class="search-row">
-            <input
-              id="search-input"
-              class="value-input"
-              type="number"
-              inputmode="numeric"
-              placeholder="enter integer to search"
-              autocomplete="off"
-            />
+          <label for="search-input" class="control-label">// SEARCH / DELETE VALUE</label>
+          <input
+            id="search-input"
+            class="value-input"
+            type="number"
+            inputmode="numeric"
+            placeholder="enter integer"
+            autocomplete="off"
+          />
+          <div class="lookup-btn-row">
             <button id="btn-search" class="btn btn-secondary">⌕ SEARCH</button>
+            <button id="btn-delete" class="btn btn-secondary btn-danger">✕ DELETE</button>
           </div>
 
           <label class="control-label" style="margin-top:0.35rem;">// TRAVERSALS</label>
@@ -507,7 +523,7 @@
           </div>
 
           <p class="input-hint">
-            找到目標：節點亮綠 · 找不到：紅色 flash · In-order 走訪會輸出升序序列
+            找到目標：節點亮綠 · 找不到：紅色 flash · DELETE 含三種 case · In-order 輸出升序序列
           </p>
         </div>
       </div>

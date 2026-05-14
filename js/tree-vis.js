@@ -8,11 +8,17 @@ const PADDING_TOP    = 50;   // px from top of canvas to root centre
 const PADDING_SIDE   = 32;   // px left/right margin inside canvas
 
 // ─── Animation Pacing ─────────────────────────────────────────────────────────
-const VISIT_DELAY_MS    = 420;  // amber pulse for insert/search descent
-const TRAVERSE_STEP_MS  = 360;  // pause when a recursive call first enters a node
-const VISIT_PULSE_MS    = 480;  // duration of the green "visit moment" flash
-const FOUND_HOLD_MS     = 900;  // hold the green found-pulse before yielding
-const MISS_HOLD_MS      = 700;  // duration of the red miss flash
+const VISIT_DELAY_MS         = 420;  // amber pulse for insert/search descent
+const TRAVERSE_STEP_MS       = 360;  // pause when a recursive call first enters a node
+const VISIT_PULSE_MS         = 480;  // duration of the green "visit moment" flash
+const FOUND_HOLD_MS          = 900;  // hold the green found-pulse before yielding
+const MISS_HOLD_MS           = 700;  // duration of the red miss flash
+// Phase 3 — deletion pacing
+const TARGET_HOLD_MS         = 650;  // hold red on the to-be-deleted node
+const SUCCESSOR_HOLD_MS      = 620;  // hold green on the in-order successor
+const VALUE_SWAP_MS          = 560;  // value text scale-flash during Case 3 swap
+const FADE_OUT_MS            = 500;  // node + edge fade-out duration
+const EDGE_ANIM_MS           = 400;  // edge interpolation matches `.tree-node` transition
 
 // ─── BST Node ─────────────────────────────────────────────────────────────────
 
@@ -50,9 +56,10 @@ const btnClear        = document.getElementById('btn-clear');
 const btnClearConsole = document.getElementById('btn-clear-console');
 const consoleOutput   = document.getElementById('console-output');
 
-// Phase 2 controls
+// Phase 2 + 3 controls
 const searchInput     = document.getElementById('search-input');
 const btnSearch       = document.getElementById('btn-search');
+const btnDelete       = document.getElementById('btn-delete');
 const btnPreorder     = document.getElementById('btn-preorder');
 const btnInorder      = document.getElementById('btn-inorder');
 const btnPostorder    = document.getElementById('btn-postorder');
@@ -62,12 +69,12 @@ const traversalMode   = document.getElementById('traversal-mode');
 // Every control that must be disabled while an animation is in progress.
 const ALL_CONTROLS = [
   btnInsert, btnClear, valueInput,
-  btnSearch, searchInput,
+  btnSearch, btnDelete, searchInput,
   btnPreorder, btnInorder, btnPostorder,
 ];
 
-// Marker classes applied to .tree-node during search / traversal — cleared
-// at the start of each new operation so previous runs don't bleed in.
+// Marker classes applied to .tree-node during search / traversal / delete —
+// cleared at the start of each new operation so previous runs don't bleed in.
 const NODE_MARKER_CLASSES = [
   'tree-node-visit',
   'tree-node-active',
@@ -75,6 +82,8 @@ const NODE_MARKER_CLASSES = [
   'tree-node-visited-done',
   'tree-node-found',
   'tree-node-miss',
+  'tree-node-target',
+  'tree-node-successor',
 ];
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -139,12 +148,50 @@ function setEdgeCoords(line, parent, child) {
   line.setAttribute('y2', child.y);
 }
 
+/**
+ * Walk the tree and ease each existing edge from its current SVG attribute
+ * values to the new (parent, child) coords. Pairs visually with the
+ * `transition: left, top` on `.tree-node`, so nodes and edges glide together.
+ */
 function updateEdges(node) {
   if (!node) return;
-  if (node.left  && node.left.edge)  setEdgeCoords(node.left.edge,  node, node.left);
-  if (node.right && node.right.edge) setEdgeCoords(node.right.edge, node, node.right);
+  if (node.left  && node.left.edge)  animateEdgeTo(node.left.edge,  node, node.left);
+  if (node.right && node.right.edge) animateEdgeTo(node.right.edge, node, node.right);
   updateEdges(node.left);
   updateEdges(node.right);
+}
+
+function animateEdgeTo(line, parent, child) {
+  // Source = whatever the line currently shows (may be stale, mid-anim, etc.).
+  const fromX1 = parseFloat(line.getAttribute('x1')) || parent.x;
+  const fromY1 = parseFloat(line.getAttribute('y1')) || parent.y;
+  const fromX2 = parseFloat(line.getAttribute('x2')) || child.x;
+  const fromY2 = parseFloat(line.getAttribute('y2')) || child.y;
+
+  const toX1 = parent.x, toY1 = parent.y;
+  const toX2 = child.x,  toY2 = child.y;
+
+  // No movement → snap and skip animation.
+  if (fromX1 === toX1 && fromY1 === toY1 && fromX2 === toX2 && fromY2 === toY2) {
+    return;
+  }
+
+  // Cancel any in-flight rAF for this edge so the new target wins.
+  if (line._rafId) cancelAnimationFrame(line._rafId);
+
+  const start = performance.now();
+  function tick(now) {
+    const t = Math.min(1, (now - start) / EDGE_ANIM_MS);
+    // Smoothstep / ease-in-out cubic for an organic glide.
+    const e = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+    line.setAttribute('x1', fromX1 + (toX1 - fromX1) * e);
+    line.setAttribute('y1', fromY1 + (toY1 - fromY1) * e);
+    line.setAttribute('x2', fromX2 + (toX2 - fromX2) * e);
+    line.setAttribute('y2', fromY2 + (toY2 - fromY2) * e);
+    if (t < 1) line._rafId = requestAnimationFrame(tick);
+    else       line._rafId = null;
+  }
+  line._rafId = requestAnimationFrame(tick);
 }
 
 // ─── DOM creation: node + edge ────────────────────────────────────────────────
@@ -359,11 +406,36 @@ async function markMiss(node) {
   await sleep(MISS_HOLD_MS);
 }
 
-// ─── Search ──────────────────────────────────────────────────────────────────
-// Iterative descent, mirroring how the user would trace the BST property by
+// ─── Search / Delete shared descent ──────────────────────────────────────────
+// Iterative BST descent, mirroring how a student would trace the property by
 // hand: at each node compare → smaller goes left, larger goes right. Each
-// node visited gets the amber pulse from Phase 1; the terminal node gets
-// either a sustained green (found) or a red flash (miss).
+// visited node gets the amber pulse from Phase 1. Shared by `searchValue`
+// and `deleteValue`'s Step 1 (find target).
+
+/**
+ * Walk down from `root` looking for `value`, awaiting visitAnimate on each
+ * node. Returns:
+ *   { node, parent, last, path }
+ *     node   — matching node, or null if not found
+ *     parent — parent of `node` (null when node is root, or when not found)
+ *     last   — last node visited (used for miss flash)
+ *     path   — array of values in visit order
+ */
+async function findNodeWithPath(root, value) {
+  let curr   = root;
+  let parent = null;
+  let last   = null;
+  const path = [];
+  while (curr !== null) {
+    await visitAnimate(curr);
+    path.push(curr.value);
+    last = curr;
+    if (curr.value === value) return { node: curr, parent, last, path };
+    parent = curr;
+    curr = value < curr.value ? curr.left : curr.right;
+  }
+  return { node: null, parent: null, last, path };
+}
 
 async function searchValue(rawValue) {
   if (state.busy) return;
@@ -387,32 +459,14 @@ async function searchValue(rawValue) {
   resetNodeStates();
 
   try {
-    let curr = state.root;
-    let last = null;
-    const path = [];
-
-    while (curr !== null) {
-      await visitAnimate(curr);
-      path.push(curr.value);
-      last = curr;
-
-      if (curr.value === value) {
-        await markFound(curr);
-        logConsole(
-          `Found ${value} after visiting [${path.join(' → ')}].`,
-          'success'
-        );
-        return;
-      }
-      curr = value < curr.value ? curr.left : curr.right;
+    const { node, last, path } = await findNodeWithPath(state.root, value);
+    if (node) {
+      await markFound(node);
+      logConsole(`Found ${value} after visiting [${path.join(' → ')}].`, 'success');
+    } else {
+      await markMiss(last);
+      logConsole(`${value} not found. Path: [${path.join(' → ')} → null].`, 'error');
     }
-
-    // Reached null without a match — last node is the parent of the missing slot.
-    await markMiss(last);
-    logConsole(
-      `${value} not found. Path: [${path.join(' → ')} → null].`,
-      'error'
-    );
   } finally {
     setControlsDisabled(false);
     state.busy = false;
@@ -495,6 +549,226 @@ async function runTraversal(kind) {
   }
 }
 
+// ─── Delete (Phase 3) ────────────────────────────────────────────────────────
+// Three structural cases:
+//   1. Leaf            — drop the node + its incoming edge.
+//   2. One child       — bypass the node; the surviving child's edge is
+//                        re-targeted to (parent → child) by recomputeLayout.
+//   3. Two children    — replace target's value with the in-order successor
+//                        (leftmost of right subtree), then recursively delete
+//                        the successor (guaranteed Case 1 or 2).
+//
+// Root edge cases:
+//   - Case 1 on root with no siblings → state.root = null, show empty state.
+//   - Case 2 on root → state.root = surviving child; drop child's incoming
+//                      edge (it has no parent now).
+//   - Case 3 never deletes the root in the tree-structure sense — only its
+//     value is overwritten; the successor (deeper in right subtree) is the
+//     node that physically disappears.
+
+/**
+ * Red flash + hold on a node that's about to disappear. Acts as the
+ * "Step 2" highlight described in the requirements.
+ */
+async function markDeletionTarget(node) {
+  // Strip any prior state classes so the red animation runs cleanly.
+  for (const cls of NODE_MARKER_CLASSES) node.el.classList.remove(cls);
+  void node.el.offsetWidth;  // commit removal before re-adding
+  node.el.classList.add('tree-node-target');
+  await sleep(TARGET_HOLD_MS);
+}
+
+/** Green flash + hold on the in-order successor before its value is "moved up". */
+async function markSuccessor(node) {
+  for (const cls of NODE_MARKER_CLASSES) node.el.classList.remove(cls);
+  void node.el.offsetWidth;
+  node.el.classList.add('tree-node-successor');
+  await sleep(SUCCESSOR_HOLD_MS);
+}
+
+/**
+ * Walk leftward from `subtreeRoot` until we hit the leftmost node,
+ * animating each visited node. Returns the successor and its parent
+ * (which may be `target` itself if subtreeRoot has no left child).
+ */
+async function findInorderSuccessor(target) {
+  let sp = target;
+  let s  = target.right;
+  await visitAnimate(s);
+  while (s.left !== null) {
+    sp = s;
+    s  = s.left;
+    await visitAnimate(s);
+  }
+  return { successor: s, successorParent: sp };
+}
+
+/**
+ * Case-3 value swap. Animates a brief scale-flash on the displayed text
+ * and updates the node's logical value mid-animation, so the user sees
+ * the old digit grow → swap → settle on the new digit.
+ */
+async function swapValue(target, newValue) {
+  const oldValue = target.value;
+  target.value = newValue;
+  const span = target.el.querySelector('.tree-node-value');
+  span.classList.remove('tree-value-swap');
+  void span.offsetWidth;
+  span.classList.add('tree-value-swap');
+  // Update text near the peak of the scale animation.
+  setTimeout(() => { span.textContent = newValue; }, Math.round(VALUE_SWAP_MS * 0.45));
+  await sleep(VALUE_SWAP_MS);
+  span.classList.remove('tree-value-swap');
+  logConsole(`Value swap: ${oldValue} ← ${newValue} (in-order successor)`, 'info');
+}
+
+/**
+ * Begin the visual fade-out of a node and its incoming edge. The DOM is
+ * detached after the animation completes. Returns immediately so the
+ * caller can run recomputeLayout in parallel (so remaining nodes glide
+ * to fill the gap while this node fades).
+ */
+function startFadeOut(node) {
+  node.el.classList.add('tree-node-fade-out');
+  if (node.edge) {
+    node.edge.style.transition = 'opacity 0.5s ease';
+    node.edge.style.opacity    = '0';
+  }
+  const elToRemove   = node.el;
+  const edgeToRemove = node.edge;
+  setTimeout(() => {
+    if (elToRemove   && elToRemove.parentNode)   elToRemove.parentNode.removeChild(elToRemove);
+    if (edgeToRemove && edgeToRemove.parentNode) edgeToRemove.parentNode.removeChild(edgeToRemove);
+  }, FADE_OUT_MS + 60);
+}
+
+/** Helper for Cases 1 / 2 to rewire the parent's pointer past `node`. */
+function bypassNode(node, parent, replacement) {
+  if (parent === null) {
+    state.root = replacement;
+  } else if (parent.left === node) {
+    parent.left = replacement;
+  } else {
+    parent.right = replacement;
+  }
+}
+
+async function deleteCase1Leaf(node, parent) {
+  // Detach from BST FIRST so recomputeLayout sees the new structure.
+  bypassNode(node, parent, null);
+
+  startFadeOut(node);  // fades the node and parent→node edge in the background
+
+  if (state.root === null) treeEmpty.classList.remove('hidden');
+
+  recomputeLayout();   // remaining nodes glide via CSS, edges via rAF
+  await sleep(FADE_OUT_MS);
+}
+
+async function deleteCase2OneChild(node, parent) {
+  const child = node.left !== null ? node.left : node.right;
+
+  bypassNode(node, parent, child);
+
+  if (parent === null) {
+    // Child became root — it no longer has an incoming edge. Drop it.
+    if (child.edge && child.edge.parentNode) {
+      child.edge.parentNode.removeChild(child.edge);
+    }
+    child.edge = null;
+  }
+  // For non-root case, child.edge stays — recomputeLayout's updateEdges
+  // walks the new tree and re-targets it from (parent → child).
+
+  startFadeOut(node);
+  recomputeLayout();
+  await sleep(FADE_OUT_MS);
+}
+
+async function deleteCase3TwoChildren(target) {
+  // 1. Find the in-order successor (leftmost node in right subtree).
+  const { successor, successorParent } = await findInorderSuccessor(target);
+
+  // 2. Highlight successor (green pulse).
+  await markSuccessor(successor);
+
+  // 3. Visually copy successor's value into target.
+  await swapValue(target, successor.value);
+
+  // 4. Clear target's red mark — its old value is gone, the node itself stays.
+  target.el.classList.remove('tree-node-target');
+
+  // 5. Recursively delete the successor. By construction it has no left
+  //    child, so the recursion bottoms out in Case 1 or 2.
+  await markDeletionTarget(successor);
+  if (successor.right === null) {
+    await deleteCase1Leaf(successor, successorParent);
+  } else {
+    await deleteCase2OneChild(successor, successorParent);
+  }
+}
+
+async function deleteValue(rawValue) {
+  if (state.busy) return;
+
+  const parsed = parseIntStrict(rawValue);
+  if (!parsed.ok) {
+    if (parsed.reason === 'empty') logConsole('Enter a value to delete.', 'warn');
+    else                           logConsole(`Invalid integer: "${rawValue}"`, 'error');
+    return;
+  }
+  const value = parsed.value;
+
+  if (state.root === null) {
+    logConsole('Tree is empty — nothing to delete.', 'warn');
+    flashCanvasMiss();
+    return;
+  }
+
+  state.busy = true;
+  setControlsDisabled(true);
+  resetNodeStates();
+
+  try {
+    // Step 1 — animated search for the target.
+    const { node, parent, last, path } = await findNodeWithPath(state.root, value);
+    if (!node) {
+      await markMiss(last);
+      logConsole(
+        `Cannot delete ${value} — not in tree. Path: [${path.join(' → ')} → null].`,
+        'error'
+      );
+      return;
+    }
+
+    // Step 2 — flag the found node red ("about to be deleted").
+    await markDeletionTarget(node);
+
+    // Step 3 — dispatch on structural case.
+    const hasLeft  = node.left  !== null;
+    const hasRight = node.right !== null;
+    let caseLabel;
+    if (!hasLeft && !hasRight) {
+      caseLabel = 'Case 1 (leaf)';
+      await deleteCase1Leaf(node, parent);
+    } else if (!hasLeft || !hasRight) {
+      caseLabel = 'Case 2 (one child)';
+      await deleteCase2OneChild(node, parent);
+    } else {
+      caseLabel = 'Case 3 (two children — successor swap)';
+      await deleteCase3TwoChildren(node);
+    }
+    state.count--;
+    updateInfo();
+    logConsole(`Deleted ${value}. (${caseLabel})  Path: [${path.join(' → ')}].`, 'success');
+  } finally {
+    setControlsDisabled(false);
+    state.busy = false;
+    searchInput.focus();
+    searchInput.select();
+  }
+}
+
 // ─── UI helpers ───────────────────────────────────────────────────────────────
 
 function setControlsDisabled(disabled) {
@@ -542,16 +816,20 @@ valueInput.addEventListener('keydown', (e) => {
   }
 });
 
-// Phase 2: search + traversal wiring
+// Phase 2 + 3: search / delete / traversal wiring
 btnSearch.addEventListener('click',    () => searchValue(searchInput.value));
+btnDelete.addEventListener('click',    () => deleteValue(searchInput.value));
 btnPreorder.addEventListener('click',  () => runTraversal('pre'));
 btnInorder.addEventListener('click',   () => runTraversal('in'));
 btnPostorder.addEventListener('click', () => runTraversal('post'));
 
+// Enter on the shared input defaults to SEARCH (non-destructive).
+// Shift+Enter triggers DELETE for power users.
 searchInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') {
     e.preventDefault();
-    searchValue(searchInput.value);
+    if (e.shiftKey) deleteValue(searchInput.value);
+    else            searchValue(searchInput.value);
   }
 });
 

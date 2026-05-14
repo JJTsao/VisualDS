@@ -730,7 +730,8 @@ a { text-decoration: none; color: inherit; }
 
 /* ─── Binary Search Tree ─────────────────────────── */
 
-/* Node — circular, absolutely positioned; left/top mark centre via translate(-50%,-50%). */
+/* Node — circular, absolutely positioned; left/top mark centre via translate(-50%,-50%).
+   Phase 3: left/top transition so remaining nodes glide into place after a deletion. */
 .tree-node {
   position: absolute;
   width:  46px;
@@ -750,6 +751,7 @@ a { text-decoration: none; color: inherit; }
     0 0 8px var(--amber-glow-sm),
     inset 0 0 8px rgba(232, 165, 0, 0.04);
   transform: translate(-50%, -50%);
+  transition: left 0.4s ease, top 0.4s ease;
   pointer-events: auto;
   user-select: none;
   z-index: 2;
@@ -895,4 +897,60 @@ a { text-decoration: none; color: inherit; }
   opacity: 0.45;
   cursor: not-allowed;
   color: var(--text-muted);
+}
+
+/* ─── Phase 3: Deletion ──────────────────────────────────────────────────── */
+
+/* Deletion target — strong red pulse on the node about to be removed.
+   forwards-hold so it stays red until either fade-out or Case 3 clears it. */
+@keyframes treeNodeDeletionTarget {
+  0%   { background: #0d0900;             border-color: var(--amber-dim);   color: var(--amber);  box-shadow: 0 0 8px var(--amber-glow-sm); transform: translate(-50%, -50%) scale(1); }
+  35%  { background: rgba(255,60,60,0.45); border-color: var(--error);      color: #fff;          box-shadow: 0 0 30px rgba(255,60,60,0.85), inset 0 0 16px rgba(255,60,60,0.35); transform: translate(-50%, -50%) scale(1.25); }
+  100% { background: rgba(255,60,60,0.35); border-color: var(--error);      color: #ffcccc;       box-shadow: 0 0 22px rgba(255,60,60,0.6),  inset 0 0 10px rgba(255,60,60,0.2);  transform: translate(-50%, -50%) scale(1.15); }
+}
+.tree-node-target {
+  animation: treeNodeDeletionTarget 0.55s ease forwards;
+  z-index: 5;
+}
+
+/* In-order successor — green pulse held until value-swap completes. */
+@keyframes treeNodeSuccessor {
+  0%   { background: #0d0900;              border-color: var(--amber-dim); color: var(--amber);   box-shadow: 0 0 8px var(--amber-glow-sm); transform: translate(-50%, -50%) scale(1); }
+  40%  { background: rgba(0,200,122,0.40); border-color: #4dffa8;          color: #eaffe9;        box-shadow: 0 0 28px rgba(0,200,122,0.8), inset 0 0 14px rgba(0,200,122,0.3); transform: translate(-50%, -50%) scale(1.25); }
+  100% { background: rgba(0,200,122,0.18); border-color: var(--success);   color: var(--success); box-shadow: 0 0 14px rgba(0,200,122,0.45); transform: translate(-50%, -50%) scale(1.05); }
+}
+.tree-node-successor {
+  animation: treeNodeSuccessor 0.55s ease forwards;
+  z-index: 5;
+}
+
+/* Value-swap on the displayed text inside a node — used in Case 3 when the
+   target inherits the in-order successor's value. */
+@keyframes treeValueSwap {
+  0%   { transform: scale(1);                                                  }
+  35%  { transform: scale(1.8);  text-shadow: 0 0 18px rgba(255,199,64,0.85);  filter: brightness(1.4); }
+  60%  { transform: scale(1.8);  text-shadow: 0 0 12px rgba(232,165,0,0.7);   }
+  100% { transform: scale(1);                                                  }
+}
+.tree-value-swap {
+  animation: treeValueSwap 0.55s cubic-bezier(0.34, 1.56, 0.64, 1);
+  display: inline-block;
+}
+
+/* Fade-out — the terminal class. Must be declared AFTER tree-node-target
+   so its animation wins the cascade when both classes are present. The 0%
+   keyframe matches treeNodeDeletionTarget's 100% (held red state) for a
+   seamless red → invisible transition. */
+@keyframes treeNodeFadeOut {
+  0%   { opacity: 1; transform: translate(-50%, -50%) scale(1.15); background: rgba(255,60,60,0.35); border-color: var(--error); color: #ffcccc;          box-shadow: 0 0 22px rgba(255,60,60,0.6); }
+  60%  { opacity: 0.55; transform: translate(-50%, -50%) scale(0.85); background: rgba(255,60,60,0.2); border-color: rgba(255,60,60,0.4); color: rgba(255,200,200,0.6); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(0.3);    background: rgba(255,60,60,0);  border-color: rgba(255,60,60,0);   color: transparent;       box-shadow: none; }
+}
+.tree-node-fade-out {
+  animation: treeNodeFadeOut 0.5s ease forwards;
+  pointer-events: none;
+  /* Above remaining nodes so the fade is clearly visible; also disable
+     left/top transition so this node stays put while siblings glide. */
+  transition: none !important;
+  z-index: 7;
 }
