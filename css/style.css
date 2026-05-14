@@ -727,3 +727,172 @@ a { text-decoration: none; color: inherit; }
 .queue-cell-overflow {
   animation: queueOverflow 0.7s ease forwards;
 }
+
+/* ─── Binary Search Tree ─────────────────────────── */
+
+/* Node — circular, absolutely positioned; left/top mark centre via translate(-50%,-50%). */
+.tree-node {
+  position: absolute;
+  width:  46px;
+  height: 46px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0d0900;
+  border: 1px solid var(--amber-dim);
+  color: var(--amber);
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.95rem;
+  letter-spacing: 0.02em;
+  box-shadow:
+    0 0 8px var(--amber-glow-sm),
+    inset 0 0 8px rgba(232, 165, 0, 0.04);
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
+  user-select: none;
+  z-index: 2;
+}
+
+.tree-node-value {
+  display: inline-block;
+  line-height: 1;
+}
+
+/* Edge — SVG <line> connecting parent to child */
+.tree-edge {
+  stroke: var(--amber-dim);
+  stroke-width: 1.5;
+  fill: none;
+  stroke-linecap: round;
+  opacity: 0.85;
+}
+
+/* Spawn: fade + scale-up. Note: keyframes must preserve translate(-50%,-50%). */
+@keyframes treeNodeSpawn {
+  0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.4); }
+  60%  { opacity: 1; transform: translate(-50%, -50%) scale(1.15); box-shadow: 0 0 18px rgba(255,199,64,0.45); }
+  100% { opacity: 1; transform: translate(-50%, -50%) scale(1);    box-shadow: 0 0 8px var(--amber-glow-sm), inset 0 0 8px rgba(232,165,0,0.04); }
+}
+.tree-node-spawn {
+  animation: treeNodeSpawn 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* Visit: brief amber pulse during traversal — also keeps translate intact. */
+@keyframes treeNodeVisit {
+  0%   { background: #0d0900;            border-color: var(--amber-dim);    color: var(--amber);        box-shadow: 0 0 8px var(--amber-glow-sm); transform: translate(-50%, -50%) scale(1); }
+  35%  { background: #2a1a00;            border-color: var(--amber-bright); color: var(--amber-bright); box-shadow: 0 0 20px rgba(255,199,64,0.65), inset 0 0 12px rgba(255,199,64,0.18); transform: translate(-50%, -50%) scale(1.15); }
+  70%  { background: #1f1300;            border-color: var(--amber);        color: var(--amber-bright); box-shadow: 0 0 14px rgba(232,165,0,0.45); transform: translate(-50%, -50%) scale(1.08); }
+  100% { background: #0d0900;            border-color: var(--amber-dim);    color: var(--amber);        box-shadow: 0 0 8px var(--amber-glow-sm); transform: translate(-50%, -50%) scale(1); }
+}
+.tree-node-visit {
+  animation: treeNodeVisit 0.42s ease forwards;
+  z-index: 3;
+}
+
+/* Active: persists while a node is on the recursion call stack (slow pulse). */
+@keyframes treeNodeActivePulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(232,165,0,0.35), inset 0 0 6px rgba(232,165,0,0.10); }
+  50%       { box-shadow: 0 0 16px rgba(232,165,0,0.55), inset 0 0 10px rgba(232,165,0,0.18); }
+}
+.tree-node-active {
+  background: #1a1100;
+  border-color: var(--amber-bright);
+  color: var(--amber-bright);
+  animation: treeNodeActivePulse 1.4s ease-in-out infinite;
+  z-index: 3;
+}
+
+/* Visited (traversal moment): green flash, then settles into visited-done. */
+@keyframes treeNodeVisited {
+  0%   { background: #1a1100;            border-color: var(--amber);        color: var(--amber-bright); box-shadow: 0 0 10px var(--amber-glow); transform: translate(-50%, -50%) scale(1); }
+  40%  { background: rgba(0,200,122,0.30); border-color: #4dffa8;            color: #d9ffe8; box-shadow: 0 0 24px rgba(0,200,122,0.75), inset 0 0 14px rgba(0,200,122,0.25); transform: translate(-50%, -50%) scale(1.22); }
+  100% { background: rgba(0,200,122,0.10); border-color: var(--success);     color: var(--success); box-shadow: 0 0 10px rgba(0,200,122,0.35); transform: translate(-50%, -50%) scale(1); }
+}
+.tree-node-visited {
+  animation: treeNodeVisited 0.5s ease forwards;
+  z-index: 4;
+}
+
+/* Visited-done: static green-tint that persists for the rest of the traversal. */
+.tree-node-visited-done {
+  background: rgba(0, 200, 122, 0.07);
+  border-color: rgba(0, 200, 122, 0.5);
+  color: var(--success);
+  box-shadow: 0 0 6px rgba(0, 200, 122, 0.18);
+}
+
+/* Found (search hit): strong green pulse, holds. */
+@keyframes treeNodeFound {
+  0%   { background: rgba(0,200,122,0.08); border-color: var(--success); color: var(--success);   box-shadow: 0 0 10px rgba(0,200,122,0.3);  transform: translate(-50%, -50%) scale(1); }
+  25%  { background: rgba(0,200,122,0.40); border-color: #4dffa8;        color: #eaffe9;          box-shadow: 0 0 36px rgba(0,200,122,0.9), inset 0 0 18px rgba(0,200,122,0.35); transform: translate(-50%, -50%) scale(1.30); }
+  60%  { background: rgba(0,200,122,0.20); border-color: var(--success); color: #c9ffd8;          box-shadow: 0 0 22px rgba(0,200,122,0.55); transform: translate(-50%, -50%) scale(1.10); }
+  100% { background: rgba(0,200,122,0.18); border-color: var(--success); color: var(--success);   box-shadow: 0 0 14px rgba(0,200,122,0.45); transform: translate(-50%, -50%) scale(1.05); }
+}
+.tree-node-found {
+  animation: treeNodeFound 0.9s ease forwards;
+  z-index: 5;
+}
+
+/* Miss (search exhausted): red flash on last node visited. */
+@keyframes treeNodeMiss {
+  0%   { background: #0d0900;             border-color: var(--amber-dim); color: var(--amber);    box-shadow: 0 0 8px var(--amber-glow-sm); transform: translate(-50%, -50%) scale(1); }
+  30%  { background: rgba(255,60,60,0.35); border-color: var(--error);    color: #ffd0d0;         box-shadow: 0 0 24px rgba(255,60,60,0.7), inset 0 0 12px rgba(255,60,60,0.3); transform: translate(-50%, -50%) scale(1.15); }
+  100% { background: #0d0900;             border-color: var(--amber-dim); color: var(--amber);    box-shadow: 0 0 8px var(--amber-glow-sm); transform: translate(-50%, -50%) scale(1); }
+}
+.tree-node-miss {
+  animation: treeNodeMiss 0.7s ease forwards;
+  z-index: 5;
+}
+
+/* Whole-canvas red flash on search miss. */
+@keyframes treeCanvasMiss {
+  0%, 100% { box-shadow: inset 0 0 0 rgba(255, 60, 60, 0); }
+  30%       { box-shadow: inset 0 0 40px rgba(255, 60, 60, 0.45); }
+}
+.tree-canvas-miss {
+  animation: treeCanvasMiss 0.7s ease;
+}
+
+/* Traversal output tokens (one per visited node). */
+@keyframes traversalTokenIn {
+  0%   { opacity: 0; transform: translateX(-6px) scale(0.6); }
+  60%  { opacity: 1; transform: translateX(0)    scale(1.15); }
+  100% { opacity: 1; transform: translateX(0)    scale(1);    }
+}
+.traversal-token {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--success);
+  background: rgba(0, 200, 122, 0.08);
+  border: 1px solid rgba(0, 200, 122, 0.5);
+  padding: 0.15rem 0.5rem;
+  border-radius: 2px;
+  letter-spacing: 0.04em;
+  animation: traversalTokenIn 0.32s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.traversal-token + .traversal-token::before {
+  content: ',';
+  display: inline-block;
+  margin-right: 0.45rem;
+  margin-left: -0.45rem;
+  color: var(--text-muted);
+}
+
+/* Disabled states for Phase 2 secondary buttons and inputs. */
+.btn-secondary:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  border-color: var(--border);
+  color: var(--text-muted);
+  background: transparent;
+}
+.value-input:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  color: var(--text-muted);
+}

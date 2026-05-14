@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BST — Data Structure Visualizer</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    /* ── Page Layout ── */
+    .page-wrapper {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .page-header {
+      padding: 0.6rem 1.5rem 0.5rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      animation: fadeSlideUp 0.4s ease 0.1s forwards;
+      opacity: 0;
+    }
+
+    .page-title-group {}
+    .page-title {
+      font-size: 1.6rem;
+      letter-spacing: 0.12em;
+      color: var(--amber);
+      text-shadow: 0 0 24px var(--amber-glow);
+    }
+    .page-title-sub {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      letter-spacing: 0.08em;
+      margin-top: 0.2rem;
+    }
+
+    .page-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+    }
+
+    .badge {
+      font-size: 0.6rem;
+      letter-spacing: 0.08em;
+      padding: 0.2rem 0.6rem;
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      color: var(--text-muted);
+    }
+
+    /* ── Main 2-column layout ── */
+    .main-grid {
+      flex: 1;
+      display: grid;
+      grid-template-columns: clamp(300px, 36%, 460px) 1fr;
+      gap: 0.75rem;
+      padding: 0.6rem 1.25rem 0.75rem;
+      align-items: stretch;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    @media (max-width: 900px) {
+      .page-wrapper {
+        height: auto;
+        min-height: 100vh;
+        overflow-y: auto;
+      }
+      .main-grid {
+        grid-template-columns: 1fr;
+        overflow: visible;
+        height: auto;
+      }
+      .left-col,
+      .right-col {
+        height: auto;
+        overflow-y: visible;
+      }
+    }
+
+    /* ── Left Column ── */
+    .left-col {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      animation: fadeSlideUp 0.4s ease 0.2s forwards;
+      opacity: 0;
+      overflow-y: auto;
+      height: 100%;
+      padding-right: 4px;
+    }
+    .left-col::-webkit-scrollbar { width: 3px; }
+    .left-col::-webkit-scrollbar-track { background: transparent; }
+    .left-col::-webkit-scrollbar-thumb { background: var(--border-mid); border-radius: 2px; }
+
+    /* ── Right Column ── */
+    .right-col {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      animation: fadeSlideUp 0.4s ease 0.3s forwards;
+      opacity: 0;
+      overflow-y: auto;
+      height: 100%;
+    }
+    .right-col::-webkit-scrollbar { width: 3px; }
+    .right-col::-webkit-scrollbar-track { background: transparent; }
+    .right-col::-webkit-scrollbar-thumb { background: var(--border-mid); border-radius: 2px; }
+
+    /* ── Control Panel ── */
+    .control-body {
+      padding: 0.9rem 0.875rem 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+    }
+
+    .control-label {
+      font-size: 0.62rem;
+      letter-spacing: 0.16em;
+      color: var(--text-muted);
+    }
+
+    .value-input {
+      font-family: var(--font-mono);
+      font-size: 1.1rem;
+      background: var(--bg-input);
+      color: var(--amber-bright);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 0.6rem 0.875rem;
+      outline: none;
+      caret-color: var(--amber-bright);
+      letter-spacing: 0.04em;
+      transition: border-color var(--transition), box-shadow var(--transition);
+      width: 100%;
+      -moz-appearance: textfield;
+    }
+    .value-input::-webkit-outer-spin-button,
+    .value-input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    .value-input::placeholder { color: var(--text-muted); opacity: 0.55; }
+    .value-input:focus {
+      border-color: var(--amber-dim);
+      box-shadow: 0 0 10px var(--amber-glow-sm);
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 0.6rem;
+    }
+    .btn-row .btn-primary { flex: 1; }
+
+    /* Search + Traversal rows */
+    .search-row {
+      display: flex;
+      gap: 0.5rem;
+    }
+    .search-row .value-input { flex: 1; min-width: 0; }
+    .search-row .btn { flex-shrink: 0; padding: 0.55rem 0.85rem; }
+
+    .traversal-btn-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.45rem;
+    }
+    .traversal-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      padding: 0.5rem 0.4rem;
+      line-height: 1.2;
+    }
+    .traversal-btn .t-label {
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+    }
+    .traversal-btn .t-sub {
+      font-size: 0.55rem;
+      letter-spacing: 0.04em;
+      color: var(--text-muted);
+      opacity: 0.85;
+    }
+    .traversal-btn:hover:not(:disabled) .t-sub { color: var(--text-dim); }
+    .traversal-btn:disabled .t-sub { color: var(--text-muted); opacity: 0.4; }
+
+    .input-hint {
+      font-size: 0.66rem;
+      color: var(--text-muted);
+      letter-spacing: 0.04em;
+      line-height: 1.55;
+      margin-top: 0.15rem;
+    }
+    .input-hint code {
+      color: var(--amber-dim);
+      background: rgba(232, 165, 0, 0.06);
+      padding: 0 4px;
+      border-radius: 2px;
+    }
+
+    /* ── Concept card ── */
+    .concept-card { padding: 0.75rem 0.875rem 0.9rem; }
+    .concept-title {
+      font-size: 0.72rem;
+      letter-spacing: 0.15em;
+      color: var(--amber-dim);
+      margin-bottom: 0.75rem;
+    }
+    .concept-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+    .concept-list li {
+      font-size: 0.86rem;
+      color: var(--text-dim);
+      line-height: 1.6;
+      padding-left: 1rem;
+      position: relative;
+    }
+    .concept-list li::before {
+      content: '›';
+      position: absolute;
+      left: 0;
+      color: var(--amber-dim);
+    }
+    .concept-list code {
+      color: var(--amber);
+      background: rgba(232, 165, 0, 0.08);
+      padding: 0 3px;
+      border-radius: 2px;
+      font-size: 0.82rem;
+    }
+
+    /* ── Console ── */
+    .console-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .console-pulse {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--success);
+      animation: blink 2s step-end infinite;
+    }
+    @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.2; } }
+    .console-label {
+      font-size: 0.78rem;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+    }
+    .btn-console-clear {
+      margin-left: auto;
+      background: none; border: none;
+      font-family: var(--font-mono);
+      font-size: 0.6rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      letter-spacing: 0.08em;
+      transition: color var(--transition);
+      padding: 0;
+    }
+    .btn-console-clear:hover { color: var(--text-dim); }
+
+    /* ── Canvas ── */
+    .canvas-panel { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+    .canvas-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .canvas-label {
+      font-size: 0.78rem;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+    }
+    .canvas-info {
+      margin-left: auto;
+      font-size: 0.66rem;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+    }
+
+    #tree-canvas {
+      position: relative;
+      flex: 1;
+      min-height: 480px;
+      overflow: auto;
+      background:
+        radial-gradient(circle at 50% 0%, rgba(232,165,0,0.05), transparent 60%),
+        var(--bg-input);
+    }
+
+    /* Traversal Output bar (bottom of canvas panel) */
+    .traversal-output-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.55rem 0.875rem;
+      background: var(--bg-card);
+      border-top: 1px solid var(--border);
+      min-height: 44px;
+      flex-shrink: 0;
+    }
+    .traversal-output-label {
+      font-size: 0.62rem;
+      letter-spacing: 0.14em;
+      color: var(--text-muted);
+      flex-shrink: 0;
+    }
+    .traversal-output {
+      display: flex;
+      flex-wrap: nowrap;
+      gap: 0.35rem;
+      align-items: center;
+      flex: 1;
+      min-width: 0;
+      overflow-x: auto;
+      padding: 2px 0;
+    }
+    .traversal-output::-webkit-scrollbar { height: 3px; }
+    .traversal-output::-webkit-scrollbar-track { background: transparent; }
+    .traversal-output::-webkit-scrollbar-thumb { background: var(--border-mid); border-radius: 2px; }
+    .traversal-placeholder {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      opacity: 0.55;
+      letter-spacing: 0.04em;
+      font-style: italic;
+    }
+    .traversal-mode-tag {
+      font-size: 0.6rem;
+      letter-spacing: 0.14em;
+      color: var(--amber-dim);
+      padding: 0.18rem 0.55rem;
+      border: 1px solid var(--amber-dim);
+      border-radius: 2px;
+      flex-shrink: 0;
+      font-weight: 700;
+    }
+    .traversal-mode-tag:empty { display: none; }
+
+    /* SVG layer for edges — sits beneath nodes */
+    #tree-edges {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* Nodes layer — absolutely-positioned circles */
+    #tree-nodes {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      pointer-events: none;
+    }
+
+    /* Empty state — centered overlay when tree is empty */
+    #tree-empty-state {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      color: var(--text-muted);
+      z-index: 0;
+    }
+    #tree-empty-state.hidden { display: none; }
+
+    .empty-glyph {
+      font-size: 2.2rem;
+      opacity: 0.18;
+      letter-spacing: -0.05em;
+      font-weight: 700;
+      line-height: 1;
+    }
+    .empty-text {
+      font-size: 0.82rem;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      text-align: center;
+    }
+    .empty-hint {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      opacity: 0.65;
+      letter-spacing: 0.03em;
+      text-align: center;
+    }
+    .empty-hint code {
+      color: var(--amber-dim);
+      background: rgba(232,165,0,0.06);
+      padding: 0 4px;
+      border-radius: 2px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="page-wrapper">
+
+  <!-- Nav -->
+  <nav class="site-nav">
+    <a href="index.html" class="nav-back">← BACK</a>
+    <span class="nav-sep">/</span>
+    <span class="nav-crumb">BINARY SEARCH TREE MODULE</span>
+  </nav>
+
+  <!-- Page Header -->
+  <header class="page-header">
+    <div class="page-title-group">
+      <h1 class="page-title">BINARY SEARCH TREE</h1>
+      <p class="page-title-sub">遞迴節點配置 · 大小排序規則 · 走訪式搜尋</p>
+    </div>
+    <div class="page-badges">
+      <span class="badge">struct TreeNode { int val; TreeNode* L, *R; }</span>
+      <span class="badge">left &lt; root &lt; right</span>
+      <span class="badge">avg O(log n) · worst O(n)</span>
+    </div>
+  </header>
+
+  <!-- Main Grid -->
+  <main class="main-grid">
+
+    <!-- ── Left: Control Panel ── -->
+    <div class="left-col">
+
+      <!-- Insert Controls -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-dot active"></div>
+          <span style="font-size:0.65rem;letter-spacing:0.1em;color:var(--text-muted);">CONTROLS — INSERT</span>
+        </div>
+        <div class="control-body">
+          <label for="value-input" class="control-label">// VALUE TO INSERT</label>
+          <input
+            id="value-input"
+            class="value-input"
+            type="number"
+            inputmode="numeric"
+            placeholder="enter integer (e.g. 42)"
+            autocomplete="off"
+          />
+          <div class="btn-row">
+            <button id="btn-insert" class="btn btn-primary">＋ INSERT</button>
+            <button id="btn-clear" class="btn btn-secondary">⌫ CLEAR</button>
+          </div>
+          <p class="input-hint">
+            按 <code>Enter</code> 也可送出 · 走訪路徑會以高亮閃爍逐節點呈現
+          </p>
+        </div>
+      </div>
+
+      <!-- Search & Traversals -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-dot active"></div>
+          <span style="font-size:0.65rem;letter-spacing:0.1em;color:var(--text-muted);">CONTROLS — SEARCH &amp; TRAVERSALS</span>
+        </div>
+        <div class="control-body">
+          <label for="search-input" class="control-label">// SEARCH VALUE</label>
+          <div class="search-row">
+            <input
+              id="search-input"
+              class="value-input"
+              type="number"
+              inputmode="numeric"
+              placeholder="enter integer to search"
+              autocomplete="off"
+            />
+            <button id="btn-search" class="btn btn-secondary">⌕ SEARCH</button>
+          </div>
+
+          <label class="control-label" style="margin-top:0.35rem;">// TRAVERSALS</label>
+          <div class="traversal-btn-row">
+            <button id="btn-preorder" class="btn btn-secondary traversal-btn">
+              <span class="t-label">PRE</span>
+              <span class="t-sub">root · L · R</span>
+            </button>
+            <button id="btn-inorder" class="btn btn-secondary traversal-btn">
+              <span class="t-label">IN</span>
+              <span class="t-sub">L · root · R</span>
+            </button>
+            <button id="btn-postorder" class="btn btn-secondary traversal-btn">
+              <span class="t-label">POST</span>
+              <span class="t-sub">L · R · root</span>
+            </button>
+          </div>
+
+          <p class="input-hint">
+            找到目標：節點亮綠 · 找不到：紅色 flash · In-order 走訪會輸出升序序列
+          </p>
+        </div>
+      </div>
+
+      <!-- Concept -->
+      <div class="panel concept-card">
+        <p class="concept-title">// BST INVARIANT</p>
+        <ul class="concept-list">
+          <li><code>struct TreeNode { int val; TreeNode *left, *right; };</code></li>
+          <li>左子樹所有節點 <code>&lt; root</code></li>
+          <li>右子樹所有節點 <code>&gt; root</code></li>
+          <li>插入：從 root 開始比較，小往左、大往右</li>
+          <li>本階段不允許重複值（duplicates rejected）</li>
+        </ul>
+      </div>
+
+      <!-- Console -->
+      <div class="panel">
+        <div class="panel-header console-header">
+          <div class="console-pulse"></div>
+          <span class="console-label">CONSOLE OUTPUT</span>
+          <button id="btn-clear-console" class="btn-console-clear">[ CLEAR ]</button>
+        </div>
+        <div id="console-output">
+          <span class="console-line dim">// 輸入整數並按下 INSERT 開始建立 BST...</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ── Right: Visualization Canvas ── -->
+    <div class="right-col">
+
+      <div class="panel canvas-panel">
+        <div class="panel-header canvas-header">
+          <div class="panel-dot active"></div>
+          <span class="canvas-label">TREE STRUCTURE — BST</span>
+          <span id="tree-info" class="canvas-info">nodes: 0 · height: 0</span>
+        </div>
+
+        <div id="tree-canvas">
+          <!-- Edges layer (drawn beneath nodes) -->
+          <svg id="tree-edges" xmlns="http://www.w3.org/2000/svg"></svg>
+
+          <!-- Nodes layer -->
+          <div id="tree-nodes"></div>
+
+          <!-- Empty state -->
+          <div id="tree-empty-state">
+            <div class="empty-glyph">◯</div>
+            <p class="empty-text">EMPTY BST</p>
+            <p class="empty-hint">enter a value and press <code>INSERT</code></p>
+          </div>
+        </div>
+
+        <!-- Traversal Output bar (sequence of visited values) -->
+        <div id="traversal-output-bar" class="traversal-output-bar">
+          <span class="traversal-output-label">// OUTPUT</span>
+          <div id="traversal-output" class="traversal-output">
+            <span class="traversal-placeholder">— traversal not started —</span>
+          </div>
+          <span id="traversal-mode" class="traversal-mode-tag"></span>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+</div>
+
+<script src="js/tree-vis.js"></script>
+</body>
+</html>
