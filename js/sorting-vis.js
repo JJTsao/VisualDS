@@ -22,10 +22,12 @@ const state = {
   size:        30,
   speed:       50,
   algorithm:   'bubble',
+  mode:        'auto', // 'auto' = timed animation · 'step' = advance on click
   busy:        false,
   cancelled:   false,
   comparisons: 0,
   swaps:       0,
+  stepCount:   0,      // number of discrete pause-points reached this run
 };
 
 // ── Algorithm metadata ────────────────────────────────────────────────────────
@@ -76,13 +78,23 @@ const algoButtons    = Array.from(document.querySelectorAll('.algo-btn'));
 const algoDescText   = document.getElementById('algo-desc-text');
 const algoComplexity = document.getElementById('algo-complexity');
 
+// Step-through controls
+const modeAuto       = document.getElementById('mode-auto');
+const modeStep       = document.getElementById('mode-step');
+const stepControls   = document.getElementById('step-controls');
+const btnNext        = document.getElementById('btn-next');
+const stageNarration = document.getElementById('stage-narration');
+const narrationStep  = document.getElementById('narration-step');
+const narrationText  = document.getElementById('narration-text');
+
 const statComparisons= document.getElementById('stat-comparisons');
 const statSwaps      = document.getElementById('stat-swaps');
 const statStatus     = document.getElementById('stat-status');
 
 const consoleOutput  = document.getElementById('console-output');
 
-// All controls disabled while sorting.
+// All controls disabled while sorting. (Mode toggle stays enabled so the user
+// can switch auto ⇄ step mid-run; NEXT is managed separately by the gate.)
 const LOCKABLE_CONTROLS = [
   sizeSlider, speedSlider, btnGenerate, btnSort, ...algoButtons,
 ];
@@ -217,41 +229,96 @@ function setBusy(busy) {
   state.busy = busy;
   for (const el of LOCKABLE_CONTROLS) el.disabled = busy;
   btnStop.disabled = !busy;
+  if (!busy) {
+    // Sort ended — make sure the step gate UI is reset.
+    btnNext.disabled = true;
+    btnNext.classList.remove('ready');
+    stageNarration.classList.remove('awaiting');
+  }
 }
 
-// ── Cancellable sleep — throws if user hit STOP ───────────────────────────────
-async function step() {
-  if (state.cancelled) throw new Error('cancelled');
-  await delay();
+// ── Narration — the "what is happening right now" readout above the bars ──────
+function narrate(text) {
+  if (text) {
+    narrationText.textContent = text;
+    narrationText.classList.remove('idle');
+  }
 }
-async function stepMul(m) {
-  if (state.cancelled) throw new Error('cancelled');
-  await delayMul(m);
+function setNarrationBadge(label) {
+  narrationStep.textContent = label;
 }
+function resetNarration(text) {
+  state.stepCount = 0;
+  setNarrationBadge('IDLE');
+  narrationText.textContent = text;
+  narrationText.classList.add('idle');
+  stageNarration.classList.remove('awaiting');
+}
+
+// ── Step gate — in step mode, a pause parks here until the user advances ──────
+let stepGate = null;   // resolve fn of the currently-parked pause, or null
+
+function gateStep() {
+  return new Promise((resolve) => {
+    stepGate = resolve;
+    btnNext.disabled = false;
+    btnNext.classList.add('ready');
+    stageNarration.classList.add('awaiting');
+  });
+}
+// Release a parked pause — fired by NEXT STEP, the keyboard, or a mode switch.
+function releaseGate() {
+  if (!stepGate) return;
+  const resolve = stepGate;
+  stepGate = null;
+  btnNext.disabled = true;
+  btnNext.classList.remove('ready');
+  stageNarration.classList.remove('awaiting');
+  resolve();
+}
+
+// ── Pause primitives ──────────────────────────────────────────────────────────
+// Each call is one discrete "step": it bumps the counter, updates the narration,
+// then either waits a timed delay (auto) or parks until the user advances (step).
+// Throws 'cancelled' if STOP was pressed.
+async function pause(desc, timedDelayFn) {
+  if (state.cancelled) throw new Error('cancelled');
+  state.stepCount++;
+  setNarrationBadge(`STEP ${state.stepCount}`);
+  narrate(desc);
+  if (state.mode === 'step') {
+    await gateStep();
+    if (state.cancelled) throw new Error('cancelled');
+  } else {
+    await timedDelayFn();
+  }
+}
+async function step(desc)            { return pause(desc, delay); }
+async function stepMul(mul, desc)    { return pause(desc, () => delayMul(mul)); }
 
 // ── Swap two bar values (heights + labels), with red flash ────────────────────
 async function visualSwap(i, j) {
   if (i === j) return;
   addState(i, 'bar-swapping');
   addState(j, 'bar-swapping');
-  await stepMul(0.6);
+  await stepMul(0.6, `交換 a[${i}] 與 a[${j}]：${state.values[i]} ↔ ${state.values[j]}`);
 
   const tmp = state.values[i];
   setBarValue(i, state.values[j]);
   setBarValue(j, tmp);
   incSwaps();
 
-  await stepMul(0.7);
+  await stepMul(0.7, `↳ a[${i}] 與 a[${j}] 已交換`);
   removeState(i, 'bar-swapping');
   removeState(j, 'bar-swapping');
 }
 
-// ── Compare animation: light up two indices, return their order ───────────────
-async function visualCompare(i, j) {
+// ── Compare animation: light up two indices ───────────────────────────────────
+async function visualCompare(i, j, desc) {
   addState(i, 'bar-comparing');
   addState(j, 'bar-comparing');
   incComparisons();
-  await step();
+  await step(desc || `比較 a[${i}] 與 a[${j}]`);
   // Caller decides what to do; they should clear comparing afterwards.
 }
 
@@ -266,7 +333,7 @@ async function bubbleSort() {
   for (let pass = 0; pass < n - 1; pass++) {
     let swappedThisPass = false;
     for (let j = 0; j < n - 1 - pass; j++) {
-      await visualCompare(j, j + 1);
+      await visualCompare(j, j + 1, `第 ${pass + 1} 輪：比較 a[${j}]=${a[j]} 與 a[${j + 1}]=${a[j + 1]}`);
       if (a[j] > a[j + 1]) {
         removeState(j, 'bar-comparing');
         removeState(j + 1, 'bar-comparing');
@@ -298,7 +365,7 @@ async function selectionSort() {
     for (let j = i + 1; j < n; j++) {
       addState(j, 'bar-comparing');
       incComparisons();
-      await step();
+      await step(`掃描 a[${j}]=${a[j]}，目前最小值為 a[${minIdx}]=${a[minIdx]}`);
       if (a[j] < a[minIdx]) {
         // New min found — repaint old min back to default, mark j as new min
         removeState(minIdx, 'bar-pivot');
@@ -334,13 +401,13 @@ async function insertionSort() {
     // Highlight the key being inserted
     state.bars[i].classList.remove('bar-sorted');
     addState(i, 'bar-pivot');
-    await step();
+    await step(`取出 key = a[${i}] = ${key}，準備往左插入`);
 
     let j = i - 1;
     while (j >= 0) {
       addState(j, 'bar-comparing');
       incComparisons();
-      await step();
+      await step(`key(${key}) 與 a[${j}]=${a[j]} 比較`);
       removeState(j, 'bar-comparing');
 
       if (a[j] > key) {
@@ -360,7 +427,7 @@ async function insertionSort() {
     state.bars[insertPos].classList.remove('bar-pivot', 'bar-sorted');
     setBarValue(insertPos, key);
     markSorted(insertPos);
-    await stepMul(0.4);
+    await stepMul(0.4, `key ${key} 插入 a[${insertPos}] — 左側 ${i + 1} 個元素已排序`);
   }
 }
 
@@ -385,7 +452,7 @@ async function merge(lo, mid, hi) {
     state.bars[k].classList.remove('bar-sorted');
     addState(k, 'bar-range');
   }
-  await stepMul(0.6);
+  await stepMul(0.6, `合併子陣列 [${lo}..${mid}] 與 [${mid + 1}..${hi}]`);
 
   const left  = state.values.slice(lo, mid + 1);
   const right = state.values.slice(mid + 1, hi + 1);
@@ -397,10 +464,11 @@ async function merge(lo, mid, hi) {
     const li = lo + i, rj = mid + 1 + j;
     addState(li, 'bar-comparing');
     addState(rj, 'bar-comparing');
-    await step();
+    await step(`比較左段 ${left[i]} 與右段 ${right[j]} — 取較小者`);
     removeState(li, 'bar-comparing');
     removeState(rj, 'bar-comparing');
 
+    const chosen = (left[i] <= right[j]) ? left[i] : right[j];
     if (left[i] <= right[j]) {
       setBarValue(k, left[i]);
       i++;
@@ -410,19 +478,21 @@ async function merge(lo, mid, hi) {
     }
     incSwaps();             // count merge writes
     k++;
-    await stepMul(0.4);
+    await stepMul(0.4, `寫回 a[${k - 1}] = ${chosen}`);
   }
   while (i < left.length) {
-    setBarValue(k, left[i]);
+    const v = left[i];
+    setBarValue(k, v);
     incSwaps();
     i++; k++;
-    await stepMul(0.3);
+    await stepMul(0.3, `左段剩餘 — 寫回 a[${k - 1}] = ${v}`);
   }
   while (j < right.length) {
-    setBarValue(k, right[j]);
+    const v = right[j];
+    setBarValue(k, v);
     incSwaps();
     j++; k++;
-    await stepMul(0.3);
+    await stepMul(0.3, `右段剩餘 — 寫回 a[${k - 1}] = ${v}`);
   }
 
   // Range is now sorted *within itself* — flash range off, leave default tone.
@@ -450,10 +520,10 @@ async function quickSortRange(lo, hi) {
 
 async function partition(lo, hi) {
   const pivotIdx = hi;
-  addState(pivotIdx, 'bar-pivot');
-  await stepMul(0.6);
-
   const pivotVal = state.values[pivotIdx];
+  addState(pivotIdx, 'bar-pivot');
+  await stepMul(0.6, `分割 [${lo}..${hi}] — 選 pivot = a[${hi}] = ${pivotVal}`);
+
   let i = lo - 1;        // boundary
 
   for (let j = lo; j < hi; j++) {
@@ -462,7 +532,7 @@ async function partition(lo, hi) {
 
     addState(j, 'bar-comparing');
     incComparisons();
-    await step();
+    await step(`掃描 a[${j}]=${state.values[j]}，與 pivot ${pivotVal} 比較`);
 
     if (state.values[j] < pivotVal) {
       i++;
@@ -472,7 +542,7 @@ async function partition(lo, hi) {
         await visualSwap(i, j);
       } else {
         // No swap needed but still count the conceptual placement
-        await stepMul(0.2);
+        await stepMul(0.2, `a[${j}] < pivot 且已在邊界 — 無需交換`);
       }
       if (i + 1 < hi) addState(i + 1, 'bar-boundary');
     } else {
@@ -514,12 +584,17 @@ async function runSort() {
   }
 
   resetCounters();
+  state.stepCount = 0;
   setBusy(true);
   state.cancelled = false;
   setStatus('SORTING...', 'busy');
 
   const meta = ALGORITHMS[state.algorithm];
   logLine(`▶ ${meta.label} · n=${state.values.length} · ${meta.big}`, 'declare');
+  setNarrationBadge('STEP 0');
+  narrate(state.mode === 'step'
+    ? `${meta.label} — 按 NEXT STEP 開始逐步執行`
+    : `${meta.label} — 執行中…`);
 
   const t0 = performance.now();
   let cancelled = false;
@@ -539,12 +614,17 @@ async function runSort() {
   if (cancelled) {
     setStatus('CANCELLED', 'cancel');
     logLine(`■ stopped after ${state.comparisons} comparisons / ${state.swaps} swaps`, 'warn');
+    setNarrationBadge('STOP');
+    narrate(`已停止 — 走到第 ${state.stepCount} 步`);
+    narrationText.classList.add('idle');
   } else {
     // Make sure everything is marked sorted at the end
     for (let i = 0; i < state.bars.length; i++) markSorted(i);
     await playFinale();
     setStatus('SORTED', 'done');
     logLine(`✓ done in ${dt}s · ${state.comparisons} comparisons · ${state.swaps} writes`, 'success');
+    setNarrationBadge('DONE');
+    narrate(`排序完成 ✓ — 共 ${state.stepCount} 步 · ${state.comparisons} 次比較 · ${state.swaps} 次寫入`);
   }
 
   setBusy(false);
@@ -569,7 +649,20 @@ function regenerateArray() {
   renderBars();
   resetCounters();
   setStatus('READY', 'idle');
+  resetNarration('// 新陣列已就緒 — 按下 SORT 開始');
   logLine(`↻ generated new array — n=${state.size}`, 'info');
+}
+
+// ── Execution mode (auto ⇄ step) ──────────────────────────────────────────────
+function setMode(mode) {
+  state.mode = mode;
+  modeAuto.classList.toggle('active', mode === 'auto');
+  modeStep.classList.toggle('active', mode === 'step');
+  modeAuto.setAttribute('aria-pressed', String(mode === 'auto'));
+  modeStep.setAttribute('aria-pressed', String(mode === 'step'));
+  stepControls.classList.toggle('hidden', mode !== 'step');
+  // Switching to AUTO mid-run: release any parked pause so it keeps flowing.
+  if (mode === 'auto') releaseGate();
 }
 
 function selectAlgorithm(algo) {
@@ -614,6 +707,9 @@ btnStop.addEventListener('click', () => {
   if (!state.busy) return;
   state.cancelled = true;
   logLine('// stop requested...', 'warn');
+  // If a step is parked waiting for NEXT, release it so the cancelled flag
+  // can be observed and the algorithm can unwind.
+  releaseGate();
 });
 
 btnClearConsole.addEventListener('click', clearConsole);
@@ -622,6 +718,22 @@ for (const btn of algoButtons) {
   btn.addEventListener('click', () => selectAlgorithm(btn.dataset.algo));
 }
 
+// Execution-mode toggle — switchable any time, even mid-sort.
+modeAuto.addEventListener('click', () => setMode('auto'));
+modeStep.addEventListener('click', () => setMode('step'));
+
+// NEXT STEP — advance one parked pause.
+btnNext.addEventListener('click', () => releaseGate());
+
+// Keyboard: Space / → advance a step while step-sorting (no text inputs here).
+window.addEventListener('keydown', (e) => {
+  if (state.mode !== 'step' || !state.busy) return;
+  if (e.key === ' ' || e.key === 'Spacebar' || e.key === 'ArrowRight') {
+    e.preventDefault();   // stop page-scroll / button re-trigger
+    releaseGate();
+  }
+});
+
 // ─────────────────────────────────────────────────────────────────────────────
 // BOOT
 // ─────────────────────────────────────────────────────────────────────────────
@@ -629,5 +741,7 @@ for (const btn of algoButtons) {
 paintSlider(sizeSlider);
 paintSlider(speedSlider);
 selectAlgorithm('bubble');
+setMode('auto');
 regenerateArray();
 logLine('// dataset ready — adjust sliders, choose an algorithm, then SORT.', 'dim');
+logLine('// tip: switch to STEP mode to advance one operation at a time.', 'dim');
