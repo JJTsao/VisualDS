@@ -28,6 +28,7 @@ const state = {
   comparisons: 0,
   swaps:       0,
   stepCount:   0,      // number of discrete pause-points reached this run
+  segGaps:     new Set(), // indices that start a new segment (merge sort divide)
 };
 
 // ── Algorithm metadata ────────────────────────────────────────────────────────
@@ -141,6 +142,15 @@ function renderBars() {
   else if (state.size > 22) barsContainer.style.gap = '2px';
   else                       barsContainer.style.gap = '4px';
 
+  // Segment-gap width for merge sort's divide visualisation — smaller as n grows
+  let segGap;
+  if (state.size <= 16)      segGap = 28;
+  else if (state.size <= 26) segGap = 20;
+  else if (state.size <= 36) segGap = 13;
+  else                        segGap = 9;
+  barsContainer.style.setProperty('--seg-gap', `${segGap}px`);
+  state.segGaps.clear();
+
   for (let i = 0; i < state.values.length; i++) {
     const bar = document.createElement('div');
     bar.className = 'bar';
@@ -196,6 +206,24 @@ function markSorted(idx) {
   if (idx < 0 || idx >= state.bars.length) return;
   state.bars[idx].classList.remove(...STATE_CLASSES);
   state.bars[idx].classList.add('bar-sorted');
+}
+
+// ── Segment gaps — visualise merge sort's recursive divide ────────────────────
+// A gap "before index k" means bar[k] starts a fresh sub-array. Splits open
+// gaps on the way down the recursion; merges close them on the way back up.
+function openGap(idx) {
+  if (idx <= 0 || idx >= state.bars.length) return;
+  state.segGaps.add(idx);
+  state.bars[idx].classList.add('bar-seg-start');
+}
+function closeGap(idx) {
+  if (idx <= 0 || idx >= state.bars.length) return;
+  state.segGaps.delete(idx);
+  state.bars[idx].classList.remove('bar-seg-start');
+}
+function clearAllGaps() {
+  state.segGaps.clear();
+  for (const bar of state.bars) bar.classList.remove('bar-seg-start');
 }
 
 // ── Counters ──────────────────────────────────────────────────────────────────
@@ -439,14 +467,23 @@ async function mergeSort() {
 }
 
 async function mergeSortRange(lo, hi) {
-  if (lo >= hi) return;
+  if (lo >= hi) return;   // single element — base case, already "sorted"
   const mid = Math.floor((lo + hi) / 2);
+
+  // DIVIDE — open a visible gap so the two halves become distinct sub-arrays.
+  openGap(mid + 1);
+  const size = hi - lo + 1;
+  await stepMul(0.5,
+    `切分 [${lo}..${hi}]（${size} 個）→ 左段 [${lo}..${mid}] · 右段 [${mid + 1}..${hi}]`);
+
   await mergeSortRange(lo, mid);
   await mergeSortRange(mid + 1, hi);
   await merge(lo, mid, hi);
 }
 
 async function merge(lo, mid, hi) {
+  // CONQUER — the two sorted sub-runs rejoin: close the gap that divide opened.
+  closeGap(mid + 1);
   // Highlight the sub-range being merged (purple-ish "range" tint)
   for (let k = lo; k <= hi; k++) {
     state.bars[k].classList.remove('bar-sorted');
@@ -578,10 +615,11 @@ async function runSort() {
     return;
   }
 
-  // Strip any previous sorted tint
+  // Strip any previous sorted tint / leftover segment gaps
   for (const bar of state.bars) {
-    bar.classList.remove('bar-sorted', ...STATE_CLASSES, 'bar-finale', 'bar-write');
+    bar.classList.remove('bar-sorted', ...STATE_CLASSES, 'bar-finale', 'bar-write', 'bar-seg-start');
   }
+  state.segGaps.clear();
 
   resetCounters();
   state.stepCount = 0;
@@ -610,6 +648,7 @@ async function runSort() {
   const dt = ((performance.now() - t0) / 1000).toFixed(2);
 
   clearAllTransient();
+  clearAllGaps();   // close any gaps left open by a cancelled merge sort
 
   if (cancelled) {
     setStatus('CANCELLED', 'cancel');

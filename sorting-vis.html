@@ -379,6 +379,7 @@
       box-shadow: 0 0 6px var(--amber-glow-sm), inset 0 0 4px rgba(0,0,0,0.4);
       transition:
         height 0.18s cubic-bezier(0.4, 0, 0.2, 1),
+        margin-left 0.34s cubic-bezier(0.4, 0, 0.2, 1),
         background 0.15s ease,
         border-color 0.15s ease,
         box-shadow 0.15s ease,
@@ -387,6 +388,12 @@
       align-items: flex-start;
       justify-content: center;
       will-change: height;
+    }
+
+    /* Segment gap — opens during merge sort's recursive divide phase so the
+       two halves visibly separate into distinct sub-arrays. */
+    .bar.bar-seg-start {
+      margin-left: var(--seg-gap, 16px);
     }
 
     /* Numeric value pinned at the bar's top (only shown when bars are wide enough) */
@@ -756,6 +763,7 @@
         <ul class="concept-list">
           <li>每根直條 = 一個整數值 · 高度與數值成正比</li>
           <li>顏色：<code>amber</code> 預設、<code>bright</code> 比較中、<code>red</code> 交換、<code>purple</code> pivot、<code>green</code> 已排序</li>
+          <li>Merge Sort：直條間的<strong>間隙</strong>代表遞迴切分出的子陣列 — 切分時展開、合併時閉合</li>
           <li>右下角統計：comparisons / swaps / status</li>
           <li>調慢 speed slider 可看清每一步操作</li>
         </ul>
