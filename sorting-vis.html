@@ -645,6 +645,131 @@
       opacity: 0.7;
       font-style: italic;
     }
+
+    /* ── Merge tray — auxiliary left[]/right[] arrays (Phase B) ── */
+    .merge-tray {
+      display: flex;
+      align-items: stretch;
+      gap: 16px;
+      height: 124px;
+      flex-shrink: 0;
+      margin-top: 0.55rem;
+      padding: 0.4rem 0.7rem;
+      background: rgba(0, 0, 0, 0.42);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+    }
+    .merge-tray.hidden { display: none; }
+
+    .tray-empty-hint {
+      margin: auto;
+      font-size: 0.74rem;
+      color: var(--text-muted);
+      opacity: 0.55;
+      font-style: italic;
+      letter-spacing: 0.04em;
+      text-align: center;
+    }
+    /* Populated: hide the hint, reveal the two groups */
+    .merge-tray .tray-group { display: none; }
+    .merge-tray.tray-populated .tray-empty-hint { display: none; }
+    .merge-tray.tray-populated .tray-group { display: flex; }
+
+    .tray-group {
+      flex-direction: column;
+      gap: 5px;
+      min-width: 0;
+    }
+    .tray-tag {
+      font-size: 0.62rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      flex-shrink: 0;
+    }
+    .tray-tag em {
+      font-style: normal;
+      color: var(--text-muted);
+      font-size: 0.58rem;
+    }
+    .tray-group-left  .tray-tag { color: #5fb8ff; }
+    .tray-group-right .tray-tag { color: #ffb05f; }
+
+    .tray-bars {
+      flex: 1;
+      display: flex;
+      align-items: flex-end;
+      gap: 2px;
+      padding: 15px 0 18px;     /* room for value labels (top) + carets (bottom) */
+      min-width: 0;
+    }
+
+    .tray-bar {
+      flex: 1 1 0;
+      min-width: 3px;
+      position: relative;
+      border-radius: 2px 2px 0 0;
+      border-style: solid;
+      border-width: 1px 1px 0 1px;
+      transition: height 0.18s ease, background 0.15s ease,
+                  box-shadow 0.15s ease, opacity 0.2s ease, transform 0.18s ease;
+    }
+    .tray-group-left  .tray-bar {
+      background: linear-gradient(180deg, #5fb8ff, #1c4e7a);
+      border-color: #5fb8ff;
+    }
+    .tray-group-right .tray-bar {
+      background: linear-gradient(180deg, #ffb05f, #7a481c);
+      border-color: #ffb05f;
+    }
+
+    .tray-bar-val {
+      position: absolute;
+      top: -13px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.56rem;
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+    .tray-bars-narrow .tray-bar-val { display: none; }
+
+    /* Pointer caret — visible only beneath the current candidate */
+    .tray-ptr {
+      position: absolute;
+      bottom: -17px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.6rem;
+      font-weight: 700;
+      color: var(--amber-bright);
+      white-space: nowrap;
+      display: none;
+    }
+    .tray-bar.candidate .tray-ptr { display: block; }
+
+    /* Candidate — the element currently under the i / j pointer */
+    .tray-bar.candidate {
+      background: linear-gradient(180deg, var(--amber-bright), var(--amber));
+      border-color: var(--amber-bright);
+      box-shadow: 0 0 14px rgba(255, 199, 64, 0.7),
+                  inset 0 0 6px rgba(255, 199, 64, 0.3);
+      transform: translateY(-4px);
+      z-index: 2;
+    }
+    .tray-bar.candidate .tray-bar-val { color: var(--amber-bright); }
+
+    /* Consumed — already merged into the output */
+    .tray-bar.consumed { opacity: 0.24; filter: grayscale(0.55); }
+
+    /* Chosen — brief green pop the moment a value is pulled into the output */
+    @keyframes trayChosenPop {
+      0%   { transform: translateY(-4px) scale(1); }
+      40%  { transform: translateY(-13px) scale(1.14);
+             box-shadow: 0 0 20px rgba(77, 255, 168, 0.9);
+             filter: brightness(1.5); }
+      100% { transform: translateY(0) scale(1); }
+    }
+    .tray-bar.chosen { animation: trayChosenPop 0.36s ease; }
   </style>
 </head>
 <body>
@@ -764,6 +889,7 @@
           <li>每根直條 = 一個整數值 · 高度與數值成正比</li>
           <li>顏色：<code>amber</code> 預設、<code>bright</code> 比較中、<code>red</code> 交換、<code>purple</code> pivot、<code>green</code> 已排序</li>
           <li>Merge Sort：直條間的<strong>間隙</strong>代表遞迴切分出的子陣列 — 切分時展開、合併時閉合</li>
+          <li>Merge Sort 合併時，下方<strong>輔助托盤</strong>顯示 left[] / right[] 兩段，<code>i</code> · <code>j</code> 指針指向正在比較的候選值</li>
           <li>右下角統計：comparisons / swaps / status</li>
           <li>調慢 speed slider 可看清每一步操作</li>
         </ul>
@@ -799,6 +925,21 @@
             <span class="narration-text idle" id="narration-text">選擇演算法並按下 SORT 開始</span>
           </div>
           <div id="bars-container"></div>
+
+          <!-- Merge tray — auxiliary left[] / right[] arrays (merge sort only) -->
+          <div id="merge-tray" class="merge-tray hidden">
+            <span class="tray-empty-hint" id="tray-empty-hint">
+              合併階段會在此顯示 left[] / right[] 輔助陣列與 i · j 雙指針
+            </span>
+            <div class="tray-group tray-group-left" id="tray-group-left">
+              <span class="tray-tag">left[ ]&nbsp;<em>i →</em></span>
+              <div class="tray-bars" id="tray-left-bars"></div>
+            </div>
+            <div class="tray-group tray-group-right" id="tray-group-right">
+              <span class="tray-tag">right[ ]&nbsp;<em>j →</em></span>
+              <div class="tray-bars" id="tray-right-bars"></div>
+            </div>
+          </div>
         </div>
 
         <!-- Legend -->

@@ -29,6 +29,8 @@ const state = {
   swaps:       0,
   stepCount:   0,      // number of discrete pause-points reached this run
   segGaps:     new Set(), // indices that start a new segment (merge sort divide)
+  trayLeftBars:  [],   // merge tray — left[] mini-bar DOM elements
+  trayRightBars: [],   // merge tray — right[] mini-bar DOM elements
 };
 
 // ── Algorithm metadata ────────────────────────────────────────────────────────
@@ -87,6 +89,13 @@ const btnNext        = document.getElementById('btn-next');
 const stageNarration = document.getElementById('stage-narration');
 const narrationStep  = document.getElementById('narration-step');
 const narrationText  = document.getElementById('narration-text');
+
+// Merge tray (Phase B)
+const mergeTray      = document.getElementById('merge-tray');
+const trayGroupLeft  = document.getElementById('tray-group-left');
+const trayGroupRight = document.getElementById('tray-group-right');
+const trayLeftBars   = document.getElementById('tray-left-bars');
+const trayRightBars  = document.getElementById('tray-right-bars');
 
 const statComparisons= document.getElementById('stat-comparisons');
 const statSwaps      = document.getElementById('stat-swaps');
@@ -224,6 +233,74 @@ function closeGap(idx) {
 function clearAllGaps() {
   state.segGaps.clear();
   for (const bar of state.bars) bar.classList.remove('bar-seg-start');
+}
+
+// ── Merge tray — visible auxiliary left[] / right[] arrays (Phase B) ──────────
+// The merge step copies both halves into JS arrays; the tray renders them as
+// mini-bars so the two-pointer comparison happens somewhere students can see.
+function makeTrayBar(val, ptrLabel) {
+  const bar = document.createElement('div');
+  bar.className = 'tray-bar';
+  bar.style.height = `${val}%`;
+  const v = document.createElement('span');
+  v.className = 'tray-bar-val';
+  v.textContent = val;
+  const p = document.createElement('span');
+  p.className = 'tray-ptr';
+  p.textContent = ptrLabel;
+  bar.append(v, p);
+  return bar;
+}
+
+function buildMergeTray(left, right) {
+  trayLeftBars.innerHTML  = '';
+  trayRightBars.innerHTML = '';
+  state.trayLeftBars  = [];
+  state.trayRightBars = [];
+
+  // Group widths track element counts so bars stay uniform across both runs.
+  trayGroupLeft.style.flex  = `${Math.max(1, left.length)} 1 0`;
+  trayGroupRight.style.flex = `${Math.max(1, right.length)} 1 0`;
+  trayLeftBars.classList.toggle('tray-bars-narrow', left.length > 16);
+  trayRightBars.classList.toggle('tray-bars-narrow', right.length > 16);
+
+  for (const val of left) {
+    const bar = makeTrayBar(val, '▲ i');
+    trayLeftBars.appendChild(bar);
+    state.trayLeftBars.push(bar);
+  }
+  for (const val of right) {
+    const bar = makeTrayBar(val, '▲ j');
+    trayRightBars.appendChild(bar);
+    state.trayRightBars.push(bar);
+  }
+  mergeTray.classList.add('tray-populated');
+}
+
+// Light up the current i / j candidates; pass -1 to skip a side (leftover copy).
+function setTrayCandidates(i, j) {
+  for (const b of state.trayLeftBars)  b.classList.remove('candidate');
+  for (const b of state.trayRightBars) b.classList.remove('candidate');
+  if (i >= 0 && state.trayLeftBars[i])  state.trayLeftBars[i].classList.add('candidate');
+  if (j >= 0 && state.trayRightBars[j]) state.trayRightBars[j].classList.add('candidate');
+}
+
+// Mark a tray element as pulled into the output — green pop, then dim.
+function markTrayChosen(side, idx) {
+  const bar = (side === 'left' ? state.trayLeftBars : state.trayRightBars)[idx];
+  if (!bar) return;
+  bar.classList.remove('candidate', 'chosen');
+  bar.classList.add('consumed');
+  void bar.offsetWidth;          // restart the pop animation
+  bar.classList.add('chosen');
+}
+
+function clearMergeTray() {
+  trayLeftBars.innerHTML  = '';
+  trayRightBars.innerHTML = '';
+  state.trayLeftBars  = [];
+  state.trayRightBars = [];
+  mergeTray.classList.remove('tray-populated');
 }
 
 // ── Counters ──────────────────────────────────────────────────────────────────
@@ -484,59 +561,69 @@ async function mergeSortRange(lo, hi) {
 async function merge(lo, mid, hi) {
   // CONQUER — the two sorted sub-runs rejoin: close the gap that divide opened.
   closeGap(mid + 1);
-  // Highlight the sub-range being merged (purple-ish "range" tint)
+  // Tint the destination range — these main-row slots are the merge output.
   for (let k = lo; k <= hi; k++) {
     state.bars[k].classList.remove('bar-sorted');
     addState(k, 'bar-range');
   }
   await stepMul(0.6, `合併子陣列 [${lo}..${mid}] 與 [${mid + 1}..${hi}]`);
 
+  // Copy both halves into auxiliary arrays — and show them in the tray.
   const left  = state.values.slice(lo, mid + 1);
   const right = state.values.slice(mid + 1, hi + 1);
+  buildMergeTray(left, right);
+  await stepMul(0.5,
+    `複製到輔助陣列 — left[] ${left.length} 個 · right[] ${right.length} 個`);
 
   let i = 0, j = 0, k = lo;
+
+  // Two-pointer merge — both candidates are visible & coloured in the tray.
   while (i < left.length && j < right.length) {
     incComparisons();
-    // Briefly pulse the two source positions being compared
-    const li = lo + i, rj = mid + 1 + j;
-    addState(li, 'bar-comparing');
-    addState(rj, 'bar-comparing');
-    await step(`比較左段 ${left[i]} 與右段 ${right[j]} — 取較小者`);
-    removeState(li, 'bar-comparing');
-    removeState(rj, 'bar-comparing');
+    setTrayCandidates(i, j);
+    await step(`比較 left[${i}]=${left[i]} 與 right[${j}]=${right[j]} — 取較小者`);
 
-    const chosen = (left[i] <= right[j]) ? left[i] : right[j];
-    if (left[i] <= right[j]) {
-      setBarValue(k, left[i]);
-      i++;
-    } else {
-      setBarValue(k, right[j]);
-      j++;
-    }
-    incSwaps();             // count merge writes
-    k++;
-    await stepMul(0.4, `寫回 a[${k - 1}] = ${chosen}`);
-  }
-  while (i < left.length) {
-    const v = left[i];
-    setBarValue(k, v);
+    let side, val;
+    if (left[i] <= right[j]) { side = 'left';  val = left[i];  }
+    else                     { side = 'right'; val = right[j]; }
+    markTrayChosen(side, side === 'left' ? i : j);
+
+    addState(k, 'bar-boundary');           // mark the write head on the main row
+    setBarValue(k, val);
     incSwaps();
+    await stepMul(0.4,
+      `${side}[${side === 'left' ? i : j}]=${val} 較小 → 寫入 a[${k}]`);
+    removeState(k, 'bar-boundary');
+
+    if (side === 'left') i++; else j++;
+    k++;
+  }
+
+  // Drain whichever run still has elements — all simply copied across.
+  while (i < left.length) {
+    setTrayCandidates(i, -1);
+    addState(k, 'bar-boundary');
+    setBarValue(k, left[i]);
+    incSwaps();
+    await stepMul(0.3, `left[] 剩餘 → 寫入 a[${k}] = ${left[i]}`);
+    markTrayChosen('left', i);
+    removeState(k, 'bar-boundary');
     i++; k++;
-    await stepMul(0.3, `左段剩餘 — 寫回 a[${k - 1}] = ${v}`);
   }
   while (j < right.length) {
-    const v = right[j];
-    setBarValue(k, v);
+    setTrayCandidates(-1, j);
+    addState(k, 'bar-boundary');
+    setBarValue(k, right[j]);
     incSwaps();
+    await stepMul(0.3, `right[] 剩餘 → 寫入 a[${k}] = ${right[j]}`);
+    markTrayChosen('right', j);
+    removeState(k, 'bar-boundary');
     j++; k++;
-    await stepMul(0.3, `右段剩餘 — 寫回 a[${k - 1}] = ${v}`);
   }
 
-  // Range is now sorted *within itself* — flash range off, leave default tone.
+  // Merge done — drop the range tint and clear the tray.
   for (let p = lo; p <= hi; p++) removeState(p, 'bar-range');
-
-  // If this merge produced the entire array, the outer call will mark sorted.
-  // If it's a complete sub-segment of the final sort, leave as default for now.
+  clearMergeTray();
 }
 
 // 5. Quick Sort (Lomuto partition, last element as pivot)
@@ -648,7 +735,8 @@ async function runSort() {
   const dt = ((performance.now() - t0) / 1000).toFixed(2);
 
   clearAllTransient();
-  clearAllGaps();   // close any gaps left open by a cancelled merge sort
+  clearAllGaps();    // close any gaps left open by a cancelled merge sort
+  clearMergeTray();  // empty the tray if a merge was interrupted
 
   if (cancelled) {
     setStatus('CANCELLED', 'cancel');
@@ -714,6 +802,15 @@ function selectAlgorithm(algo) {
   algoDescText.textContent = meta.desc;
   algoComplexity.textContent = meta.big;
   updateStageInfo();
+
+  // The merge tray only applies to merge sort — reserve its space when picked
+  // (done outside a run so the main bars never rescale mid-sort).
+  if (algo === 'merge') {
+    mergeTray.classList.remove('hidden');
+  } else {
+    mergeTray.classList.add('hidden');
+    clearMergeTray();
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
