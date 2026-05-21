@@ -92,10 +92,9 @@ const narrationText  = document.getElementById('narration-text');
 
 // Merge tray (Phase B)
 const mergeTray      = document.getElementById('merge-tray');
-const trayGroupLeft  = document.getElementById('tray-group-left');
-const trayGroupRight = document.getElementById('tray-group-right');
-const trayLeftBars   = document.getElementById('tray-left-bars');
-const trayRightBars  = document.getElementById('tray-right-bars');
+const trayBarLayer   = document.getElementById('tray-bar-layer');
+const trayLabelLeft  = document.getElementById('tray-label-left');
+const trayLabelRight = document.getElementById('tray-label-right');
 
 const statComparisons= document.getElementById('stat-comparisons');
 const statSwaps      = document.getElementById('stat-swaps');
@@ -235,16 +234,29 @@ function clearAllGaps() {
   for (const bar of state.bars) bar.classList.remove('bar-seg-start');
 }
 
+// Snap any in-progress bar transitions (gap margins, heights) to their final
+// values — so the merge tray measures a fully-settled main-row layout instead
+// of catching a gap mid-animation and mis-aligning its bars.
+function settleBarTransitions() {
+  for (const bar of state.bars) bar.style.transition = 'none';
+  void barsContainer.offsetWidth;     // one reflow commits the snapped layout
+  for (const bar of state.bars) bar.style.transition = '';
+}
+
 // ── Merge tray — visible auxiliary left[] / right[] arrays (Phase B) ──────────
 // The merge step copies both halves into JS arrays; the tray renders them as
-// mini-bars so the two-pointer comparison happens somewhere students can see.
-function makeTrayBar(val, ptrLabel) {
+// mini-bars, each positioned directly beneath its source element on the main
+// row so the two-pointer comparison reads against the original array.
+const TRAY_BAR_MAX = 64;   // px height of a tray bar for the largest value (100)
+
+function makeTrayBar(val, side, ptrLabel, showLabel) {
   const bar = document.createElement('div');
-  bar.className = 'tray-bar';
-  bar.style.height = `${val}%`;
+  bar.className = `tray-bar tray-bar-${side}`;
+  bar.style.height = `${Math.max(2, Math.round(val / 100 * TRAY_BAR_MAX))}px`;
   const v = document.createElement('span');
   v.className = 'tray-bar-val';
   v.textContent = val;
+  if (!showLabel) v.style.display = 'none';
   const p = document.createElement('span');
   p.className = 'tray-ptr';
   p.textContent = ptrLabel;
@@ -252,28 +264,40 @@ function makeTrayBar(val, ptrLabel) {
   return bar;
 }
 
-function buildMergeTray(left, right) {
-  trayLeftBars.innerHTML  = '';
-  trayRightBars.innerHTML = '';
+// Centre a run caption over the span of main bars [fromIdx..toIdx].
+function positionRunLabel(label, fromIdx, toIdx, originX) {
+  const a = state.bars[fromIdx].getBoundingClientRect();
+  const b = state.bars[toIdx].getBoundingClientRect();
+  label.style.left = `${(a.left + b.right) / 2 - originX}px`;
+}
+
+function buildMergeTray(left, right, lo, mid, hi) {
+  trayBarLayer.innerHTML = '';
   state.trayLeftBars  = [];
   state.trayRightBars = [];
 
-  // Group widths track element counts so bars stay uniform across both runs.
-  trayGroupLeft.style.flex  = `${Math.max(1, left.length)} 1 0`;
-  trayGroupRight.style.flex = `${Math.max(1, right.length)} 1 0`;
-  trayLeftBars.classList.toggle('tray-bars-narrow', left.length > 16);
-  trayRightBars.classList.toggle('tray-bars-narrow', right.length > 16);
+  // Align to the main row: the bar layer shares the main row's x-origin.
+  // Settle first so a gap mid-animation can't skew the measurements.
+  settleBarTransitions();
+  const originX    = trayBarLayer.getBoundingClientRect().left;
+  const showLabels = (left.length + right.length) <= 28;
 
-  for (const val of left) {
-    const bar = makeTrayBar(val, '▲ i');
-    trayLeftBars.appendChild(bar);
-    state.trayLeftBars.push(bar);
-  }
-  for (const val of right) {
-    const bar = makeTrayBar(val, '▲ j');
-    trayRightBars.appendChild(bar);
-    state.trayRightBars.push(bar);
-  }
+  // Place a tray bar exactly beneath main bar `mainIdx`.
+  const place = (val, mainIdx, side, ptrLabel) => {
+    const r = state.bars[mainIdx].getBoundingClientRect();
+    const bar = makeTrayBar(val, side, ptrLabel, showLabels);
+    bar.style.left  = `${r.left - originX}px`;
+    bar.style.width = `${r.width}px`;
+    trayBarLayer.appendChild(bar);
+    return bar;
+  };
+
+  left.forEach((val, idx)  => state.trayLeftBars.push(place(val, lo + idx, 'left', '▲ i')));
+  right.forEach((val, idx) => state.trayRightBars.push(place(val, mid + 1 + idx, 'right', '▲ j')));
+
+  positionRunLabel(trayLabelLeft,  lo,      mid, originX);
+  positionRunLabel(trayLabelRight, mid + 1, hi,  originX);
+
   mergeTray.classList.add('tray-populated');
 }
 
@@ -296,8 +320,7 @@ function markTrayChosen(side, idx) {
 }
 
 function clearMergeTray() {
-  trayLeftBars.innerHTML  = '';
-  trayRightBars.innerHTML = '';
+  trayBarLayer.innerHTML = '';
   state.trayLeftBars  = [];
   state.trayRightBars = [];
   mergeTray.classList.remove('tray-populated');
@@ -571,7 +594,7 @@ async function merge(lo, mid, hi) {
   // Copy both halves into auxiliary arrays — and show them in the tray.
   const left  = state.values.slice(lo, mid + 1);
   const right = state.values.slice(mid + 1, hi + 1);
-  buildMergeTray(left, right);
+  buildMergeTray(left, right, lo, mid, hi);
   await stepMul(0.5,
     `複製到輔助陣列 — left[] ${left.length} 個 · right[] ${right.length} 個`);
 
