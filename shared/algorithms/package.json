@@ -1,0 +1,7 @@
+{
+  "name": "visualds-shared-algorithms",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Pure (no-DOM) algorithm steppers, instance generators and graders shared by the VisualDS teaching site and the exam stack."
+}
