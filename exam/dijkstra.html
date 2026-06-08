@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dijkstra 過程式測驗 — VisualDS Exam</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/style.css">
+<style>
+  /* ── Exam-specific layout (reuses the Amber Phosphor tokens from style.css) ── */
+  .exam-wrapper { height: 100vh; overflow: hidden; display: grid;
+    grid-template-columns: minmax(380px, 480px) 1fr; }
+  .exam-col { height: 100%; overflow-y: auto; padding: 24px; }
+  .exam-left  { border-right: 1px solid var(--border); display: flex; flex-direction: column; gap: 18px; }
+  .exam-right { position: relative; display: flex; flex-direction: column; gap: 14px; }
+
+  .exam-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  .exam-title { font-size: 1.15rem; font-weight: 800; color: var(--amber-bright);
+    letter-spacing: .04em; text-transform: uppercase; }
+  .exam-sub { font-size: .72rem; color: var(--text-muted); }
+
+  .stat-row { display: flex; gap: 10px; }
+  .stat-box { flex: 1; background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 12px; }
+  .stat-box .k { font-size: .62rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: .08em; }
+  .stat-box .v { font-size: 1.25rem; font-weight: 800; color: var(--amber); margin-top: 2px; }
+
+  .rules { background: var(--bg-card); border: 1px solid var(--border); border-left: 3px solid var(--amber-dim);
+    border-radius: 8px; padding: 12px 14px; font-size: .76rem; color: var(--text-dim); line-height: 1.7; }
+  .rules b { color: var(--amber); }
+
+  .step-card { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 10px;
+    padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+  .step-phase { font-size: .68rem; color: var(--amber-dim); text-transform: uppercase; letter-spacing: .1em; }
+  .step-prompt { font-size: .9rem; color: var(--text); line-height: 1.6; }
+  .step-prompt code { color: var(--amber-bright); font-weight: 700; }
+
+  .relax-grid { display: flex; flex-direction: column; gap: 8px; }
+  .relax-row { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 10px;
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 7px; padding: 8px 10px; }
+  .relax-row.ok    { border-color: var(--success); }
+  .relax-row.bad   { border-color: var(--error); animation: errorShake .4s; }
+  .relax-row .lbl  { font-size: .78rem; color: var(--text-dim); }
+  .relax-row .lbl b { color: var(--text); }
+  .relax-row input { width: 84px; background: var(--bg); border: 1px solid var(--border);
+    color: var(--amber-bright); font-family: var(--font-mono); font-size: .9rem; font-weight: 700;
+    text-align: center; padding: 6px; border-radius: 6px; }
+  .relax-row input:focus { outline: none; border-color: var(--amber); }
+  .relax-row .verdict { font-size: .72rem; min-width: 48px; text-align: right; }
+  .verdict.ok  { color: var(--success); }
+  .verdict.bad { color: var(--error); }
+
+  .pick-hint { font-size: .76rem; color: var(--text-muted); }
+  .pick-chosen { color: var(--amber-bright); font-weight: 700; }
+
+  .btn-row { display: flex; gap: 10px; }
+  .ex-btn { flex: 1; cursor: pointer; font-family: var(--font-mono); font-weight: 700; font-size: .82rem;
+    padding: 11px; border-radius: 8px; border: 1px solid var(--amber-dim); background: transparent;
+    color: var(--amber); letter-spacing: .04em; transition: all .15s; }
+  .ex-btn:hover:not(:disabled) { background: var(--amber); color: var(--bg); }
+  .ex-btn.primary { border-color: var(--amber); background: rgba(255,176,0,.08); }
+  .ex-btn:disabled { opacity: .35; cursor: not-allowed; }
+
+  .feedback { font-size: .8rem; line-height: 1.6; min-height: 1.2em; }
+  .feedback.ok   { color: var(--success); }
+  .feedback.bad  { color: var(--error); }
+  .feedback.hint { color: var(--warn); }
+
+  /* ── Graph canvas ── */
+  .canvas-label { font-size: .68rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: .1em; }
+  .graph-stage { position: relative; flex: 1; min-height: 420px; background: var(--bg-card);
+    border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  #ex-edges { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  #ex-edges line { stroke: var(--amber-dim); stroke-width: 2; opacity: .55; }
+  #ex-edges line.tree { stroke: var(--success); stroke-width: 3.5; opacity: 1; }
+  #ex-edges text { fill: var(--amber-bright); font-family: var(--font-mono); font-size: 13px; font-weight: 700;
+    paint-order: stroke; stroke: var(--bg); stroke-width: 4px; }
+  #ex-nodes { position: absolute; inset: 0; pointer-events: none; }
+  .ex-node { position: absolute; width: 48px; height: 48px; transform: translate(-50%, -50%);
+    border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: 1.05rem;
+    background: var(--bg-panel); border: 2px solid var(--amber-dim); color: var(--text-dim);
+    pointer-events: auto; transition: all .2s; }
+  .ex-node.unvisited { cursor: pointer; }
+  .ex-node.unvisited:hover { border-color: var(--amber); color: var(--amber-bright); }
+  .ex-node.picked  { border-color: #40d0ff; color: #40d0ff; box-shadow: 0 0 14px rgba(64,208,255,.6); }
+  .ex-node.current { border-color: var(--amber-bright); color: var(--amber-bright);
+    box-shadow: 0 0 18px var(--amber-glow); animation: pulseGlow 1.1s infinite; }
+  .ex-node.visited { border-color: var(--success); color: var(--success); background: rgba(80,220,120,.08); }
+  .ex-dist { position: absolute; top: -10px; left: 50%; transform: translateX(-50%);
+    background: var(--bg); border: 1px solid var(--amber-dim); color: var(--amber-bright);
+    font-size: .72rem; font-weight: 700; padding: 1px 6px; border-radius: 10px; white-space: nowrap; }
+  .ex-dist.relaxed { animation: distPop .5s; border-color: var(--success); color: var(--success); }
+
+  @keyframes pulseGlow { 0%,100% { box-shadow: 0 0 12px var(--amber-glow); } 50% { box-shadow: 0 0 22px var(--amber-glow); } }
+  @keyframes distPop { 0% { transform: translateX(-50%) scale(1); } 50% { transform: translateX(-50%) scale(1.4); } 100% { transform: translateX(-50%) scale(1); } }
+  @keyframes errorShake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-5px)} 75%{transform:translateX(5px)} }
+
+  .dist-table { width: 100%; border-collapse: collapse; font-size: .76rem; }
+  .dist-table th, .dist-table td { border: 1px solid var(--border); padding: 5px 8px; text-align: center; }
+  .dist-table th { color: var(--text-muted); font-weight: 600; }
+  .dist-table td { color: var(--amber-bright); font-weight: 700; }
+  .dist-table td.done { color: var(--success); }
+
+  .final-card { text-align: center; padding: 28px; }
+  .final-score { font-size: 2.6rem; font-weight: 800; color: var(--amber-bright); }
+  .final-sub { color: var(--text-dim); font-size: .85rem; margin-top: 6px; }
+</style>
+</head>
+<body>
+<div class="exam-wrapper">
+  <!-- ── Left: question + step interaction ── -->
+  <div class="exam-col exam-left">
+    <div class="exam-head">
+      <span class="exam-title">Dijkstra · 過程式測驗</span>
+      <span class="exam-sub" id="seed-tag"></span>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat-box"><div class="k">得分</div><div class="v" id="stat-score">0%</div></div>
+      <div class="stat-box"><div class="k">進度</div><div class="v" id="stat-progress">0 / 0</div></div>
+      <div class="stat-box"><div class="k">計時</div><div class="v" id="stat-timer">0:00</div></div>
+    </div>
+
+    <div class="rules">
+      從<b>節點 0</b> 出發,逐輪手動執行 Dijkstra。規則:<br>
+      <b>① extract:</b> 在未拜訪節點中選暫定距離<b>最小</b>者;<b>平手取 id 較小</b>。<br>
+      <b>② relax:</b> 只有新距離<b>嚴格小於</b>原值才更新;否則填回原值。<br>
+      鄰居距離請依 id 由小到大填寫。∞ 可填 <code>inf</code> 或留空。
+    </div>
+
+    <div class="step-card" id="step-card"><!-- filled by JS --></div>
+
+    <div>
+      <div class="canvas-label" style="margin-bottom:6px">目前暫定距離表</div>
+      <table class="dist-table" id="dist-table"></table>
+    </div>
+  </div>
+
+  <!-- ── Right: graph canvas ── -->
+  <div class="exam-col exam-right">
+    <div class="canvas-label">題目圖（無向帶權 · 邊上數字為權重）</div>
+    <div class="graph-stage" id="graph-stage">
+      <svg id="ex-edges"></svg>
+      <div id="ex-nodes"></div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { dijkstraTrace, relaxTargets } from '../shared/algorithms/dijkstra.js';
+import { generateGraph } from '../shared/algorithms/graph-gen.js';
+import { checkExtract, checkRelaxations, numEq } from '../shared/algorithms/trace-grader.js';
+
+const SVG_NS = 'http://www.w3.org/2000/svg';
+const INF = Infinity;
+const ATTEMPT_CREDIT = [1, 0.5, 0.25];   // per-unit credit by attempt #; exhausted → reveal, 0
+
+// ── Build / load instance ─────────────────────────────────────────────────────
+const params = new URLSearchParams(location.search);
+const seed = params.has('seed') ? (parseInt(params.get('seed'), 10) >>> 0)
+                                : (Math.floor(Math.random() * 1e9) >>> 0);
+const graph = generateGraph({ n: 6, extraEdges: 3, minW: 1, maxW: 20, seed });
+const ref = dijkstraTrace(graph, 0);
+
+const S = {
+  roundIdx: 0,
+  phase: 'extract',                 // 'extract' | 'relax' | 'finished'
+  visited: new Set(),
+  dist: Array(graph.n).fill(INF),   // canonical tentative distances (lock-step truth)
+  picked: null,                     // node chosen in extract phase
+  attempts: 0,
+  credited: new Set(),              // relax targets already scored this round
+  earned: 0,
+  total: 0,
+  startMs: null,
+};
+S.dist[0] = 0;
+for (const r of ref.rounds) S.total += 1 + relaxTargets(graph, r).length; // scoreable units
+
+// ── DOM refs ──────────────────────────────────────────────────────────────────
+const stage   = document.getElementById('graph-stage');
+const svg      = document.getElementById('ex-edges');
+const nodesEl  = document.getElementById('ex-nodes');
+const stepCard = document.getElementById('step-card');
+const distTbl  = document.getElementById('dist-table');
+document.getElementById('seed-tag').textContent = 'SEED ' + seed;
+
+// ── Graph rendering ───────────────────────────────────────────────────────────
+const nodeEls = [];   // id → { el, distEl }
+const edgeEls = [];   // parallel to graph.edges → { line }
+
+function px(frac, dim) { return frac * dim; }
+function renderGraph() {
+  const W = stage.clientWidth, H = stage.clientHeight;
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  // edges + weight labels
+  graph.edges.forEach((e, i) => {
+    const A = graph.positions[e.a], B = graph.positions[e.b];
+    const x1 = px(A.x, W), y1 = px(A.y, H), x2 = px(B.x, W), y2 = px(B.y, H);
+    const line = document.createElementNS(SVG_NS, 'line');
+    line.setAttribute('x1', x1); line.setAttribute('y1', y1);
+    line.setAttribute('x2', x2); line.setAttribute('y2', y2);
+    svg.appendChild(line);
+    const t = document.createElementNS(SVG_NS, 'text');
+    t.setAttribute('x', (x1 + x2) / 2); t.setAttribute('y', (y1 + y2) / 2 - 4);
+    t.setAttribute('text-anchor', 'middle'); t.textContent = e.w;
+    svg.appendChild(t);
+    edgeEls[i] = { line };
+  });
+  // nodes + distance badges
+  for (let id = 0; id < graph.n; id++) {
+    const p = graph.positions[id];
+    const el = document.createElement('div');
+    el.className = 'ex-node';
+    el.style.left = px(p.x, W) + 'px';
+    el.style.top  = px(p.y, H) + 'px';
+    el.textContent = id;
+    const d = document.createElement('div');
+    d.className = 'ex-dist';
+    el.appendChild(d);
+    el.addEventListener('click', () => onNodeClick(id));
+    nodesEl.appendChild(el);
+    nodeEls[id] = { el, distEl: d };
+  }
+  refreshNodes();
+}
+
+function distStr(v) { return v === INF ? '∞' : v; }
+
+function refreshNodes(relaxedIds = []) {
+  for (let id = 0; id < graph.n; id++) {
+    const { el, distEl } = nodeEls[id];
+    distEl.textContent = distStr(S.dist[id]);
+    el.classList.remove('unvisited', 'picked', 'current', 'visited');
+    if (S.visited.has(id)) el.classList.add('visited');
+    else el.classList.add('unvisited');
+    if (S.phase === 'relax' && id === ref.rounds[S.roundIdx].extract) el.classList.add('current');
+    if (S.phase === 'extract' && id === S.picked) el.classList.add('picked');
+    if (relaxedIds.includes(id)) {
+      distEl.classList.remove('relaxed'); void distEl.offsetWidth; distEl.classList.add('relaxed');
+    }
+  }
+}
+
+function renderDistTable() {
+  let head = '<tr><th>node</th>', body = '<tr>';
+  for (let id = 0; id < graph.n; id++) {
+    head += `<th>${id}</th>`;
+    body += `<td class="${S.visited.has(id) ? 'done' : ''}">${distStr(S.dist[id])}</td>`;
+  }
+  distTbl.innerHTML = head + '</tr>' + body + '</tr>';
+}
+
+// ── Stats ─────────────────────────────────────────────────────────────────────
+function updateStats() {
+  document.getElementById('stat-score').textContent =
+    (S.total ? Math.round((S.earned / S.total) * 100) : 0) + '%';
+  document.getElementById('stat-progress').textContent = `${S.roundIdx} / ${ref.rounds.length}`;
+}
+function tick() {
+  if (!S.startMs) return;
+  const s = Math.floor((Date.now() - S.startMs) / 1000);
+  document.getElementById('stat-timer').textContent =
+    `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+}
+setInterval(tick, 1000);
+
+// ── Interaction: extract phase ────────────────────────────────────────────────
+function onNodeClick(id) {
+  if (S.phase !== 'extract' || S.visited.has(id)) return;
+  if (S.startMs === null) S.startMs = Date.now();
+  S.picked = id;
+  refreshNodes();
+  renderExtract();
+}
+
+// Credit for a unit answered correctly on the current attempt (diminishing).
+function creditNow() {
+  return ATTEMPT_CREDIT[Math.min(S.attempts, ATTEMPT_CREDIT.length - 1)];
+}
+
+function renderExtract() {
+  const round = ref.rounds[S.roundIdx];
+  const unvisited = round.unvisitedBefore;
+  stepCard.innerHTML = `
+    <div class="step-phase">第 ${S.roundIdx + 1} / ${ref.rounds.length} 輪 · 步驟 ①　EXTRACT-MIN</div>
+    <div class="step-prompt">在未拜訪節點 <code>{${unvisited.join(', ')}}</code> 中,
+      點選暫定距離<b>最小</b>的節點(平手取 id 較小)。</div>
+    <div class="pick-hint">已選:<span class="pick-chosen">${S.picked === null ? '（請在右圖點一個節點）' : '節點 ' + S.picked}</span></div>
+    <div class="btn-row">
+      <button class="ex-btn primary" id="btn-check" ${S.picked === null ? 'disabled' : ''}>檢查這一步</button>
+    </div>
+    <div class="feedback" id="fb"></div>`;
+  document.getElementById('btn-check').addEventListener('click', submitExtract);
+}
+
+function submitExtract() {
+  const round = ref.rounds[S.roundIdx];
+  const res = checkExtract(round, S.picked);
+  const fb = document.getElementById('fb');
+  if (res.correct) {
+    S.earned += creditNow();
+    updateStats();
+    enterRelax();
+    return;
+  }
+  S.attempts++;
+  if (S.attempts >= ATTEMPT_CREDIT.length) {
+    // attempts exhausted → reveal correct, 0 credit, advance (lock-step)
+    fb.className = 'feedback bad';
+    fb.textContent = `仍不正確。正解:節點 ${round.extract}（暫定距離 ${distStr(round.extractDist)}）。此步 0 分,繼續。`;
+    S.picked = round.extract; refreshNodes();
+    setTimeout(enterRelax, 1100);
+  } else {
+    fb.className = 'feedback hint';
+    fb.textContent = `不對。提示:比較這些節點的暫定距離,挑最小的(看上方距離表 / 節點上的徽章)。可再試(本步分數遞減)。`;
+  }
+}
+
+// ── Interaction: relax phase ──────────────────────────────────────────────────
+function enterRelax() {
+  S.phase = 'relax';
+  S.attempts = 0;
+  S.credited = new Set();
+  refreshNodes();
+  renderRelax();
+}
+
+function renderRelax() {
+  const round = ref.rounds[S.roundIdx];
+  const u = round.extract;
+  const targets = relaxTargets(graph, round);
+  if (targets.length === 0) {           // nothing to relax → straight to advance
+    stepCard.innerHTML = `
+      <div class="step-phase">第 ${S.roundIdx + 1} 輪 · 步驟 ②　RELAX</div>
+      <div class="step-prompt">節點 <code>${u}</code> 沒有未拜訪鄰居可鬆弛。</div>
+      <div class="btn-row"><button class="ex-btn primary" id="btn-next">下一步 →</button></div>`;
+    document.getElementById('btn-next').addEventListener('click', advance);
+    return;
+  }
+  const rows = targets.map(({ to }) => `
+    <div class="relax-row" id="rr-${to}">
+      <span class="lbl">節點 <b>${to}</b>(目前 dist = ${distStr(S.dist[to])})　新 dist =</span>
+      <input type="text" data-to="${to}" autocomplete="off" spellcheck="false">
+      <span class="verdict" id="vd-${to}"></span>
+    </div>`).join('');
+  stepCard.innerHTML = `
+    <div class="step-phase">第 ${S.roundIdx + 1} 輪 · 步驟 ②　RELAX</div>
+    <div class="step-prompt">已 extract 節點 <code>${u}</code>(dist = ${distStr(S.dist[u])})。
+      填入它每個未拜訪鄰居的<b>新暫定距離</b>(無改善就填原值;∞ 填 <code>inf</code> 或留空)。</div>
+    <div class="relax-grid">${rows}</div>
+    <div class="btn-row"><button class="ex-btn primary" id="btn-check">檢查這一步</button></div>
+    <div class="feedback" id="fb"></div>`;
+  document.getElementById('btn-check').addEventListener('click', submitRelax);
+}
+
+function parseDist(str) {
+  const s = (str || '').trim().toLowerCase();
+  if (s === '' || s === 'inf' || s === '∞' || s === 'infinity') return INF;
+  const n = Number(s);
+  return Number.isFinite(n) ? n : NaN;
+}
+
+function submitRelax() {
+  const round = ref.rounds[S.roundIdx];
+  const targets = relaxTargets(graph, round);
+  const inputs = [...stepCard.querySelectorAll('input[data-to]')];
+  const studentDists = {};
+  for (const inp of inputs) studentDists[+inp.dataset.to] = parseDist(inp.value);
+  const results = checkRelaxations(graph, round, studentDists);
+  const fb = document.getElementById('fb');
+
+  // Score & lock each newly-correct item independently (true partial credit).
+  results.forEach(r => {
+    if (S.credited.has(r.to)) return;
+    const row = document.getElementById('rr-' + r.to);
+    const vd  = document.getElementById('vd-' + r.to);
+    const inp = stepCard.querySelector(`input[data-to="${r.to}"]`);
+    row.classList.remove('ok', 'bad');
+    if (r.correct) {
+      S.earned += creditNow();
+      S.credited.add(r.to);
+      row.classList.add('ok'); vd.className = 'verdict ok'; vd.textContent = '✓';
+      if (inp) inp.disabled = true;
+    } else {
+      row.classList.add('bad'); vd.className = 'verdict bad'; vd.textContent = '✗';
+    }
+  });
+  updateStats();
+
+  const remaining = targets.filter(t => !S.credited.has(t.to));
+  if (remaining.length === 0) {
+    fb.className = 'feedback ok'; fb.textContent = '全部正確!';
+    showAdvance();
+    return;
+  }
+  S.attempts++;
+  if (S.attempts >= ATTEMPT_CREDIT.length) {
+    results.forEach(r => {
+      if (S.credited.has(r.to)) return;
+      const inp = stepCard.querySelector(`input[data-to="${r.to}"]`);
+      if (inp) { inp.value = distStr(r.expected); inp.disabled = true; }
+    });
+    fb.className = 'feedback bad';
+    fb.textContent = '已顯示其餘正解,未答對項以 0 計,繼續。';
+    showAdvance();
+  } else {
+    fb.className = 'feedback hint';
+    fb.textContent = `還有 ${remaining.length} 項不對。提示:新 dist = dist[${round.extract}] + 邊權重,且只有嚴格小於原值才更新。可再試(分數遞減)。`;
+  }
+}
+
+function showAdvance() {
+  const btns = stepCard.querySelector('.btn-row');
+  btns.innerHTML = '<button class="ex-btn primary" id="btn-next">下一步 →</button>';
+  document.getElementById('btn-next').addEventListener('click', advance);
+  // lock inputs/check
+  stepCard.querySelectorAll('input[data-to]').forEach(i => i.disabled = true);
+}
+
+// ── Advance to next round (apply canonical state) ─────────────────────────────
+function advance() {
+  const round = ref.rounds[S.roundIdx];
+  S.visited.add(round.extract);
+  const relaxed = round.relaxations.map(r => r.to);
+  S.dist = round.distAfter.slice();      // lock-step: canonical truth
+  S.roundIdx++;
+  S.attempts = 0;
+  S.picked = null;
+  updateStats();
+  renderDistTable();
+  if (S.roundIdx >= ref.rounds.length) { finish(); return; }
+  S.phase = 'extract';
+  refreshNodes(relaxed);
+  renderExtract();
+}
+
+function finish() {
+  S.phase = 'finished';
+  highlightTree();
+  refreshNodes();
+  const pct = Math.round((S.earned / S.total) * 100);
+  const secs = S.startMs ? Math.floor((Date.now() - S.startMs) / 1000) : 0;
+  stepCard.innerHTML = `
+    <div class="final-card">
+      <div class="final-score">${pct}%</div>
+      <div class="final-sub">${S.earned.toFixed(2)} / ${S.total} 計分單位 · 用時 ${Math.floor(secs/60)}:${String(secs%60).padStart(2,'0')}</div>
+      <div class="btn-row" style="margin-top:18px">
+        <button class="ex-btn" onclick="location.href='?seed='+((${seed}+1)>>>0)">換一題</button>
+        <button class="ex-btn primary" onclick="location.reload()">重做本題</button>
+      </div>
+    </div>`;
+}
+
+function highlightTree() {
+  // Final predecessor per node: the last relaxation that improved it wins.
+  const prevByNode = new Map();   // to → from
+  ref.rounds.forEach(r => r.relaxations.forEach(rx => prevByNode.set(rx.to, r.extract)));
+  const treeKeys = new Set();
+  for (const [to, from] of prevByNode) treeKeys.add(edgeKey(Math.min(to, from), Math.max(to, from)));
+  graph.edges.forEach((e, i) => {
+    if (treeKeys.has(edgeKey(Math.min(e.a, e.b), Math.max(e.a, e.b)))) {
+      edgeEls[i].line.classList.add('tree');
+    }
+  });
+}
+function edgeKey(a, b) { return a + '>' + b; }
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+window.addEventListener('resize', () => { /* positions are fractional; lines fixed at build — keep simple for prototype */ });
+renderGraph();
+renderDistTable();
+updateStats();
+renderExtract();
+</script>
+</body>
+</html>
