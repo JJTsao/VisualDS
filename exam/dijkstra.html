@@ -75,8 +75,8 @@
   #ex-edges { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
   #ex-edges line { stroke: var(--amber-dim); stroke-width: 2; opacity: .55; }
   #ex-edges line.tree { stroke: var(--success); stroke-width: 3.5; opacity: 1; }
-  #ex-edges text { fill: var(--amber-bright); font-family: var(--font-mono); font-size: 13px; font-weight: 700;
-    paint-order: stroke; stroke: var(--bg); stroke-width: 4px; }
+  #ex-edges text { fill: var(--amber-bright); font-family: var(--font-mono); font-size: 13px; font-weight: 700; }
+  #ex-edges rect.wbg { fill: var(--bg); stroke: var(--amber-dim); stroke-width: 1; rx: 3; }
   #ex-nodes { position: absolute; inset: 0; pointer-events: none; }
   .ex-node { position: absolute; width: 48px; height: 48px; transform: translate(-50%, -50%);
     border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: 1.05rem;
@@ -192,10 +192,31 @@ const nodeEls = [];   // id → { el, distEl }
 const edgeEls = [];   // parallel to graph.edges → { line }
 
 function px(frac, dim) { return frac * dim; }
+
+// Weight label with an opaque rounded background, so it stays readable even when
+// two edges cross near it. Rect is sized from the text's own bounding box.
+function addWeightLabel(x, y, w) {
+  const t = document.createElementNS(SVG_NS, 'text');
+  t.setAttribute('x', x); t.setAttribute('y', y);
+  t.setAttribute('text-anchor', 'middle');
+  t.setAttribute('dominant-baseline', 'central');
+  t.textContent = w;
+  svg.appendChild(t);
+  const bb = t.getBBox();
+  const pad = 2.5;
+  const rect = document.createElementNS(SVG_NS, 'rect');
+  rect.setAttribute('class', 'wbg');
+  rect.setAttribute('x', bb.x - pad);   rect.setAttribute('y', bb.y - pad);
+  rect.setAttribute('width', bb.width + pad * 2);
+  rect.setAttribute('height', bb.height + pad * 2);
+  svg.insertBefore(rect, t);            // rect drawn behind its text
+}
+
 function renderGraph() {
   const W = stage.clientWidth, H = stage.clientHeight;
   svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
-  // edges + weight labels
+  // Pass 1: all lines first (so weight labels, drawn next, sit above every line).
+  const lineCoords = [];
   graph.edges.forEach((e, i) => {
     const A = graph.positions[e.a], B = graph.positions[e.b];
     const x1 = px(A.x, W), y1 = px(A.y, H), x2 = px(B.x, W), y2 = px(B.y, H);
@@ -203,11 +224,18 @@ function renderGraph() {
     line.setAttribute('x1', x1); line.setAttribute('y1', y1);
     line.setAttribute('x2', x2); line.setAttribute('y2', y2);
     svg.appendChild(line);
-    const t = document.createElementNS(SVG_NS, 'text');
-    t.setAttribute('x', (x1 + x2) / 2); t.setAttribute('y', (y1 + y2) / 2 - 4);
-    t.setAttribute('text-anchor', 'middle'); t.textContent = e.w;
-    svg.appendChild(t);
     edgeEls[i] = { line };
+    lineCoords[i] = { x1, y1, x2, y2 };
+  });
+  // Pass 2: weight labels, each pushed off the line along its perpendicular and
+  // backed by an opaque pill — so crossing edges' labels stay individually legible.
+  graph.edges.forEach((e, i) => {
+    const { x1, y1, x2, y2 } = lineCoords[i];
+    const dx = x2 - x1, dy = y2 - y1, len = Math.hypot(dx, dy) || 1;
+    const off = 12;                                  // perpendicular nudge in px
+    const lx = (x1 + x2) / 2 + (-dy / len) * off;
+    const ly = (y1 + y2) / 2 + ( dx / len) * off;
+    addWeightLabel(lx, ly, e.w);
   });
   // nodes + distance badges
   for (let id = 0; id < graph.n; id++) {
