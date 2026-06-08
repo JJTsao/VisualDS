@@ -19,13 +19,23 @@ Multi-page application — each data structure gets its own standalone HTML page
 index.html              → navigation hub (card grid)
 array-vis.html          → Array unit
 linked-list-vis.html    → Linked List unit
+stack-vis.html          → Stack unit (LIFO)
+queue-vis.html          → Queue unit (FIFO)
+tree-vis.html           → Binary Search Tree unit (interactive, no code editor)
+sorting-vis.html        → Sorting Algorithms unit (Bubble/Selection/Insertion/Merge/Quick)
+graph-vis.html          → Graph unit (interactive builder)
 css/style.css           → shared design tokens + component styles + all animation classes
 js/array-vis.js         → Array parser + visualizer (self-contained, no framework)
 js/linked-list-vis.js   → Linked List parser + visualizer
-graph-vis.html          → Graph unit (interactive builder)
+js/stack-vis.js         → Stack parser + visualizer (push/pop/peek)
+js/queue-vis.js         → Queue parser + visualizer (enqueue/dequeue)
+js/tree-vis.js          → BST builder + insert/search/delete/traversals/invert/depth/rotate
+js/sorting-vis.js       → Sorting visualizer (5 algorithms, AUTO + STEP modes)
 js/graph-vis.js         → Graph builder + BFS / DFS / Dijkstra animations
 js/history.js           → shared StepHistory class (undo stack, JSON deep-copy snapshots)
 ```
+
+**Note:** there are 7 units (Array, Linked List, Stack, Queue, BST, Sorting, Graph), all active on `index.html`. Two units break the "C++ code-stepper" mould: **Tree** (BST) and **Graph** are interactive builders with no `#code-input` textarea — the user manipulates the structure via buttons / canvas clicks instead of stepping through code. **Sorting** is a self-running visualizer (with an optional manual STEP mode), also no code editor.
 
 ### Page pattern for each `*-vis.html`
 
@@ -72,7 +82,15 @@ window.loadOperation(key) → loads preset, resets, syncs gutter
 
 **`js/graph-vis.js`** — interactive builder, not a code-stepper (no `#code-input`). `state` holds `{ nodes(Map id→{id,x,y,el,idEl,distEl}), edges[], adj(Map id→[{to,weight,edge}]), nextId, mode, weightMode, selected, busy }`. Undirected weighted graph; adjacency list is the model of record (each edge pushed into both endpoints' lists, sharing one `edge` ref). Same two-layer canvas as BST: SVG `#graph-edges` (lines + weight `<text>`) beneath DOM `#graph-nodes` (absolutely-positioned circles, centre via `translate(-50%,-50%)`). Interaction: canvas click adds a node (node mode); node click selects endpoints (edge mode) — node clicks `stopPropagation` so they don't also fire the canvas add-node handler. BFS (queue), DFS (recursion), Dijkstra (array min-extract) are `async/await`, paced by `stepDelay()` from the speed slider; `setControlsDisabled` + `state.busy` lock the UI mid-run. Dijkstra reveals per-node distance badges (`#graph-nodes.dijkstra .graph-node-dist`) and highlights the shortest-path tree via the `prev` map.
 
-**`js/history.js`** — `StepHistory` class with `push(snapshot)` / `pop()` / `clear()` / `isEmpty`. Snapshots are deep-copied via JSON round-trip — all state fields must be plain JSON-serialisable (no DOM refs, no functions). Load this before any `*-vis.js` in HTML.
+**`js/stack-vis.js`** — code-stepper like Array. `state` holds `{ currentLine, lines, cells[], top, residual, vars{}, addrCounter }`. Models a fixed-capacity LIFO: `top` is the index of the current top cell; `residual` tracks popped-but-still-drawn cells (灰格, simulating that popped memory isn't zeroed). Push/pop/peek with overflow (`top` past capacity) and underflow (`top < 0`) detection → shake/flash animations.
+
+**`js/queue-vis.js`** — code-stepper like Array. `state` holds `{ currentLine, lines, cells[], front, rear, vars{}, addrCounter }`. Models a FIFO with separate `front` / `rear` indices (linear, not circular). Enqueue advances `rear`, dequeue advances `front`; overflow when `rear` past capacity.
+
+**`js/tree-vis.js`** — interactive builder, not a code-stepper (no `#code-input`). `state` holds `{ root, count, busy }`; `TreeNode` class `{ value, left, right, x, y, el, edge }`. Two-layer canvas: SVG `#tree-edges` (z-index 1) under DOM `#tree-nodes` (z-index 2). Recursive `layout(node, minX, maxX, depth)` centres each node in its horizontal band and halves the band for children; fixed vertical `LEVEL_HEIGHT`. All operations are `async/await` with per-node `visitAnimate()` pulses, paced by a speed control; `setControlsDisabled` + `state.busy` lock the UI. Implements **Insert / Search / Delete (3 cases via `findNodeWithPath` + `bypassNode` + `findInorderSuccessor`) / Pre-In-Post-order traversals / Invert (LC226) / Get Max Depth (LC104) / Left+Right Rotate**. Re-layout is smooth: `.tree-node` has `transition: left/top`; SVG edges glide via `animateEdgeTo()` rAF interpolation. `resetNodeStates()` clears all marker classes between ops. No undo (interactive, not step-based).
+
+**`js/sorting-vis.js`** — self-running visualizer, not a code-stepper. `state` holds `{ values[], bars[], size, speed, algorithm, mode, busy, cancelled, comparisons, swaps, stepCount, segGaps, trayLeftBars[], trayRightBars[] }`. Bars are height-% divs; `ALGORITHMS` map keys metadata (label/desc/big-O) for `bubble/selection/insertion/merge/quick`. Two modes: `mode: 'auto'` (timed animation, `speedToDelay()` inverse-maps slider 1–100 → ms) and `mode: 'step'` (advance on button/keyboard, with a narration bar). Merge Sort has a dedicated visualization: `segGaps` marks divide boundaries (recursive split phase), and a **merge tray** (`trayLeftBars`/`trayRightBars`) renders `left[]`/`right[]` sub-arrays with two moving pointers, aligned to the original bar positions. `cancelled` flag lets a running sort abort cleanly on reset.
+
+**`js/history.js`** — `StepHistory` class with `push(snapshot)` / `pop()` / `clear()` / `isEmpty`. Snapshots are deep-copied via JSON round-trip — all state fields must be plain JSON-serialisable (no DOM refs, no functions). Load this before any `*-vis.js` in HTML. Used by the code-stepper units (Array / Linked List / Stack / Queue); the interactive units (Tree / Graph) and Sorting don't use it.
 
 ### Animation system
 

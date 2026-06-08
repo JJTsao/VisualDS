@@ -1,5 +1,9 @@
 # Development Progress
 
+> ⚠️ **此檔僅記錄到早期的 Array + Linked List 階段,已過時。**
+> 最新且完整的進度(7 個單元 + Sorting/Merge Sort 細節)以
+> `memory/project-progress.md` 為準;架構現況見 `CLAUDE.md`。
+
 ## 已完成
 
 ### 基礎架構
