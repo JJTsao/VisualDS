@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GRAPH — Data Structure Visualizer</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    /* ── Page Layout ── */
+    .page-wrapper {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .page-header {
+      padding: 0.6rem 1.5rem 0.5rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      animation: fadeSlideUp 0.4s ease 0.1s forwards;
+      opacity: 0;
+    }
+
+    .page-title {
+      font-size: 1.6rem;
+      letter-spacing: 0.12em;
+      color: var(--amber);
+      text-shadow: 0 0 24px var(--amber-glow);
+    }
+    .page-title-sub {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      letter-spacing: 0.08em;
+      margin-top: 0.2rem;
+    }
+
+    .page-badges { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+    .badge {
+      font-size: 0.6rem;
+      letter-spacing: 0.08em;
+      padding: 0.2rem 0.6rem;
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      color: var(--text-muted);
+    }
+
+    /* ── Main 2-column layout ── */
+    .main-grid {
+      flex: 1;
+      display: grid;
+      grid-template-columns: clamp(300px, 36%, 460px) 1fr;
+      gap: 0.75rem;
+      padding: 0.6rem 1.25rem 0.75rem;
+      align-items: stretch;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    @media (max-width: 900px) {
+      .page-wrapper { height: auto; min-height: 100vh; overflow-y: auto; }
+      .main-grid { grid-template-columns: 1fr; overflow: visible; height: auto; }
+      .left-col, .right-col { height: auto; overflow-y: visible; }
+    }
+
+    .left-col {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      animation: fadeSlideUp 0.4s ease 0.2s forwards;
+      opacity: 0;
+      overflow-y: auto;
+      height: 100%;
+      padding-right: 4px;
+    }
+    .left-col::-webkit-scrollbar { width: 3px; }
+    .left-col::-webkit-scrollbar-track { background: transparent; }
+    .left-col::-webkit-scrollbar-thumb { background: var(--border-mid); border-radius: 2px; }
+    .left-col > .panel { flex-shrink: 0; }
+
+    .right-col {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      animation: fadeSlideUp 0.4s ease 0.3s forwards;
+      opacity: 0;
+      overflow-y: auto;
+      height: 100%;
+    }
+    .right-col::-webkit-scrollbar { width: 3px; }
+    .right-col::-webkit-scrollbar-track { background: transparent; }
+    .right-col::-webkit-scrollbar-thumb { background: var(--border-mid); border-radius: 2px; }
+
+    /* ── Control body ── */
+    .control-body {
+      padding: 0.85rem 0.875rem 0.95rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.7rem;
+    }
+    .control-label {
+      font-size: 0.62rem;
+      letter-spacing: 0.16em;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+    .control-label .ctrl-val { color: var(--amber); font-weight: 700; letter-spacing: 0.08em; }
+
+    /* ── Segmented mode toggle ── */
+    .mode-toggle {
+      display: flex;
+      border: 1px solid var(--border-mid);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .mode-opt {
+      flex: 1;
+      padding: 0.55rem 0.4rem;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      transition: background var(--transition), color var(--transition);
+    }
+    .mode-opt + .mode-opt { border-left: 1px solid var(--border-mid); }
+    .mode-opt:hover:not(.active):not(:disabled) { background: var(--bg-card-hover); color: var(--text-dim); }
+    .mode-opt.active {
+      background: var(--amber-glow);
+      color: var(--amber-bright);
+      box-shadow: inset 0 0 12px var(--amber-glow-sm);
+    }
+    .mode-opt:disabled { opacity: 0.4; cursor: not-allowed; }
+    .mode-opt .mo-zh { font-weight: 400; opacity: 0.85; margin-left: 4px; }
+
+    /* ── Slider ── */
+    .slider {
+      -webkit-appearance: none; appearance: none;
+      width: 100%; height: 4px;
+      background: linear-gradient(to right,
+        var(--amber) 0%, var(--amber) var(--fill, 50%),
+        var(--border) var(--fill, 50%), var(--border) 100%);
+      border-radius: 2px; outline: none; cursor: pointer;
+      transition: filter var(--transition);
+    }
+    .slider:hover { filter: brightness(1.15); }
+    .slider:disabled { opacity: 0.35; cursor: not-allowed; }
+    .slider::-webkit-slider-thumb {
+      -webkit-appearance: none; appearance: none;
+      width: 14px; height: 14px; border-radius: 50%;
+      background: var(--amber-bright); border: 1px solid var(--amber);
+      box-shadow: 0 0 6px var(--amber-glow), 0 0 2px var(--amber); cursor: pointer;
+      transition: transform var(--transition), box-shadow var(--transition);
+    }
+    .slider::-webkit-slider-thumb:hover { transform: scale(1.15); }
+    .slider::-moz-range-thumb {
+      width: 14px; height: 14px; border-radius: 50%;
+      background: var(--amber-bright); border: 1px solid var(--amber);
+      box-shadow: 0 0 6px var(--amber-glow); cursor: pointer;
+    }
+    .slider-track-row {
+      display: flex; justify-content: space-between;
+      font-size: 0.55rem; color: var(--text-muted);
+      letter-spacing: 0.06em; margin-top: -2px;
+    }
+
+    /* ── Algorithm trigger grid ── */
+    .algo-run-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.45rem;
+    }
+    .algo-run-btn {
+      display: flex; flex-direction: column; align-items: center; gap: 2px;
+      padding: 0.6rem 0.4rem; line-height: 1.2;
+    }
+    .algo-run-btn .ar-label { font-size: 0.8rem; font-weight: 700; letter-spacing: 0.1em; }
+    .algo-run-btn .ar-sub { font-size: 0.55rem; letter-spacing: 0.03em; color: var(--text-muted); }
+    .algo-run-btn:hover:not(:disabled) .ar-sub { color: var(--text-dim); }
+    .algo-run-btn:disabled .ar-sub { color: var(--text-muted); opacity: 0.4; }
+
+    .btn-row { display: flex; gap: 0.5rem; }
+    .btn-row .btn { flex: 1; padding: 0.6rem 0.5rem; }
+
+    .btn-danger {
+      border-color: rgba(255, 60, 60, 0.4);
+      color: #ff8080;
+    }
+    .btn-danger:hover:not(:disabled) {
+      border-color: var(--error); color: #ffb0b0;
+      background: rgba(255, 60, 60, 0.08);
+      box-shadow: 0 0 12px rgba(255, 60, 60, 0.25);
+    }
+
+    .input-hint {
+      font-size: 0.66rem; color: var(--text-muted);
+      letter-spacing: 0.03em; line-height: 1.6;
+    }
+    .input-hint code {
+      color: var(--amber-dim); background: rgba(232, 165, 0, 0.06);
+      padding: 0 4px; border-radius: 2px;
+    }
+
+    /* ── Concept card ── */
+    .concept-card { padding: 0.75rem 0.875rem 0.9rem; }
+    .concept-title {
+      font-size: 0.72rem; letter-spacing: 0.15em;
+      color: var(--amber-dim); margin-bottom: 0.7rem;
+    }
+    .concept-list { list-style: none; display: flex; flex-direction: column; gap: 0.4rem; }
+    .concept-list li {
+      font-size: 0.82rem; color: var(--text-dim); line-height: 1.55;
+      padding-left: 1rem; position: relative;
+    }
+    .concept-list li::before { content: '›'; position: absolute; left: 0; color: var(--amber-dim); }
+    .concept-list code {
+      color: var(--amber); background: rgba(232, 165, 0, 0.08);
+      padding: 0 3px; border-radius: 2px; font-size: 0.8rem;
+    }
+
+    /* ── Console ── */
+    .console-header { display: flex; align-items: center; gap: 0.5rem; }
+    .console-pulse {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--success); animation: blink 2s step-end infinite;
+    }
+    @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.2; } }
+    .console-label { font-size: 0.78rem; letter-spacing: 0.1em; color: var(--text-muted); }
+    .btn-console-clear {
+      margin-left: auto; background: none; border: none;
+      font-family: var(--font-mono); font-size: 0.6rem; color: var(--text-muted);
+      cursor: pointer; letter-spacing: 0.08em; transition: color var(--transition); padding: 0;
+    }
+    .btn-console-clear:hover { color: var(--text-dim); }
+
+    /* ── Canvas ── */
+    .canvas-panel { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+    .canvas-header { display: flex; align-items: center; gap: 0.75rem; }
+    .canvas-label { font-size: 0.78rem; letter-spacing: 0.1em; color: var(--text-muted); }
+    .canvas-info { margin-left: auto; font-size: 0.66rem; letter-spacing: 0.08em; color: var(--amber-dim); }
+
+    .graph-canvas {
+      position: relative;
+      flex: 1;
+      min-height: 340px;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 50% 0%, rgba(232,165,0,0.05), transparent 60%),
+        var(--bg-input);
+      cursor: crosshair;
+    }
+    .graph-canvas.mode-edge { cursor: pointer; }
+    .graph-canvas.busy { cursor: default; }
+
+    /* SVG edge layer (beneath nodes) */
+    #graph-edges {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      pointer-events: none; z-index: 1;
+    }
+    /* Nodes layer (above edges); container is click-through, nodes are not */
+    #graph-nodes { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
+
+    /* Empty state */
+    #graph-empty-state {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 0.5rem; color: var(--text-muted); z-index: 0; pointer-events: none;
+    }
+    #graph-empty-state.hidden { display: none; }
+    .empty-glyph { font-size: 2.2rem; opacity: 0.18; font-weight: 700; line-height: 1; }
+    .empty-text { font-size: 0.82rem; letter-spacing: 0.08em; color: var(--text-muted); }
+    .empty-hint { font-size: 0.7rem; color: var(--text-muted); opacity: 0.65; letter-spacing: 0.03em; text-align: center; }
+    .empty-hint code { color: var(--amber-dim); background: rgba(232,165,0,0.06); padding: 0 4px; border-radius: 2px; }
+
+    /* Mode banner — top-left hint on what a click does right now */
+    .canvas-mode-banner {
+      position: absolute;
+      top: 12px; left: 12px;
+      z-index: 5;
+      display: flex; align-items: center; gap: 0.5rem;
+      padding: 0.35rem 0.7rem;
+      background: rgba(0,0,0,0.55);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      font-size: 0.66rem; letter-spacing: 0.06em; color: var(--text-dim);
+      pointer-events: none;
+    }
+    .canvas-mode-banner .mb-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--amber); box-shadow: 0 0 6px var(--amber);
+    }
+    .canvas-mode-banner.edge .mb-dot { background: #40d0ff; box-shadow: 0 0 6px #40d0ff; }
+    .canvas-mode-banner.busy .mb-dot { background: var(--amber-bright); }
+
+    /* ── Right footer: Console (left) + Info (right) ── */
+    /* Fixed, compact height (≈ the "HOW IT WORKS" card) so the canvas keeps
+       the rest of the column instead of being squeezed by tall footer content. */
+    .right-footer {
+      display: grid;
+      grid-template-columns: minmax(0, 0.82fr) minmax(0, 1.18fr);
+      gap: 0.5rem;
+      flex-shrink: 0;
+      height: 150px;
+    }
+    .console-panel,
+    .info-panel {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      overflow: hidden;
+    }
+    /* Console body fills its panel beneath the header and scrolls internally. */
+    .console-panel #console-output {
+      flex: 1 1 auto;
+      min-height: 0;
+      max-height: none;
+    }
+    /* Info side: OUTPUT + stats fixed; legend takes the slack and scrolls if
+       it wraps past the available band, so the footer height stays constant. */
+    .info-panel .output-bar { flex: 0 0 auto; border-top: none; }
+    .info-panel .stat-strip { flex: 0 0 auto; }
+    .info-panel .legend-bar {
+      flex: 1 1 auto;
+      overflow-y: auto;
+      align-content: flex-start;
+    }
+    .info-panel .legend-bar::-webkit-scrollbar { width: 3px; }
+    .info-panel .legend-bar::-webkit-scrollbar-thumb { background: var(--border-mid); border-radius: 2px; }
+
+    @media (max-width: 900px) {
+      .right-footer { grid-template-columns: 1fr; height: auto; }
+      .console-panel { height: 200px; }
+      .console-panel #console-output { min-height: 80px; }
+    }
+
+    /* ── Legend ── */
+    .legend-bar {
+      display: flex; flex-wrap: wrap; gap: 0.6rem 1.1rem;
+      padding: 0.55rem 1rem;
+      border-top: 1px solid var(--border);
+      background: var(--bg-card); flex-shrink: 0;
+    }
+    .legend-item { display: flex; align-items: center; gap: 0.4rem; font-size: 0.64rem; color: var(--text-muted); letter-spacing: 0.04em; }
+    .legend-swatch { width: 14px; height: 14px; border-radius: 50%; border: 1.5px solid; }
+    .ls-default   { background: #0d0900; border-color: var(--amber-dim); }
+    .ls-frontier  { background: #2a1a00; border-color: var(--amber-bright); }
+    .ls-current   { background: #3a2600; border-color: var(--amber-bright); }
+    .ls-visited   { background: rgba(0,200,122,0.14); border-color: var(--success); }
+    .ls-tree      { width: 16px; height: 0; border-radius: 0; border: none; border-top: 3px solid #4dffa8; }
+
+    /* ── Output / Info bar ── */
+    .output-bar {
+      display: flex; align-items: center; gap: 0.75rem;
+      padding: 0.55rem 0.875rem;
+      background: var(--bg-card);
+      border-top: 1px solid var(--border);
+      min-height: 48px; flex-shrink: 0;
+    }
+    .output-label { font-size: 0.62rem; letter-spacing: 0.14em; color: var(--text-muted); flex-shrink: 0; }
+    .output-content {
+      display: flex; flex-wrap: nowrap; gap: 0.4rem; align-items: center;
+      flex: 1; min-width: 0; overflow-x: auto; padding: 2px 0;
+    }
+    .output-content::-webkit-scrollbar { height: 3px; }
+    .output-content::-webkit-scrollbar-thumb { background: var(--border-mid); border-radius: 2px; }
+    .output-placeholder { font-size: 0.72rem; color: var(--text-muted); opacity: 0.55; font-style: italic; letter-spacing: 0.04em; }
+    .output-mode-tag {
+      font-size: 0.6rem; letter-spacing: 0.14em; color: var(--amber-dim);
+      padding: 0.18rem 0.55rem; border: 1px solid var(--amber-dim);
+      border-radius: 2px; flex-shrink: 0; font-weight: 700;
+    }
+    .output-mode-tag:empty { display: none; }
+
+    /* Visited-order token (BFS/DFS) — green chip, comma-separated */
+    @keyframes graphTokenIn {
+      0%   { opacity: 0; transform: translateX(-6px) scale(0.6); }
+      60%  { opacity: 1; transform: translateX(0) scale(1.15); }
+      100% { opacity: 1; transform: translateX(0) scale(1); }
+    }
+    .graph-token {
+      font-family: var(--font-mono); font-size: 0.8rem; font-weight: 700;
+      color: var(--success); background: rgba(0,200,122,0.08);
+      border: 1px solid rgba(0,200,122,0.5);
+      padding: 0.15rem 0.55rem; border-radius: 2px; letter-spacing: 0.04em;
+      animation: graphTokenIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
+      flex-shrink: 0; white-space: nowrap;
+    }
+    .graph-token + .graph-token::before {
+      content: '→'; display: inline-block;
+      margin-right: 0.55rem; margin-left: -0.55rem; color: var(--text-muted);
+    }
+
+    /* Distance card (Dijkstra) — "node: dist" */
+    .dist-card {
+      display: flex; align-items: baseline; gap: 0.35rem;
+      padding: 0.2rem 0.55rem; border: 1px solid var(--border-mid);
+      border-radius: 3px; background: var(--bg-input);
+      font-family: var(--font-mono); font-size: 0.74rem;
+      flex-shrink: 0; white-space: nowrap;
+    }
+    .dist-card .dc-node { color: var(--amber); font-weight: 700; }
+    .dist-card .dc-val { color: var(--text-dim); }
+    .dist-card.reachable { border-color: var(--success); }
+    .dist-card.reachable .dc-val { color: var(--success); font-weight: 700; }
+    .dist-card.unreachable { opacity: 0.55; }
+
+    /* ── Stat strip ── */
+    .stat-strip {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      padding: 0.55rem 0.875rem;
+      border-top: 1px solid var(--border);
+      background: var(--bg-card); gap: 0.75rem; flex-shrink: 0;
+    }
+    .stat-block { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+    .stat-label { font-size: 0.55rem; letter-spacing: 0.16em; color: var(--text-muted); }
+    .stat-value { font-family: var(--font-mono); font-size: 0.95rem; font-weight: 700; color: var(--amber); letter-spacing: 0.04em; }
+    .stat-block.status .stat-value { color: var(--success); font-size: 0.78rem; letter-spacing: 0.08em; }
+    .stat-block.status .stat-value.busy { color: var(--amber-bright); }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+<div class="page-wrapper">
+
+  <!-- Nav -->
+  <nav class="site-nav">
+    <a href="index.html" class="nav-back">← BACK</a>
+    <span class="nav-sep">/</span>
+    <span class="nav-crumb">GRAPH ALGORITHMS MODULE</span>
+  </nav>
+
+  <!-- Page Header -->
+  <header class="page-header">
+    <div class="page-title-group">
+      <h1 class="page-title">GRAPH ALGORITHMS</h1>
+      <p class="page-title-sub">互動式建圖 · 鄰接表 · BFS · DFS · Dijkstra 最短路徑</p>
+    </div>
+    <div class="page-badges">
+      <span class="badge">build your own graph</span>
+      <span class="badge">undirected · weighted</span>
+      <span class="badge">async / await pacing</span>
+    </div>
+  </header>
+
+  <!-- Main Grid -->
+  <main class="main-grid">
+
+    <!-- ── Left: Control Panel ── -->
+    <div class="left-col">
+
+      <!-- Build controls -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-dot active"></div>
+          <span style="font-size:0.65rem;letter-spacing:0.1em;color:var(--text-muted);">CONTROLS — BUILD GRAPH</span>
+        </div>
+        <div class="control-body">
+          <label class="control-label"><span>// CLICK MODE</span></label>
+          <div class="mode-toggle" role="group" aria-label="build mode">
+            <button id="mode-node" class="mode-opt active" aria-pressed="true">＋ NODE<span class="mo-zh">節點</span></button>
+            <button id="mode-edge" class="mode-opt" aria-pressed="false">／ EDGE<span class="mo-zh">邊</span></button>
+          </div>
+
+          <label class="control-label" style="margin-top:0.3rem;"><span>// EDGE WEIGHT</span></label>
+          <div class="mode-toggle" role="group" aria-label="weight mode">
+            <button id="weight-random" class="mode-opt active" aria-pressed="true">🎲 RANDOM<span class="mo-zh">1–20</span></button>
+            <button id="weight-prompt" class="mode-opt" aria-pressed="false">⌨ PROMPT<span class="mo-zh">自訂</span></button>
+          </div>
+
+          <div class="btn-row" style="margin-top:0.4rem;">
+            <button id="btn-sample" class="btn btn-secondary">↻ SAMPLE</button>
+            <button id="btn-clear" class="btn btn-secondary btn-danger">⌫ CLEAR</button>
+          </div>
+          <p class="input-hint">
+            <strong>NODE</strong> 模式：點畫布空白處新增頂點（編號 0,1,2…）。
+            <strong>EDGE</strong> 模式：依序點兩個頂點建立無向邊。
+          </p>
+        </div>
+      </div>
+
+      <!-- Algorithm controls -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-dot active"></div>
+          <span style="font-size:0.65rem;letter-spacing:0.1em;color:var(--text-muted);">CONTROLS — ALGORITHMS</span>
+        </div>
+        <div class="control-body">
+          <label class="control-label">
+            <span>// ANIMATION SPEED</span>
+            <span class="ctrl-val"><span id="speed-value">50</span> %</span>
+          </label>
+          <input id="speed-slider" class="slider" type="range" min="1" max="100" value="50" />
+          <div class="slider-track-row"><span>slow</span><span>medium</span><span>fast</span></div>
+
+          <label class="control-label" style="margin-top:0.3rem;"><span>// RUN FROM NODE 0</span></label>
+          <div class="algo-run-grid">
+            <button id="btn-bfs" class="btn btn-primary algo-run-btn">
+              <span class="ar-label">BFS</span>
+              <span class="ar-sub">queue · 廣度</span>
+            </button>
+            <button id="btn-dfs" class="btn btn-primary algo-run-btn">
+              <span class="ar-label">DFS</span>
+              <span class="ar-sub">stack · 深度</span>
+            </button>
+            <button id="btn-dijkstra" class="btn btn-primary algo-run-btn">
+              <span class="ar-label">DIJKSTRA</span>
+              <span class="ar-sub">最短路徑</span>
+            </button>
+          </div>
+          <p class="input-hint">
+            三種演算法皆從 <code>Node 0</code> 出發。執行中所有建圖／演算法控制會暫時鎖定。
+          </p>
+        </div>
+      </div>
+
+      <!-- Concept -->
+      <div class="panel concept-card">
+        <p class="concept-title">// HOW IT WORKS</p>
+        <ul class="concept-list">
+          <li>內部維護<strong>鄰接表</strong> <code>adj[u] = [(v, w)…]</code>（無向 → 雙向都加）</li>
+          <li><strong>BFS</strong>：<code>queue</code> 逐層擴展，入列時 amber 高亮、出列處理時轉綠</li>
+          <li><strong>DFS</strong>：遞迴（call stack）深入到底再回溯</li>
+          <li><strong>Dijkstra</strong>：距離初始化為 <code>∞</code>、Node 0 為 0；鬆弛邊時更新鄰居距離標籤</li>
+          <li>Dijkstra 結束後以<strong>粗綠線</strong>標出最短路徑樹</li>
+        </ul>
+      </div>
+
+    </div>
+
+    <!-- ── Right: Visualization Canvas ── -->
+    <div class="right-col">
+
+      <div class="panel canvas-panel">
+        <div class="panel-header canvas-header">
+          <div class="panel-dot active"></div>
+          <span class="canvas-label">GRAPH CANVAS</span>
+          <span id="graph-info" class="canvas-info">nodes: 0 · edges: 0</span>
+        </div>
+
+        <div id="graph-canvas" class="graph-canvas mode-node">
+          <!-- Edge layer (SVG, beneath nodes) -->
+          <svg id="graph-edges" xmlns="http://www.w3.org/2000/svg"></svg>
+          <!-- Node layer -->
+          <div id="graph-nodes"></div>
+
+          <!-- Mode banner -->
+          <div id="canvas-mode-banner" class="canvas-mode-banner">
+            <span class="mb-dot"></span>
+            <span id="mode-banner-text">ADD NODE — 點畫布空白處新增頂點</span>
+          </div>
+
+          <!-- Empty state -->
+          <div id="graph-empty-state">
+            <div class="empty-glyph">◯—◯</div>
+            <p class="empty-text">EMPTY GRAPH</p>
+            <p class="empty-hint">click empty space to add a node · or press <code>SAMPLE</code></p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Footer: Console (left) + Info (right) ── -->
+      <div class="right-footer">
+
+        <!-- Console -->
+        <div class="panel console-panel">
+          <div class="panel-header console-header">
+            <div class="console-pulse"></div>
+            <span class="console-label">CONSOLE OUTPUT</span>
+            <button id="btn-clear-console" class="btn-console-clear">[ CLEAR ]</button>
+          </div>
+          <div id="console-output">
+            <span class="console-line dim">// 在右側畫布建立頂點與邊，再執行 BFS / DFS / Dijkstra...</span>
+          </div>
+        </div>
+
+        <!-- Info: OUTPUT + legend + stats -->
+        <div class="panel info-panel">
+
+          <!-- Output / Info bar -->
+          <div class="output-bar">
+            <span class="output-label">// OUTPUT</span>
+            <div id="output-content" class="output-content">
+              <span class="output-placeholder">— run an algorithm to see results —</span>
+            </div>
+            <span id="output-mode" class="output-mode-tag"></span>
+          </div>
+
+          <!-- Legend -->
+          <div class="legend-bar">
+            <div class="legend-item"><div class="legend-swatch ls-default"></div><span>DEFAULT</span></div>
+            <div class="legend-item"><div class="legend-swatch ls-frontier"></div><span>FRONTIER (queued)</span></div>
+            <div class="legend-item"><div class="legend-swatch ls-current"></div><span>PROCESSING</span></div>
+            <div class="legend-item"><div class="legend-swatch ls-visited"></div><span>VISITED</span></div>
+            <div class="legend-item"><div class="legend-swatch ls-tree"></div><span>SP-TREE</span></div>
+          </div>
+
+          <!-- Stat strip -->
+          <div class="stat-strip">
+            <div class="stat-block">
+              <span class="stat-label">// NODES</span>
+              <span class="stat-value" id="stat-nodes">0</span>
+            </div>
+            <div class="stat-block">
+              <span class="stat-label">// EDGES</span>
+              <span class="stat-value" id="stat-edges">0</span>
+            </div>
+            <div class="stat-block status">
+              <span class="stat-label">// STATUS</span>
+              <span class="stat-value" id="stat-status">READY</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </main>
+
+</div>
+
+<script src="js/graph-vis.js"></script>
+</body>
+</html>

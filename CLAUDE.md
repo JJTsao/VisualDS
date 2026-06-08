@@ -22,6 +22,8 @@ linked-list-vis.html    → Linked List unit
 css/style.css           → shared design tokens + component styles + all animation classes
 js/array-vis.js         → Array parser + visualizer (self-contained, no framework)
 js/linked-list-vis.js   → Linked List parser + visualizer
+graph-vis.html          → Graph unit (interactive builder)
+js/graph-vis.js         → Graph builder + BFS / DFS / Dijkstra animations
 js/history.js           → shared StepHistory class (undo stack, JSON deep-copy snapshots)
 ```
 
@@ -68,6 +70,8 @@ window.loadOperation(key) → loads preset, resets, syncs gutter
 - Node layout: `getNodePositions()` assigns X by linked-list order, Y by creation order via `Y_OFFSETS[]` (simulates heap scatter); `insert_head/mid/delete_mid` use a fixed `slotMap` so nodes don't shift during operation
 - `renderArrows()` draws SVG overlay for inter-node arrows (arcs) and NULL terminators
 
+**`js/graph-vis.js`** — interactive builder, not a code-stepper (no `#code-input`). `state` holds `{ nodes(Map id→{id,x,y,el,idEl,distEl}), edges[], adj(Map id→[{to,weight,edge}]), nextId, mode, weightMode, selected, busy }`. Undirected weighted graph; adjacency list is the model of record (each edge pushed into both endpoints' lists, sharing one `edge` ref). Same two-layer canvas as BST: SVG `#graph-edges` (lines + weight `<text>`) beneath DOM `#graph-nodes` (absolutely-positioned circles, centre via `translate(-50%,-50%)`). Interaction: canvas click adds a node (node mode); node click selects endpoints (edge mode) — node clicks `stopPropagation` so they don't also fire the canvas add-node handler. BFS (queue), DFS (recursion), Dijkstra (array min-extract) are `async/await`, paced by `stepDelay()` from the speed slider; `setControlsDisabled` + `state.busy` lock the UI mid-run. Dijkstra reveals per-node distance badges (`#graph-nodes.dijkstra .graph-node-dist`) and highlights the shortest-path tree via the `prev` map.
+
 **`js/history.js`** — `StepHistory` class with `push(snapshot)` / `pop()` / `clear()` / `isEmpty`. Snapshots are deep-copied via JSON round-trip — all state fields must be plain JSON-serialisable (no DOM refs, no functions). Load this before any `*-vis.js` in HTML.
 
 ### Animation system
@@ -85,6 +89,15 @@ All animations use `triggerAnimation(el, className, ms)`: removes the class, for
 - `.node-ptr-update` — pulse when `->next` changes
 - `.node-delete` — fade-out for freed nodes
 - `.node-ptr-badge` / `.ptrBadgePulse` — green traversal pointer badge above node
+
+**Graph animations:**
+- `.graph-node-spawn` — fade-in scale for a newly placed vertex
+- `.graph-node-selected` — cyan ring on the first picked endpoint (edge build)
+- `.graph-node-frontier` — amber, vertex discovered/queued but not yet processed
+- `.graph-node-current` — bright sustained pulse on the vertex being processed
+- `.graph-node-visited` — green, fully processed (holds for the run)
+- `.graph-edge-active` — bright amber, edge under evaluation; `.graph-edge-traversed` — green discovery edge (BFS/DFS); `.graph-edge-tree` — bold green Dijkstra shortest-path-tree edge
+- `.graph-node-dist` + `.dist-relaxed` — distance badge (∞/number) with a green pop on relaxation
 
 ### Styling system (`css/style.css`)
 
