@@ -193,23 +193,65 @@ const edgeEls = [];   // parallel to graph.edges → { line }
 
 function px(frac, dim) { return frac * dim; }
 
-// Weight label with an opaque rounded background, so it stays readable even when
-// two edges cross near it. Rect is sized from the text's own bounding box.
-function addWeightLabel(x, y, w) {
-  const t = document.createElementNS(SVG_NS, 'text');
-  t.setAttribute('x', x); t.setAttribute('y', y);
-  t.setAttribute('text-anchor', 'middle');
-  t.setAttribute('dominant-baseline', 'central');
-  t.textContent = w;
-  svg.appendChild(t);
-  const bb = t.getBBox();
-  const pad = 2.5;
-  const rect = document.createElementNS(SVG_NS, 'rect');
-  rect.setAttribute('class', 'wbg');
-  rect.setAttribute('x', bb.x - pad);   rect.setAttribute('y', bb.y - pad);
-  rect.setAttribute('width', bb.width + pad * 2);
-  rect.setAttribute('height', bb.height + pad * 2);
-  svg.insertBefore(rect, t);            // rect drawn behind its text
+// ── Weight-label placement with collision avoidance ──────────────────────────
+// Circular layouts cluster every chord's midpoint at the centre, so midpoint
+// labels collide with each other and land on line crossings. Instead, for each
+// edge we try a set of candidate anchors — biased toward the endpoints (away from
+// the central crossing zone) and offset perpendicular to the line — and pick the
+// first that overlaps neither an already-placed label NOR another edge's line.
+function rectsOverlap(a, b, gap) {
+  return !(a.x + a.w + gap < b.x || b.x + b.w + gap < a.x ||
+           a.y + a.h + gap < b.y || b.y + b.h + gap < a.y);
+}
+function pointSegDist(px, py, x1, y1, x2, y2) {
+  const dx = x2 - x1, dy = y2 - y1, l2 = dx * dx + dy * dy;
+  let t = l2 ? ((px - x1) * dx + (py - y1) * dy) / l2 : 0;
+  t = Math.max(0, Math.min(1, t));
+  return Math.hypot(px - (x1 + t * dx), py - (y1 + t * dy));
+}
+function placeWeightLabels(coords) {
+  const placed = [];                       // bounding boxes of labels already set
+  // Candidate anchors: fraction along the edge × perpendicular side × offset.
+  const cands = [];
+  for (const off of [13, 20, 27]) for (const t of [0.30, 0.70, 0.22, 0.78, 0.5]) for (const s of [1, -1]) {
+    cands.push({ t, s, off });
+  }
+  graph.edges.forEach((e, i) => {
+    const { x1, y1, x2, y2 } = coords[i];
+    const dx = x2 - x1, dy = y2 - y1, len = Math.hypot(dx, dy) || 1;
+    const text = document.createElementNS(SVG_NS, 'text');
+    text.setAttribute('text-anchor', 'middle');
+    text.setAttribute('dominant-baseline', 'central');
+    text.textContent = e.w;
+    svg.appendChild(text);
+
+    let best = null, bestScore = Infinity;
+    for (const c of cands) {
+      const ax = x1 + dx * c.t + (-dy / len) * c.off * c.s;
+      const ay = y1 + dy * c.t + ( dx / len) * c.off * c.s;
+      text.setAttribute('x', ax); text.setAttribute('y', ay);
+      const bb = text.getBBox(), pad = 2.5;
+      const box = { x: bb.x - pad, y: bb.y - pad, w: bb.width + 2 * pad, h: bb.height + 2 * pad };
+      // Penalty: overlapping another label is worst; sitting on another edge's
+      // line (centre within ~11px of a foreign segment) is ambiguous too.
+      let score = 0;
+      for (const p of placed) if (rectsOverlap(box, p, 2)) score += 100;
+      for (let j = 0; j < coords.length; j++) {
+        if (j === i) continue;
+        const s2 = coords[j];
+        if (pointSegDist(ax, ay, s2.x1, s2.y1, s2.x2, s2.y2) < 11) score += 1;
+      }
+      if (score < bestScore) { bestScore = score; best = { ax, ay, box }; }
+      if (score === 0) break;
+    }
+    text.setAttribute('x', best.ax); text.setAttribute('y', best.ay);
+    placed.push(best.box);
+    const rect = document.createElementNS(SVG_NS, 'rect');
+    rect.setAttribute('class', 'wbg');
+    rect.setAttribute('x', best.box.x); rect.setAttribute('y', best.box.y);
+    rect.setAttribute('width', best.box.w); rect.setAttribute('height', best.box.h);
+    svg.insertBefore(rect, text);          // opaque pill drawn behind its text
+  });
 }
 
 function renderGraph() {
@@ -227,16 +269,8 @@ function renderGraph() {
     edgeEls[i] = { line };
     lineCoords[i] = { x1, y1, x2, y2 };
   });
-  // Pass 2: weight labels, each pushed off the line along its perpendicular and
-  // backed by an opaque pill — so crossing edges' labels stay individually legible.
-  graph.edges.forEach((e, i) => {
-    const { x1, y1, x2, y2 } = lineCoords[i];
-    const dx = x2 - x1, dy = y2 - y1, len = Math.hypot(dx, dy) || 1;
-    const off = 12;                                  // perpendicular nudge in px
-    const lx = (x1 + x2) / 2 + (-dy / len) * off;
-    const ly = (y1 + y2) / 2 + ( dx / len) * off;
-    addWeightLabel(lx, ly, e.w);
-  });
+  // Pass 2: weight labels, placed with collision avoidance (see placeWeightLabels).
+  placeWeightLabels(lineCoords);
   // nodes + distance badges
   for (let id = 0; id < graph.n; id++) {
     const p = graph.positions[id];
