@@ -96,6 +96,34 @@ export function dijkstraTrace(graph, source = 0) {
 }
 
 /**
+ * Decompose the Dijkstra trace into generic ATOMIC STEPS (for trace-engine.js /
+ * the exam server), so Dijkstra is graded by the same engine as every chapter.
+ * Each round → one 'pick-node' extract step + one 'number' step per relax target.
+ * @returns {{source:number, steps:Array, trace:object}}
+ */
+export function dijkstraSteps(graph, source = 0) {
+  const trace = dijkstraTrace(graph, source);
+  const steps = [];
+  trace.rounds.forEach((round, i) => {
+    steps.push({
+      key: `r${i}-extract`, phase: `round-${i}`, kind: 'pick-node',
+      prompt: `第 ${i + 1} 輪:在未拜訪節點 {${round.unvisitedBefore.join(', ')}} 中,點選暫定距離最小者（平手取 id 較小）。`,
+      answer: round.extract, focusNode: null,
+      meta: { type: 'extract', round: i },
+    });
+    for (const { to } of relaxTargets(graph, round)) {
+      steps.push({
+        key: `r${i}-relax-${to}`, phase: `round-${i}`, kind: 'number',
+        prompt: `鬆弛節點 ${round.extract} 的鄰居 ${to}:它的新暫定距離 =（無改善就填原值）`,
+        answer: round.distAfter[to], focusNode: round.extract,
+        meta: { type: 'relax', node: to, from: round.extract },
+      });
+    }
+  });
+  return { source, steps, trace };
+}
+
+/**
  * Unvisited neighbours of a round's extracted node, ascending by id — these are
  * the cells the student must fill (the new tentative distance, whether it changed
  * or not). Shared by the UI (to render inputs) and the grader (to score them).

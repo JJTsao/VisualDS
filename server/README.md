@@ -43,10 +43,11 @@ node server/server.js
 ## 章節(可擴充)
 
 `server/chapters/<id>.js` 匯出 `generate(seed) → { instance(呈現用,無答案), steps(含答案,留伺服器) }`,
-重用 `shared/algorithms/`。目前:`bst-delete`(Dijkstra 於 3b 接入)。前端在 `exam/play.html?chapter=<id>`,
-渲染器 `exam/render-<...>.js`。
+重用 `shared/algorithms/`。目前:`bst-delete`、`dijkstra`。前端在 `exam/play.html?chapter=<id>`,
+渲染器 `exam/render-tree.js` / `exam/render-graph.js`。學生網址:
+`.../exam/play.html?chapter=bst-delete` 或 `?chapter=dijkstra`。
 
 ## 尚未做
 
-- Dijkstra 接入(3b)、老師成績看板頁(目前是 JSON 端點)、單一執行檔打包(免裝 node)、
-  存取碼身分、題目時間限制強制。
+- 老師成績看板頁(目前是 JSON 端點)、單一執行檔打包(免裝 node)、存取碼身分、
+  題目時間限制強制、更多章節(BFS 等)。

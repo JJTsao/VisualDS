@@ -111,8 +111,8 @@ window.loadOperation(key) → loads preset, resets, syncs gutter
   - 分數/標準答案只在伺服器,不可竄改;成績寫 `server/data/results.json`(gitignore)
   - `server/chapters/<id>.js` 重用 `shared/algorithms`;測試 `node server/_apitest.mjs`
 - **server 模式前端**:`exam/play.html?chapter=<id>` + `exam/exam-client.js`(通用控制器)+
-  `exam/render-tree.js`(BST 渲染器,純呈現)+ `exam/exam.css`。輸入學號 → 逐步作答 → 伺服器判分。
-  目前章節:`bst-delete`(Dijkstra 於後續接入)。
+  純呈現渲染器 `exam/render-tree.js`(BST)/ `exam/render-graph.js`(Dijkstra,含權重碰撞避讓)+ `exam/exam.css`。
+  輸入學號 → 逐步作答 → 伺服器判分。章節:`bst-delete`、`dijkstra`(後者經 `dijkstraSteps` 原子步驟適配器接入)。
 
 ### Animation system
 

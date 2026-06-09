@@ -162,5 +162,7 @@ export async function runExam({ chapter, studentId, stage, els, renderModule }) 
 }
 
 function phaseLabel(phase) {
+  const m = /^round-(\d+)$/.exec(String(phase));
+  if (m) return `第 ${Number(m[1]) + 1} 輪`;
   return { search: '① 搜尋', classify: '② 分類', resolve: '③ 解決' }[phase] || String(phase);
 }

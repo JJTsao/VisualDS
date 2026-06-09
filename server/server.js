@@ -23,6 +23,7 @@ import { fileURLToPath } from 'node:url';
 
 import { gradeStep } from '../shared/algorithms/trace-engine.js';
 import * as bstDelete from './chapters/bst-delete.js';
+import * as dijkstra from './chapters/dijkstra.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');            // project root → static base
@@ -34,7 +35,7 @@ const HOST = process.env.HOST || '0.0.0.0';            // 0.0.0.0 ⇒ reachable 
 const TEACHER_TOKEN = process.env.TEACHER_TOKEN || 'teacher';
 const ATTEMPT_CREDIT = [1, 0.5, 0.25];                 // diminishing credit per attempt
 
-const CHAPTERS = { 'bst-delete': bstDelete };
+const CHAPTERS = { 'bst-delete': bstDelete, 'dijkstra': dijkstra };
 
 const sessions = new Map();   // sessionId → session object (in-memory)
 let sidSeq = 1;
@@ -69,7 +70,7 @@ function stepShells(steps) {
   // everything the client needs to render the step — but NOT the answer
   return steps.map((s) => ({
     key: s.key, phase: s.phase, kind: s.kind, prompt: s.prompt,
-    options: s.options, focusNode: s.focusNode,
+    options: s.options, focusNode: s.focusNode, meta: s.meta,
   }));
 }
 async function persistResult(rec) {
