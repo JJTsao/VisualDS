@@ -104,11 +104,15 @@ window.loadOperation(key) → loads preset, resets, syncs gutter
     (釘死規則:平手取小 id、嚴格才鬆弛、鄰居按 id 升冪)
   - `bst.js` + `bst-gen.js` — BST 刪除步進器(buildBST/layoutTree/bstDeleteTrace)/隨機 BST
   - `_selftest.mjs`、`_bst_selftest.mjs` — `node <file>` 自測
-- 題型前端原型(純前端,**須經 http 開啟**,不能 file://):
-  - `exam/dijkstra.html` — 鎖步兩階段(extract→relax);圖權重標籤碰撞避讓放置(見 `exam/README.md`)
-  - `exam/bst-delete.html` — 逐步:搜尋→分類→解決;通用步驟表單渲染器(choose-dir/classify/pick-node/number)
-  - 共同:每步重試遞減、一步錯不連坐、計時 + 即時得分、`?seed=` 指定題目
-- 尚未做:`server/`(正式計分核心——標準答案/判分移到伺服器端;原型答案在前端,尚不能防弊)。
+- 題型**離線原型**(純前端,client 端判分,僅供體驗/練習,**須經 http 開啟**):
+  - `exam/dijkstra.html`(鎖步兩階段;權重標籤碰撞避讓)、`exam/bst-delete.html`(搜尋→分類→解決)
+- **`server/`** — 正式計分後端,**零依賴**(只用 Node 內建,`node server/server.js`):
+  - `/api/start`(出題,不含答案)、`/api/step`(伺服器端逐步判分,提交後才揭曉)、`/api/results`(老師看成績,token)
+  - 分數/標準答案只在伺服器,不可竄改;成績寫 `server/data/results.json`(gitignore)
+  - `server/chapters/<id>.js` 重用 `shared/algorithms`;測試 `node server/_apitest.mjs`
+- **server 模式前端**:`exam/play.html?chapter=<id>` + `exam/exam-client.js`(通用控制器)+
+  `exam/render-tree.js`(BST 渲染器,純呈現)+ `exam/exam.css`。輸入學號 → 逐步作答 → 伺服器判分。
+  目前章節:`bst-delete`(Dijkstra 於後續接入)。
 
 ### Animation system
 

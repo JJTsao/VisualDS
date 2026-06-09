@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>過程式測驗 — VisualDS Exam</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/style.css">
+<link rel="stylesheet" href="exam.css">
+</head>
+<body>
+<div class="exam-wrapper">
+  <div class="exam-col exam-left">
+    <div class="exam-head">
+      <span class="exam-title" id="exam-title">過程式測驗</span>
+      <span class="exam-sub" id="seed-tag"></span>
+    </div>
+    <div class="stat-row">
+      <div class="stat-box"><div class="k">得分</div><div class="v" id="stat-score">—</div></div>
+      <div class="stat-box"><div class="k">進度</div><div class="v" id="stat-progress">0 / 0</div></div>
+      <div class="stat-box"><div class="k">計時</div><div class="v" id="stat-timer">0:00</div></div>
+    </div>
+    <div class="info-call" id="info"></div>
+    <div class="step-card" id="step-card"></div>
+  </div>
+  <div class="exam-col exam-right">
+    <div class="canvas-label" id="canvas-label">題目</div>
+    <div class="exam-stage" id="stage"></div>
+  </div>
+</div>
+
+<script type="module">
+import { runExam } from './exam-client.js';
+
+const CHAPTERS = {
+  'bst-delete': { module: './render-tree.js' },
+  // 'dijkstra': { module: './render-graph.js' },   // added in stage 3b
+};
+
+const params  = new URLSearchParams(location.search);
+const chapter = params.get('chapter') || 'bst-delete';
+const cfg = CHAPTERS[chapter];
+
+const els = {
+  info: document.getElementById('info'),
+  seedTag: document.getElementById('seed-tag'),
+  statScore: document.getElementById('stat-score'),
+  statProgress: document.getElementById('stat-progress'),
+  statTimer: document.getElementById('stat-timer'),
+  stepCard: document.getElementById('step-card'),
+};
+const stage = document.getElementById('stage');
+
+if (!cfg) {
+  els.stepCard.innerHTML = `<div class="feedback bad">未知章節:${chapter}</div>`;
+} else {
+  const renderModule = await import(cfg.module);
+  document.getElementById('exam-title').textContent = renderModule.chapterUI.title;
+  document.getElementById('canvas-label').textContent = renderModule.chapterUI.canvasLabel;
+
+  // Intro: ask for student id before starting (identity for grading).
+  els.stepCard.innerHTML = `
+    <div class="intro-card">
+      <h2>${renderModule.chapterUI.title}</h2>
+      <div class="final-sub">請輸入你的學號開始作答(成績將以此記錄)。</div>
+      <input id="sid-in" placeholder="學號 / 姓名" autocomplete="off">
+      <div class="btn-row"><button class="ex-btn primary" id="sid-go">開始作答</button></div>
+      <div class="feedback bad" id="sid-err"></div>
+    </div>`;
+  const go = () => {
+    const sid = document.getElementById('sid-in').value.trim();
+    if (!sid) { document.getElementById('sid-err').textContent = '請先輸入學號。'; return; }
+    runExam({ chapter, studentId: sid, stage, els, renderModule });
+  };
+  document.getElementById('sid-go').addEventListener('click', go);
+  document.getElementById('sid-in').addEventListener('keydown', (e) => { if (e.key === 'Enter') go(); });
+  document.getElementById('sid-in').focus();
+}
+</script>
+</body>
+</html>

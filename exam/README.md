@@ -16,7 +16,19 @@
   `bst-gen.js`(可重現隨機 BST + 優先選兩子情況的刪除目標)。
 - 自測:`node _selftest.mjs`(Dijkstra)、`node _bst_selftest.mjs`(BST + 通用引擎),皆全綠。
 
-### 題型前端原型 — 純前端可玩
+### 正式計分（server 模式)— `../server/` + `play.html`
+
+`exam/play.html?chapter=bst-delete` 是 **server 模式**前端:向後端要題目(不含答案)、輸入學號、
+逐步作答,**每步由伺服器判分並提交後才揭曉**,分數記在伺服器不可竄改。需先啟動後端:
+
+```bash
+node server/server.js   # 然後開 http://localhost:8090/exam/play.html?chapter=bst-delete
+```
+
+組成:`exam-client.js`(通用控制器,4 種步驟 kind)+ `render-tree.js`(BST 純呈現渲染器)+ `exam.css`。
+詳見 `../server/README.md`。下方的單檔 `*.html` 是**離線原型**(client 端判分),供體驗/練習。
+
+### 題型離線原型 — 純前端可玩
 
 - `dijkstra.html` — 鎖步兩階段:① 點 extract 節點 → ② 填鄰居新 dist。
 - `bst-delete.html` — 逐步:① 搜尋(往左/右/找到)→ ② 分類(葉/一子/兩子)→
