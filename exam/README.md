@@ -5,17 +5,25 @@
 
 ## 目前進度
 
-- **階段 1（純邏輯層,已完成）** — `../shared/algorithms/`
-  - `dijkstra.js` — 參考步進器,吐出逐輪標準軌跡(extract + relax),無 DOM。
-    兩條釘死規則:平手取較小 id、鬆弛只在嚴格較小時更新;鄰居按 id 升冪。
-  - `graph-gen.js` — 可重現(seed)的隨機連通帶權圖生成器。
-  - `trace-grader.js` — 逐步比對學生答案 vs 標準軌跡,逐單元給分。
-  - `_selftest.mjs` — Node 自測(`node _selftest.mjs`,全綠)。
-- **階段 2（純前端可玩原型,本檔）** — `dijkstra.html`
-  - 鎖步兩階段作答:① 點選該輪 extract 的節點 → ② 填每個未拜訪鄰居的新 dist。
-  - 每步**允許重試**,分數逐次遞減(1 → 0.5 → 0.25 → 揭曉 0);**逐項部分分**。
-  - 一步錯不連坐:揭曉正解後從正確狀態續作。計時 + 即時得分 + 完成後標最短路徑樹。
-  - `?seed=123` 指定題目;完成後可「換一題 / 重做本題」。
+### 共用邏輯層 — `../shared/algorithms/`（無 DOM,ESM,瀏覽器/Node 共用）
+
+- `trace-engine.js` — **通用**軌跡引擎:每章節把演算法化為一串「原子步驟」
+  (`{key,phase,kind,prompt,answer,options?,focusNode?}`),引擎統一判分
+  (`gradeStep`/`scoreSteps`/`groupByPhase`)。新章節只需提供「步進器 + 各 kind 的 UI」。
+- Dijkstra:`dijkstra.js`(參考步進器,釘死規則:平手取小 id、嚴格才鬆弛、鄰居按 id 升冪)、
+  `graph-gen.js`(可重現隨機連通帶權圖)、`trace-grader.js`(Dijkstra 專用逐步比對)。
+- BST 刪除:`bst.js`(buildBST + layoutTree + `bstDeleteTrace` 吐原子步驟)、
+  `bst-gen.js`(可重現隨機 BST + 優先選兩子情況的刪除目標)。
+- 自測:`node _selftest.mjs`(Dijkstra)、`node _bst_selftest.mjs`(BST + 通用引擎),皆全綠。
+
+### 題型前端原型 — 純前端可玩
+
+- `dijkstra.html` — 鎖步兩階段:① 點 extract 節點 → ② 填鄰居新 dist。
+- `bst-delete.html` — 逐步:① 搜尋(往左/右/找到)→ ② 分類(葉/一子/兩子)→
+  ③ 解決(依 case:點取代節點 / 點中序後繼 + 填交換值 + 後繼移除分類)。**驗證了
+  通用引擎能套到結構與 Dijkstra 完全不同的演算法**(分支控制流 + 多種步驟型別)。
+- 共同點:每步**允許重試**、分數遞減(1→0.5→0.25→揭曉0)、一步錯不連坐(揭曉後續作)、
+  計時 + 即時得分;`?seed=123` 指定題目,完成後可「換一題 / 重做本題」。
 
 ## 設計註記 — 圖渲染：權重標籤放置（碰撞避讓）
 
