@@ -92,6 +92,20 @@ window.loadOperation(key) → loads preset, resets, syncs gutter
 
 **`js/history.js`** — `StepHistory` class with `push(snapshot)` / `pop()` / `clear()` / `isEmpty`. Snapshots are deep-copied via JSON round-trip — all state fields must be plain JSON-serialisable (no DOM refs, no functions). Load this before any `*-vis.js` in HTML. Used by the code-stepper units (Array / Linked List / Stack / Queue); the interactive units (Tree / Graph) and Sorting don't use it.
 
+### Exam stack（互動式計分考試 — 進行中,feat/exam-dijkstra 分支）
+
+教學站之外延伸的子系統,把視覺化資產重用為**過程式作答的計分考試**(完整方向見
+`memory/exam-system.md` 與 `~/.claude/plans/application-synchronous-squid.md`)。**與教學站分層、互不干擾**:
+
+- `shared/algorithms/` — 純邏輯層,**無 DOM**,ESM(`package.json` 標 `type:module`),瀏覽器與 Node 共用:
+  - `dijkstra.js` — 參考步進器,吐逐輪標準軌跡;釘死規則(平手取小 id、嚴格才鬆弛、鄰居按 id 升冪)使標準答案唯一
+  - `graph-gen.js` — 可重現(seed)隨機連通帶權圖
+  - `trace-grader.js` — 逐步比對、逐單元給分
+  - `_selftest.mjs` — `node _selftest.mjs` 自測
+- `exam/dijkstra.html` — 純前端可玩**原型**,自繪圖渲染 + 鎖步兩階段作答(extract→relax)+ 重試遞減 + 部分分。
+  用 ES module,**須經 http 開啟**(`python3 -m http.server`),不能 file://。圖權重標籤用碰撞避讓放置(見 `exam/README.md`)。
+- 尚未做:`server/`(正式計分核心——標準答案/判分移到伺服器端;原型答案在前端,尚不能防弊)。
+
 ### Animation system
 
 All animations use `triggerAnimation(el, className, ms)`: removes the class, forces reflow (`void el.offsetWidth`), re-adds it, then removes after timeout. This reflow pattern must be preserved for re-triggering.
