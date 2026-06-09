@@ -15,6 +15,10 @@ node server/server.js
 環境變數:
 - `PORT`(預設 8090)、`HOST`(預設 `0.0.0.0`)
 - `TEACHER_TOKEN`(預設 `teacher`)— 看成績用
+- `SHEETS_WEBHOOK_URL`(選用)— Google Apps Script 網頁應用程式 URL,設了就把完成成績 POST 過去
+- `SHEETS_TOKEN`(選用)— 與 Apps Script 端共享的密鑰
+
+**雲端部署(免費常駐主機 + Google Sheet 存成績):見 [DEPLOY.md](DEPLOY.md)。**
 
 ## 教室區網部署(離線、不碰學校網路)
 
@@ -49,5 +53,5 @@ node server/server.js
 
 ## 尚未做
 
-- 老師成績看板頁(目前是 JSON 端點)、單一執行檔打包(免裝 node)、存取碼身分、
-  題目時間限制強制、更多章節(BFS 等)。
+- 老師成績**看板頁**(目前是 JSON 端點 + Google Sheet)、單一執行檔打包(免裝 node)、
+  存取碼身分、題目時間限制強制、更多章節(BFS 等)。

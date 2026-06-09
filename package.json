@@ -1,0 +1,11 @@
+{
+  "name": "visualds",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Data Structure Visualizer + interactive process-graded exam server.",
+  "scripts": {
+    "start": "node server/server.js",
+    "test": "node shared/algorithms/_selftest.mjs && node shared/algorithms/_bst_selftest.mjs"
+  },
+  "engines": { "node": ">=18" }
+}

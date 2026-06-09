@@ -1,0 +1,17 @@
+# Render.com Blueprint — one free always-on-ish web service.
+# Free instance sleeps after ~15 min idle (first hit cold-starts ~30-60s, then
+# stays warm through the exam). Set the secret env vars in the Render dashboard.
+services:
+  - type: web
+    name: visualds-exam
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node server/server.js
+    envVars:
+      - key: TEACHER_TOKEN
+        sync: false        # set your own in the dashboard
+      - key: SHEETS_WEBHOOK_URL
+        sync: false        # the Apps Script /exec URL
+      - key: SHEETS_TOKEN
+        sync: false        # shared secret echoed to the Apps Script

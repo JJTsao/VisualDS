@@ -1,0 +1,5 @@
+.git
+node_modules
+server/data
+**/_*selftest*.mjs
+server/_apitest.mjs

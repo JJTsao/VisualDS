@@ -35,6 +35,12 @@ const HOST = process.env.HOST || '0.0.0.0';            // 0.0.0.0 ⇒ reachable 
 const TEACHER_TOKEN = process.env.TEACHER_TOKEN || 'teacher';
 const ATTEMPT_CREDIT = [1, 0.5, 0.25];                 // diminishing credit per attempt
 
+// Optional Google Sheets sink (a published Apps Script web app URL). When set,
+// each finished result is POSTed there so grades survive ephemeral cloud disks.
+// Local data/results.json is always kept too, as a backup.
+const SHEETS_WEBHOOK_URL = process.env.SHEETS_WEBHOOK_URL || '';
+const SHEETS_TOKEN = process.env.SHEETS_TOKEN || '';
+
 const CHAPTERS = { 'bst-delete': bstDelete, 'dijkstra': dijkstra };
 
 const sessions = new Map();   // sessionId → session object (in-memory)
@@ -79,6 +85,22 @@ async function persistResult(rec) {
   if (existsSync(RESULTS)) { try { arr = JSON.parse(await readFile(RESULTS, 'utf8')); } catch { arr = []; } }
   arr.push(rec);
   await writeFile(RESULTS, JSON.stringify(arr, null, 2));
+}
+
+// POST a finished result to the Google Sheets Apps Script web app (if configured).
+// Best-effort: a failure here never breaks the student's finish (JSON is backup).
+async function postToSheet(rec) {
+  if (!SHEETS_WEBHOOK_URL) return;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 6000);
+  try {
+    await fetch(SHEETS_WEBHOOK_URL, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...rec, token: SHEETS_TOKEN }),
+      signal: ctrl.signal, redirect: 'follow',
+    });
+  } catch (e) { console.error('[sheets] post failed:', e.message); }
+  finally { clearTimeout(timer); }
 }
 
 // ── API handlers ─────────────────────────────────────────────────────────────
@@ -142,11 +164,13 @@ async function apiStep(req, res) {
       sess.done = true;
       const durationSec = Math.round((Date.now() - sess.startedAt) / 1000);
       const percent = sess.total ? Math.round((sess.earned / sess.total) * 100) : 0;
-      await persistResult({
+      const rec = {
         studentId: sess.studentId, chapter: sess.chapter, seed: sess.seed,
         earned: Number(sess.earned.toFixed(2)), total: sess.total, percent,
         durationSec, finishedAt: new Date(sess.startedAt + durationSec * 1000).toISOString(),
-      });
+      };
+      await persistResult(rec);     // local backup
+      await postToSheet(rec);       // durable store (if configured)
     }
     payload.nextStepIndex = sess.done ? null : sess.cursor;
     payload.done = sess.done;

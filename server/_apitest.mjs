@@ -1,5 +1,6 @@
 // End-to-end API test: drives the running server over HTTP with a fixed seed,
 // using the chapter module locally only to know the correct answers.
+import http from 'node:http';
 import * as bst from './chapters/bst-delete.js';
 import * as dij from './chapters/dijkstra.js';
 
@@ -9,6 +10,15 @@ const get  = (p) => fetch(BASE + p).then(r => r.json());
 
 let fail = 0;
 const ok = (c, m) => { if (c) console.log('ok   ' + m); else { fail++; console.error('FAIL ' + m); } };
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+// Fake Google-Sheets sink (the server is launched with SHEETS_WEBHOOK_URL → here).
+const sheetRows = [];
+const sink = http.createServer((req, res) => {
+  let b = ''; req.on('data', (c) => b += c);
+  req.on('end', () => { try { sheetRows.push(JSON.parse(b)); } catch {} res.writeHead(200, { 'Content-Type': 'application/json' }); res.end('{"ok":true}'); });
+});
+await new Promise((r) => sink.listen(9099, r));
 
 const seed = 12345;
 const local = bst.generate(seed);     // answers, to drive the test
@@ -66,6 +76,12 @@ for (const step of dlocal.steps) {
 }
 const res2 = await get('/api/results?token=teacher');
 ok(res2.finished.some(x => x.studentId === 'DIJ001' && x.percent === 100), 'DIJ001 persisted at 100%');
+
+// ── 6) Google Sheets webhook: finished results POSTed with token ──
+await sleep(300);   // let the fire-and-finish posts arrive
+ok(sheetRows.some(r => r.studentId === 'TEST001' && r.percent === 100), 'result POSTed to sheets webhook');
+ok(sheetRows.every(r => r.token === 'SECRET'), 'sheets payload carries SHEETS_TOKEN');
+sink.close();
 
 console.log(fail === 0 ? '\nALL PASS' : `\n${fail} FAIL`);
 process.exit(fail ? 1 : 0);
