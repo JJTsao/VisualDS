@@ -98,12 +98,16 @@ window.loadOperation(key) → loads preset, resets, syncs gutter
 `memory/exam-system.md` 與 `~/.claude/plans/application-synchronous-squid.md`)。**與教學站分層、互不干擾**:
 
 - `shared/algorithms/` — 純邏輯層,**無 DOM**,ESM(`package.json` 標 `type:module`),瀏覽器與 Node 共用:
-  - `dijkstra.js` — 參考步進器,吐逐輪標準軌跡;釘死規則(平手取小 id、嚴格才鬆弛、鄰居按 id 升冪)使標準答案唯一
-  - `graph-gen.js` — 可重現(seed)隨機連通帶權圖
-  - `trace-grader.js` — 逐步比對、逐單元給分
-  - `_selftest.mjs` — `node _selftest.mjs` 自測
-- `exam/dijkstra.html` — 純前端可玩**原型**,自繪圖渲染 + 鎖步兩階段作答(extract→relax)+ 重試遞減 + 部分分。
-  用 ES module,**須經 http 開啟**(`python3 -m http.server`),不能 file://。圖權重標籤用碰撞避讓放置(見 `exam/README.md`)。
+  - `trace-engine.js` — **通用**引擎:每章節化為一串原子步驟 `{key,phase,kind,prompt,answer,options?,focusNode?}`,
+    `gradeStep`/`scoreSteps`/`groupByPhase` 統一判分。新章節只需「步進器 + 各 kind 的 UI」
+  - `dijkstra.js` + `graph-gen.js` + `trace-grader.js` — Dijkstra 步進器/隨機圖/專用判分
+    (釘死規則:平手取小 id、嚴格才鬆弛、鄰居按 id 升冪)
+  - `bst.js` + `bst-gen.js` — BST 刪除步進器(buildBST/layoutTree/bstDeleteTrace)/隨機 BST
+  - `_selftest.mjs`、`_bst_selftest.mjs` — `node <file>` 自測
+- 題型前端原型(純前端,**須經 http 開啟**,不能 file://):
+  - `exam/dijkstra.html` — 鎖步兩階段(extract→relax);圖權重標籤碰撞避讓放置(見 `exam/README.md`)
+  - `exam/bst-delete.html` — 逐步:搜尋→分類→解決;通用步驟表單渲染器(choose-dir/classify/pick-node/number)
+  - 共同:每步重試遞減、一步錯不連坐、計時 + 即時得分、`?seed=` 指定題目
 - 尚未做:`server/`(正式計分核心——標準答案/判分移到伺服器端;原型答案在前端,尚不能防弊)。
 
 ### Animation system
