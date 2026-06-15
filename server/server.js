@@ -22,8 +22,14 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { gradeStep } from '../shared/algorithms/trace-engine.js';
-import * as bstDelete from './chapters/bst-delete.js';
-import * as dijkstra from './chapters/dijkstra.js';
+import * as bstDelete   from './chapters/bst-delete.js';
+import * as bstInsert   from './chapters/bst-insert.js';
+import * as bstTraversal from './chapters/bst-traversal.js';
+import * as dijkstra    from './chapters/dijkstra.js';
+import * as dfs         from './chapters/dfs.js';
+import * as bubbleSort  from './chapters/bubble-sort.js';
+import * as selectionSort from './chapters/selection-sort.js';
+import * as mergeSort   from './chapters/merge-sort.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');            // project root → static base
@@ -41,7 +47,16 @@ const ATTEMPT_CREDIT = [1, 0.5, 0.25];                 // diminishing credit per
 const SHEETS_WEBHOOK_URL = process.env.SHEETS_WEBHOOK_URL || '';
 const SHEETS_TOKEN = process.env.SHEETS_TOKEN || '';
 
-const CHAPTERS = { 'bst-delete': bstDelete, 'dijkstra': dijkstra };
+const CHAPTERS = {
+  'bst-delete':    bstDelete,
+  'bst-insert':    bstInsert,
+  'bst-traversal': bstTraversal,
+  'dijkstra':      dijkstra,
+  'dfs':           dfs,
+  'bubble-sort':   bubbleSort,
+  'selection-sort': selectionSort,
+  'merge-sort':    mergeSort,
+};
 
 const sessions = new Map();   // sessionId → session object (in-memory)
 let sidSeq = 1;

@@ -119,6 +119,70 @@
 @keyframes examPulse { 0%,100% { box-shadow: 0 0 12px var(--amber-glow); } 50% { box-shadow: 0 0 22px var(--amber-glow); } }
 @keyframes examPop { 0% { transform: translateX(-50%) scale(1);} 50% { transform: translateX(-50%) scale(1.4);} 100% { transform: translateX(-50%) scale(1);} }
 
+/* ── Array sorting visualization ──────────────────────────────────────────── */
+.arr-viz {
+  display: flex; gap: 10px; flex-wrap: wrap;
+  padding: 28px 20px; align-items: center; justify-content: center;
+  align-content: center; height: 160px;
+}
+.arr-cell {
+  width: 60px; height: 60px; border-radius: 8px; flex-shrink: 0;
+  border: 2px solid var(--border-mid); background: var(--bg-panel);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  font-family: var(--font-mono); font-weight: 700; position: relative;
+  transition: all .18s; cursor: default;
+}
+.arr-val { font-size: 1.15rem; color: var(--text-dim); line-height: 1; }
+.arr-idx { font-size: .58rem; color: var(--text-muted); position: absolute; bottom: 4px; }
+.arr-cell.arr-sorted     { border-color: var(--success); background: rgba(0,200,122,.08); }
+.arr-cell.arr-sorted     .arr-val { color: var(--success); }
+.arr-cell.arr-sorted-left { border-color: var(--success); background: rgba(0,200,122,.08); }
+.arr-cell.arr-sorted-left .arr-val { color: var(--success); }
+.arr-cell.arr-comparing  { border-color: var(--amber-bright); background: rgba(255,199,64,.15);
+  box-shadow: 0 0 14px rgba(255,199,64,.4); }
+.arr-cell.arr-comparing  .arr-val { color: var(--amber-bright); }
+.arr-cell.arr-picked     { border-color: #40d0ff; background: rgba(64,208,255,.1);
+  box-shadow: 0 0 14px rgba(64,208,255,.4); }
+.arr-cell.arr-picked     .arr-val { color: #40d0ff; }
+.arr-cell.arr-clickable  { cursor: pointer; }
+.arr-cell.arr-clickable:hover { border-color: var(--amber); background: rgba(255,199,64,.1); }
+
+/* Merge-sort context row */
+.arr-merge-row {
+  display: flex; align-items: center; justify-content: center;
+  gap: 6px; padding: 0 20px 16px; flex-wrap: wrap;
+}
+.mctx-cell {
+  width: 42px; height: 38px; border-radius: 6px; flex-shrink: 0;
+  border: 1px solid var(--border-mid); background: var(--bg-panel);
+  display: grid; place-items: center;
+  font-family: var(--font-mono); font-size: .9rem; font-weight: 700; color: var(--text-dim);
+}
+.mctx-cell.mctx-ptr { border-color: var(--amber-bright); color: var(--amber-bright);
+  box-shadow: 0 0 8px rgba(255,199,64,.4); }
+.mctx-label { font-size: .62rem; color: var(--text-muted); padding: 0 2px; }
+.mctx-sep   { font-size: .8rem; color: var(--text-muted); padding: 0 4px; }
+
+/* ── BST traversal visit-order badge ─────────────────────────────────────── */
+.visit-order-badge {
+  position: absolute; top: -10px; left: 50%; transform: translateX(-50%);
+  background: var(--bg); border: 1px solid var(--success); color: var(--success);
+  font-size: .68rem; font-weight: 700; padding: 1px 5px; border-radius: 10px;
+  display: none;
+}
+.bst-node.traversal-visited {
+  border-color: var(--success); color: var(--success);
+  background: rgba(0,200,122,.08);
+}
+
+/* BST insert ghost node */
+.bst-node.insert-ghost {
+  border-color: var(--success); color: var(--success);
+  background: rgba(0,200,122,.12);
+  box-shadow: 0 0 16px rgba(0,200,122,.35);
+  animation: examPop .5s ease;
+}
+
 /* intro + final */
 .intro-card, .final-card { text-align: center; padding: 28px; display: flex; flex-direction: column; gap: 14px; }
 .intro-card h2 { color: var(--amber-bright); font-size: 1.1rem; }

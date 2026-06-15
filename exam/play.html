@@ -35,8 +35,14 @@
 import { runExam } from './exam-client.js';
 
 const CHAPTERS = {
-  'bst-delete': { module: './render-tree.js' },
-  'dijkstra':   { module: './render-graph.js' },
+  'bst-delete':    { module: './render-tree.js' },
+  'bst-insert':    { module: './render-bst-insert.js' },
+  'bst-traversal': { module: './render-bst-traversal.js' },
+  'dijkstra':      { module: './render-graph.js' },
+  'dfs':           { module: './render-dfs.js' },
+  'bubble-sort':   { module: './render-bubble.js' },
+  'selection-sort':{ module: './render-selection.js' },
+  'merge-sort':    { module: './render-merge.js' },
 };
 
 const params  = new URLSearchParams(location.search);
