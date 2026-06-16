@@ -35,7 +35,12 @@ node server/server.js
 - `POST /api/start` `{ chapter, studentId, seed? }` → 建立 session,回傳題目(**不含答案**)+ 步驟外殼。
 - `POST /api/step`  `{ sessionId, stepIndex, answer }` → 伺服器判該步、回對錯;**提交後才揭曉該步正解**。
   重試分數遞減(1 → 0.5 → 0.25 → 揭曉 0),一步錯不連坐。分數累計在伺服器。
+- `GET  /api/my-status?studentId=<id>` → 該學號**已完成**的章節清單(選單用來打勾)。
 - `GET  /api/results?token=<TEACHER_TOKEN>` → 老師看成績(已完成 + 進行中)。完成成績寫入 `server/data/results.json`。
+  圖形化看板:**`exam/results.html`**(輸入 token,表格 + 排序 + 篩選 + 進行中 + 自動更新)。
+
+**身分 / 防重做**:學號在 `exam/index.html` 一次輸入(localStorage 記住),各章節沿用。
+每個學號每章節**只能作答一次** —— `/api/start` 會擋已完成的重做(開機從 `results.json` 重建索引)。
 
 ## 防弊模型(首版)
 
