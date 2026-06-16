@@ -211,7 +211,8 @@ async function apiResults(req, res, url) {
 // ── static files ─────────────────────────────────────────────────────────────
 async function serveStatic(req, res, url) {
   let rel = decodeURIComponent(url.pathname);
-  if (rel === '/') rel = '/exam/play.html';
+  if (rel === '/') rel = '/exam/index.html';        // root → chapter menu
+  if (rel.endsWith('/')) rel += 'index.html';        // e.g. /exam/ → /exam/index.html
   const filePath = path.join(ROOT, rel);
   if (!filePath.startsWith(ROOT)) { res.writeHead(403); return res.end('forbidden'); }   // no traversal
   if (!existsSync(filePath)) { res.writeHead(404); return res.end('not found'); }
@@ -239,7 +240,7 @@ const server = http.createServer(async (req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`\n  VisualDS Exam Server`);
   console.log(`  ────────────────────`);
-  console.log(`  學生請開:  http://<本機區網IP>:${PORT}/exam/play.html?chapter=bst-delete`);
-  console.log(`  本機測試:  http://localhost:${PORT}/exam/play.html?chapter=bst-delete`);
+  console.log(`  學生請開:  http://<本機區網IP>:${PORT}/exam/   （章節選單）`);
+  console.log(`  本機測試:  http://localhost:${PORT}/exam/`);
   console.log(`  老師成績:  http://localhost:${PORT}/api/results?token=${TEACHER_TOKEN}\n`);
 });

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>過程式測驗 · 章節選單 — VisualDS Exam</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/style.css">
+<style>
+  .menu-wrap { max-width: 1100px; margin: 0 auto; padding: 56px 28px 80px; }
+  .menu-head { margin-bottom: 40px; }
+  .menu-title { font-size: clamp(1.6rem, 4vw, 2.4rem); font-weight: 800; color: var(--amber-bright);
+    letter-spacing: .06em; text-transform: uppercase; line-height: 1.1;
+    animation: fadeSlideUp .6s both; }
+  .menu-title .blink { color: var(--amber); animation: caret 1.1s step-end infinite; }
+  .menu-sub { margin-top: 12px; color: var(--text-dim); font-size: .9rem; line-height: 1.7; max-width: 64ch;
+    animation: fadeSlideUp .6s .08s both; }
+  .menu-sub b { color: var(--amber); }
+
+  .cat { margin-top: 38px; }
+  .cat-label { font-size: .72rem; letter-spacing: .18em; text-transform: uppercase; color: var(--amber-dim);
+    border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 18px; }
+
+  .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(258px, 1fr)); }
+
+  .ch-card { position: relative; display: flex; flex-direction: column; gap: 9px; text-decoration: none;
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 18px 18px 16px;
+    overflow: hidden; transition: border-color .18s, transform .18s, box-shadow .18s;
+    animation: fadeSlideUp .5s both; animation-delay: calc(var(--i) * 55ms + .12s); }
+  .ch-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+    background: var(--accent, var(--amber-dim)); opacity: .7; transition: opacity .18s; }
+  .ch-card:hover { border-color: var(--amber); transform: translateY(-3px);
+    box-shadow: 0 8px 26px rgba(0,0,0,.45), 0 0 0 1px var(--amber-dim) inset; }
+  .ch-card:hover::before { opacity: 1; }
+  .ch-cat { font-size: .62rem; letter-spacing: .12em; text-transform: uppercase; color: var(--text-muted); }
+  .ch-title { font-size: 1.12rem; font-weight: 800; color: var(--amber-bright); letter-spacing: .02em; }
+  .ch-desc { font-size: .8rem; color: var(--text-dim); line-height: 1.65; flex: 1; }
+  .ch-go { margin-top: 6px; font-size: .76rem; font-weight: 700; color: var(--amber);
+    letter-spacing: .04em; transition: letter-spacing .18s; }
+  .ch-card:hover .ch-go { letter-spacing: .12em; }
+
+  .menu-foot { margin-top: 46px; padding-top: 18px; border-top: 1px solid var(--border);
+    font-size: .72rem; color: var(--text-muted); line-height: 1.8; }
+  .menu-foot code { color: var(--amber-dim); }
+
+  @keyframes caret { 50% { opacity: 0; } }
+</style>
+</head>
+<body>
+<div class="menu-wrap">
+  <header class="menu-head">
+    <h1 class="menu-title">過程式測驗<span class="blink">_</span></h1>
+    <p class="menu-sub">在隨機生成的題目上,<b>逐步手動執行演算法</b> —— 系統在伺服器端逐步判分,
+      考的是過程而非只看最終答案。選一個章節開始。</p>
+  </header>
+
+  <section class="cat">
+    <div class="cat-label">二元搜尋樹　Binary Search Tree</div>
+    <div class="grid">
+      <a class="ch-card" style="--i:0; --accent:var(--amber)" href="play.html?chapter=bst-delete">
+        <span class="ch-cat">BST</span><span class="ch-title">BST 刪除</span>
+        <span class="ch-desc">搜尋目標節點 → 判斷葉 / 一子 / 兩子 → 用中序後繼解決刪除。</span>
+        <span class="ch-go">開始作答 →</span>
+      </a>
+      <a class="ch-card" style="--i:1; --accent:var(--amber)" href="play.html?chapter=bst-insert">
+        <span class="ch-cat">BST</span><span class="ch-title">BST 插入</span>
+        <span class="ch-desc">從 root 逐節點比較大小,一路往左 / 右,找到正確的插入位置。</span>
+        <span class="ch-go">開始作答 →</span>
+      </a>
+      <a class="ch-card" style="--i:2; --accent:var(--amber)" href="play.html?chapter=bst-traversal">
+        <span class="ch-cat">BST</span><span class="ch-title">BST 走訪</span>
+        <span class="ch-desc">依前序 / 中序 / 後序規則,逐步報出節點的拜訪順序。</span>
+        <span class="ch-go">開始作答 →</span>
+      </a>
+    </div>
+  </section>
+
+  <section class="cat">
+    <div class="cat-label">圖　Graph</div>
+    <div class="grid">
+      <a class="ch-card" style="--i:3; --accent:#40d0ff" href="play.html?chapter=dijkstra">
+        <span class="ch-cat">Graph</span><span class="ch-title">Dijkstra 最短路徑</span>
+        <span class="ch-desc">逐輪挑出暫定距離最小的節點,鬆弛鄰居、更新距離,直到全部確定。</span>
+        <span class="ch-go">開始作答 →</span>
+      </a>
+      <a class="ch-card" style="--i:4; --accent:#40d0ff" href="play.html?chapter=dfs">
+        <span class="ch-cat">Graph</span><span class="ch-title">DFS 走訪</span>
+        <span class="ch-desc">沿深度優先規則,逐步點出節點的拜訪順序。</span>
+        <span class="ch-go">開始作答 →</span>
+      </a>
+    </div>
+  </section>
+
+  <section class="cat">
+    <div class="cat-label">排序　Sorting</div>
+    <div class="grid">
+      <a class="ch-card" style="--i:5; --accent:var(--success)" href="play.html?chapter=bubble-sort">
+        <span class="ch-cat">Sorting</span><span class="ch-title">Bubble Sort</span>
+        <span class="ch-desc">相鄰兩元素比較,逐步判斷該交換或保留,每輪沉一個到尾端。</span>
+        <span class="ch-go">開始作答 →</span>
+      </a>
+      <a class="ch-card" style="--i:6; --accent:var(--success)" href="play.html?chapter=selection-sort">
+        <span class="ch-cat">Sorting</span><span class="ch-title">Selection Sort</span>
+        <span class="ch-desc">每一輪在未排序段中,點出最小值的格子放到前面。</span>
+        <span class="ch-go">開始作答 →</span>
+      </a>
+      <a class="ch-card" style="--i:7; --accent:var(--success)" href="play.html?chapter=merge-sort">
+        <span class="ch-cat">Sorting</span><span class="ch-title">Merge Sort</span>
+        <span class="ch-desc">切分後合併兩段子陣列,逐步判斷每一步該取左邊或右邊。</span>
+        <span class="ch-go">開始作答 →</span>
+      </a>
+    </div>
+  </section>
+
+  <footer class="menu-foot">
+    每題隨機生成、計時、伺服器端逐步判分(提交後才揭曉、答錯可重試但分數遞減)。
+    成績以學號記錄。回教學站:<code>../index.html</code>
+  </footer>
+</div>
+</body>
+</html>
