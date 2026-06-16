@@ -80,16 +80,18 @@ export function createRenderer(instance, stage, { onPickNode }) {
     setFocus(f) { focus = f; refresh(); },
     setPickable() {},   // no pick interaction in bst-insert
     markPicked() {},
-    onSettle(step) {
+    onSettle(step, expected) {
       if (step.phase === 'search' && step.focusNode != null) {
         pathNodes.add(step.focusNode);
       }
       if (step.phase === 'insert') {
-        // Show the new node as a ghost appended to the parent
+        // Show the new node as a ghost appended to the parent.
+        // NOTE: use `expected` (the server-revealed answer), NOT step.answer —
+        // step shells sent to the client have the answer stripped (server mode).
         const parentVal = step.focusNode;
         const pPos = pos.get(parentVal);
         if (pPos && !ghostEl) {
-          const side = step.answer; // 'left' or 'right'
+          const side = expected; // 'left' or 'right'
           const offsetX = side === 'left' ? -50 : 50;
           const offsetY = 55;
           ghostEl = document.createElement('div');
