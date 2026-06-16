@@ -18,7 +18,16 @@ export async function runExam({ chapter, studentId, stage, els, renderModule }) 
   const { chapterUI, createRenderer } = renderModule;
 
   const start = await api('/api/start', { chapter, studentId });
-  if (start.error) { els.stepCard.innerHTML = `<div class="feedback bad">無法開始:${start.error}</div>`; return; }
+  if (start.error) {
+    els.stepCard.innerHTML = `
+      <div class="final-card">
+        <div class="feedback bad">${start.message || ('無法開始:' + start.error)}</div>
+        <div class="btn-row" style="margin-top:14px">
+          <a class="ex-btn primary" href="index.html" style="text-decoration:none; text-align:center; display:block">← 返回章節選單</a>
+        </div>
+      </div>`;
+    return;
+  }
 
   els.info.innerHTML = chapterUI.infoHTML(start.instance);
   els.seedTag.textContent = 'SEED ' + start.seed + ' · ' + studentId;

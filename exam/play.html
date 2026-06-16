@@ -59,30 +59,19 @@ const els = {
 };
 const stage = document.getElementById('stage');
 
+// Identity is entered once at the menu (index.html) and remembered here.
+const studentId = (localStorage.getItem('vds_exam_sid') || '').trim();
+
 if (!cfg) {
   els.stepCard.innerHTML = `<div class="feedback bad">未知章節:${chapter}</div>`;
+} else if (!studentId) {
+  // No identity yet → send back to the menu to enter a student id first.
+  location.replace('index.html');
 } else {
   const renderModule = await import(cfg.module);
   document.getElementById('exam-title').textContent = renderModule.chapterUI.title;
   document.getElementById('canvas-label').textContent = renderModule.chapterUI.canvasLabel;
-
-  // Intro: ask for student id before starting (identity for grading).
-  els.stepCard.innerHTML = `
-    <div class="intro-card">
-      <h2>${renderModule.chapterUI.title}</h2>
-      <div class="final-sub">請輸入你的學號開始作答(成績將以此記錄)。</div>
-      <input id="sid-in" placeholder="學號 / 姓名" autocomplete="off">
-      <div class="btn-row"><button class="ex-btn primary" id="sid-go">開始作答</button></div>
-      <div class="feedback bad" id="sid-err"></div>
-    </div>`;
-  const go = () => {
-    const sid = document.getElementById('sid-in').value.trim();
-    if (!sid) { document.getElementById('sid-err').textContent = '請先輸入學號。'; return; }
-    runExam({ chapter, studentId: sid, stage, els, renderModule });
-  };
-  document.getElementById('sid-go').addEventListener('click', go);
-  document.getElementById('sid-in').addEventListener('keydown', (e) => { if (e.key === 'Enter') go(); });
-  document.getElementById('sid-in').focus();
+  runExam({ chapter, studentId, stage, els, renderModule });
 }
 </script>
 </body>

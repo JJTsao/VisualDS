@@ -61,6 +61,21 @@ const CHAPTERS = {
 const sessions = new Map();   // sessionId → session object (in-memory)
 let sidSeq = 1;
 
+// (studentId → Set<chapter>) of FINISHED attempts — enforces one attempt per
+// student per chapter. Rebuilt from results.json on boot (single instance).
+const doneByStudent = new Map();
+function markDone(studentId, chapter) {
+  if (!doneByStudent.has(studentId)) doneByStudent.set(studentId, new Set());
+  doneByStudent.get(studentId).add(chapter);
+}
+async function loadCompleted() {
+  if (!existsSync(RESULTS)) return;
+  try {
+    const arr = JSON.parse(await readFile(RESULTS, 'utf8'));
+    for (const r of arr) if (r.studentId && r.chapter) markDone(r.studentId, r.chapter);
+  } catch { /* ignore */ }
+}
+
 // A non-crypto seed source that avoids Math.random determinism concerns for a
 // classroom: mix time + a counter. (Reproducible runs can pass an explicit seed.)
 let seedSeq = 1;
@@ -126,6 +141,9 @@ async function apiStart(req, res) {
   const mod = CHAPTERS[chapter];
   if (!mod) return sendJSON(res, 400, { error: 'unknown chapter' });
   if (!studentId) return sendJSON(res, 400, { error: 'studentId required' });
+  if (doneByStudent.get(studentId)?.has(chapter)) {
+    return sendJSON(res, 409, { error: 'already-done', message: '你已完成此章節,不可重做。' });
+  }
 
   const seed = (body.seed != null) ? (Number(body.seed) >>> 0) : pickSeed();
   const gen = mod.generate(seed);
@@ -184,6 +202,7 @@ async function apiStep(req, res) {
         earned: Number(sess.earned.toFixed(2)), total: sess.total, percent,
         durationSec, finishedAt: new Date(sess.startedAt + durationSec * 1000).toISOString(),
       };
+      markDone(sess.studentId, sess.chapter);   // one attempt per student per chapter
       await persistResult(rec);     // local backup
       await postToSheet(rec);       // durable store (if configured)
     }
@@ -195,6 +214,13 @@ async function apiStep(req, res) {
   payload.total = sess.total;
   payload.percent = sess.total ? Math.round((sess.earned / sess.total) * 100) : 0;
   sendJSON(res, 200, payload);
+}
+
+// Which chapters has this student already finished? (drives the menu's ✓ marks)
+function apiMyStatus(res, url) {
+  const sid = (url.searchParams.get('studentId') || '').trim();
+  const completed = sid ? [...(doneByStudent.get(sid) || [])] : [];
+  sendJSON(res, 200, { studentId: sid, completed });
 }
 
 async function apiResults(req, res, url) {
@@ -229,6 +255,7 @@ const server = http.createServer(async (req, res) => {
   try {
     if (url.pathname === '/api/start' && req.method === 'POST') return await apiStart(req, res);
     if (url.pathname === '/api/step' && req.method === 'POST') return await apiStep(req, res);
+    if (url.pathname === '/api/my-status' && req.method === 'GET') return apiMyStatus(res, url);
     if (url.pathname === '/api/results' && req.method === 'GET') return await apiResults(req, res, url);
     if (url.pathname.startsWith('/api/')) return sendJSON(res, 404, { error: 'no such endpoint' });
     return await serveStatic(req, res, url);
@@ -236,6 +263,8 @@ const server = http.createServer(async (req, res) => {
     sendJSON(res, 500, { error: String(err && err.message || err) });
   }
 });
+
+await loadCompleted();   // rebuild "already finished" index from results.json
 
 server.listen(PORT, HOST, () => {
   console.log(`\n  VisualDS Exam Server`);

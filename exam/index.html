@@ -19,6 +19,15 @@
     animation: fadeSlideUp .6s .08s both; }
   .menu-sub b { color: var(--amber); }
 
+  .id-bar { display: flex; align-items: center; gap: 12px; margin-top: 20px; flex-wrap: wrap;
+    animation: fadeSlideUp .6s .14s both; }
+  .id-bar label { font-size: .72rem; letter-spacing: .12em; text-transform: uppercase; color: var(--amber-dim); }
+  .id-bar input { background: var(--bg); border: 1px solid var(--border); color: var(--amber-bright);
+    font-family: var(--font-mono); font-size: .95rem; padding: 9px 12px; border-radius: 7px; min-width: 220px; }
+  .id-bar input:focus { outline: none; border-color: var(--amber); }
+  .id-state { font-size: .76rem; color: var(--text-muted); }
+  .id-state.warn { color: var(--warn); }
+
   .cat { margin-top: 38px; }
   .cat-label { font-size: .72rem; letter-spacing: .18em; text-transform: uppercase; color: var(--amber-dim);
     border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 18px; }
@@ -40,6 +49,13 @@
   .ch-go { margin-top: 6px; font-size: .76rem; font-weight: 700; color: var(--amber);
     letter-spacing: .04em; transition: letter-spacing .18s; }
   .ch-card:hover .ch-go { letter-spacing: .12em; }
+  body.no-id .ch-card { opacity: .42; cursor: not-allowed; }
+  body.no-id .ch-card:hover { transform: none; border-color: var(--border); box-shadow: none; }
+  .ch-card.done { opacity: .6; cursor: default; }
+  .ch-card.done:hover { transform: none; border-color: var(--success); box-shadow: none; }
+  .ch-card.done::after { content: '✓ 已完成'; position: absolute; top: 13px; right: 14px;
+    font-size: .64rem; font-weight: 700; letter-spacing: .06em; color: var(--success); }
+  .ch-card.done .ch-go { color: var(--success); }
 
   .menu-foot { margin-top: 46px; padding-top: 18px; border-top: 1px solid var(--border);
     font-size: .72rem; color: var(--text-muted); line-height: 1.8; }
@@ -53,7 +69,12 @@
   <header class="menu-head">
     <h1 class="menu-title">過程式測驗<span class="blink">_</span></h1>
     <p class="menu-sub">在隨機生成的題目上,<b>逐步手動執行演算法</b> —— 系統在伺服器端逐步判分,
-      考的是過程而非只看最終答案。選一個章節開始。</p>
+      考的是過程而非只看最終答案。先輸入學號,再選一個章節開始。</p>
+    <div class="id-bar">
+      <label for="sid">學號 / 姓名</label>
+      <input id="sid" placeholder="輸入後即可開始作答" autocomplete="off" spellcheck="false">
+      <span class="id-state" id="id-state"></span>
+    </div>
   </header>
 
   <section class="cat">
@@ -116,8 +137,43 @@
 
   <footer class="menu-foot">
     每題隨機生成、計時、伺服器端逐步判分(提交後才揭曉、答錯可重試但分數遞減)。
-    成績以學號記錄。回教學站:<code>../index.html</code>
+    成績以學號記錄,每章節僅可作答一次。
+    　老師:<a href="results.html" style="color:var(--amber-dim)">成績看板</a>　·　回教學站:<code>../index.html</code>
   </footer>
 </div>
+
+<script>
+  // Identity is entered ONCE here and remembered (localStorage); play.html reads it.
+  const KEY = 'vds_exam_sid';
+  const sidIn = document.getElementById('sid');
+  const idState = document.getElementById('id-state');
+  const cards = [...document.querySelectorAll('.ch-card')];
+  const chapterOf = (a) => new URL(a.href).searchParams.get('chapter');
+
+  async function refreshDone(sid) {
+    cards.forEach((c) => c.classList.remove('done'));
+    if (!sid) { idState.textContent = ''; return; }
+    try {
+      const r = await fetch('/api/my-status?studentId=' + encodeURIComponent(sid)).then((x) => x.json());
+      const done = new Set(r.completed || []);
+      cards.forEach((c) => { if (done.has(chapterOf(c))) c.classList.add('done'); });
+      idState.className = 'id-state';
+      idState.textContent = done.size ? `已完成 ${done.size} / ${cards.length} 章` : '';
+    } catch { /* server may be down in static preview — ignore */ }
+  }
+  function apply() {
+    const sid = sidIn.value.trim();
+    document.body.classList.toggle('no-id', !sid);
+    if (sid) localStorage.setItem(KEY, sid); else localStorage.removeItem(KEY);
+    refreshDone(sid);
+  }
+  cards.forEach((c) => c.addEventListener('click', (e) => {
+    if (!sidIn.value.trim()) { e.preventDefault(); idState.className = 'id-state warn'; idState.textContent = '請先輸入學號'; sidIn.focus(); }
+    else if (c.classList.contains('done')) { e.preventDefault(); }
+  }));
+  sidIn.value = localStorage.getItem(KEY) || '';
+  sidIn.addEventListener('input', apply);
+  apply();
+</script>
 </body>
 </html>

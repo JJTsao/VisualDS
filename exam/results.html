@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>成績看板 — VisualDS Exam（老師)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/style.css">
+<style>
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 44px 26px 80px; }
+  h1 { font-size: 1.5rem; font-weight: 800; color: var(--amber-bright); letter-spacing: .05em;
+    text-transform: uppercase; }
+  .bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin: 20px 0; }
+  .bar input, .bar select { background: var(--bg); border: 1px solid var(--border); color: var(--amber-bright);
+    font-family: var(--font-mono); font-size: .9rem; padding: 9px 11px; border-radius: 7px; }
+  .bar input:focus, .bar select:focus { outline: none; border-color: var(--amber); }
+  .btn { cursor: pointer; font-family: var(--font-mono); font-weight: 700; font-size: .82rem; padding: 9px 16px;
+    border-radius: 7px; border: 1px solid var(--amber-dim); background: rgba(255,176,0,.08); color: var(--amber);
+    letter-spacing: .04em; transition: all .15s; }
+  .btn:hover { background: var(--amber); color: var(--bg); }
+  .bar label { font-size: .74rem; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
+
+  .summary { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+  .scard { background: var(--bg-card); border: 1px solid var(--border); border-radius: 9px; padding: 12px 16px; }
+  .scard .k { font-size: .62rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: .08em; }
+  .scard .v { font-size: 1.5rem; font-weight: 800; color: var(--amber); margin-top: 3px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+  th, td { border-bottom: 1px solid var(--border); padding: 9px 10px; text-align: left; }
+  th { color: var(--amber-dim); font-size: .68rem; text-transform: uppercase; letter-spacing: .08em; cursor: pointer; user-select: none; }
+  th:hover { color: var(--amber); }
+  td { color: var(--text); }
+  td.num { text-align: right; font-weight: 700; color: var(--amber-bright); }
+  tr:hover td { background: rgba(255,176,0,.04); }
+  .pct-hi { color: var(--success); } .pct-lo { color: var(--error); }
+
+  .ip-tag { display: inline-block; font-size: .62rem; color: var(--warn); border: 1px solid var(--warn);
+    border-radius: 4px; padding: 0 5px; margin-left: 8px; }
+  .msg { color: var(--text-dim); font-size: .85rem; margin: 14px 0; }
+  .msg.bad { color: var(--error); }
+  .sec-label { font-size: .72rem; letter-spacing: .14em; text-transform: uppercase; color: var(--amber-dim);
+    margin: 26px 0 10px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>成績看板 · Teacher</h1>
+  <div class="bar">
+    <input id="token" type="password" placeholder="老師 token" autocomplete="off">
+    <select id="filter"><option value="">全部章節</option></select>
+    <button class="btn" id="load">載入</button>
+    <label><input type="checkbox" id="auto"> 每 10 秒自動更新</label>
+    <span class="msg" id="msg"></span>
+  </div>
+
+  <div class="summary" id="summary"></div>
+  <div class="sec-label" id="ip-label" style="display:none">進行中</div>
+  <div id="inprogress"></div>
+  <div class="sec-label">已完成成績</div>
+  <table id="tbl"><thead><tr>
+    <th data-k="finishedAt">時間</th><th data-k="studentId">學號</th><th data-k="chapter">章節</th>
+    <th data-k="percent">得分%</th><th data-k="earned">計分</th><th data-k="durationSec">用時</th><th data-k="seed">seed</th>
+  </tr></thead><tbody id="tbody"></tbody></table>
+</div>
+
+<script>
+  const CH = { 'bst-delete':'BST 刪除','bst-insert':'BST 插入','bst-traversal':'BST 走訪',
+    'dijkstra':'Dijkstra','dfs':'DFS','bubble-sort':'Bubble','selection-sort':'Selection','merge-sort':'Merge' };
+  const $ = (id) => document.getElementById(id);
+  let rows = [], sortK = 'finishedAt', sortDir = -1, timer = null;
+
+  $('token').value = localStorage.getItem('vds_exam_token') || '';
+
+  async function load() {
+    const tok = $('token').value.trim();
+    if (!tok) { msg('請輸入 token', true); return; }
+    localStorage.setItem('vds_exam_token', tok);
+    try {
+      const r = await fetch('/api/results?token=' + encodeURIComponent(tok)).then((x) => x.json());
+      if (r.error) { msg('載入失敗:' + r.error, true); return; }
+      rows = r.finished || [];
+      renderInProgress(r.inProgress || []);
+      buildFilter(); render(); msg(`已載入 ${rows.length} 筆 · ${new Date().toLocaleTimeString()}`);
+    } catch (e) { msg('連線失敗:' + e.message, true); }
+  }
+  function msg(t, bad) { const m = $('msg'); m.className = 'msg' + (bad ? ' bad' : ''); m.textContent = t; }
+
+  function buildFilter() {
+    const sel = $('filter'), cur = sel.value;
+    const chs = [...new Set(rows.map((r) => r.chapter))];
+    sel.innerHTML = '<option value="">全部章節</option>' + chs.map((c) => `<option value="${c}">${CH[c] || c}</option>`).join('');
+    sel.value = cur;
+  }
+  function fmtDur(s) { return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; }
+
+  function render() {
+    const f = $('filter').value;
+    let list = f ? rows.filter((r) => r.chapter === f) : rows.slice();
+    list.sort((a, b) => {
+      let x = a[sortK], y = b[sortK];
+      if (typeof x === 'string') return sortDir * String(x).localeCompare(String(y));
+      return sortDir * ((x ?? 0) - (y ?? 0));
+    });
+    $('tbody').innerHTML = list.map((r) => `<tr>
+      <td>${(r.finishedAt || '').replace('T', ' ').slice(0, 19)}</td>
+      <td>${r.studentId}</td><td>${CH[r.chapter] || r.chapter}</td>
+      <td class="num ${r.percent >= 60 ? 'pct-hi' : 'pct-lo'}">${r.percent}%</td>
+      <td class="num">${r.earned}/${r.total}</td><td class="num">${fmtDur(r.durationSec || 0)}</td>
+      <td>${r.seed ?? ''}</td></tr>`).join('');
+
+    const n = list.length;
+    const avg = n ? Math.round(list.reduce((s, r) => s + r.percent, 0) / n) : 0;
+    const students = new Set(list.map((r) => r.studentId)).size;
+    $('summary').innerHTML = `
+      <div class="scard"><div class="k">提交數</div><div class="v">${n}</div></div>
+      <div class="scard"><div class="k">學生數</div><div class="v">${students}</div></div>
+      <div class="scard"><div class="k">平均分</div><div class="v">${avg}%</div></div>`;
+  }
+
+  function renderInProgress(ip) {
+    $('ip-label').style.display = ip.length ? '' : 'none';
+    $('inprogress').innerHTML = ip.length ? ip.map((s) =>
+      `<span class="ip-tag">${s.studentId} · ${CH[s.chapter] || s.chapter} · ${s.progress}</span>`).join(' ') : '';
+  }
+
+  document.querySelectorAll('th[data-k]').forEach((th) => th.addEventListener('click', () => {
+    const k = th.dataset.k; if (sortK === k) sortDir *= -1; else { sortK = k; sortDir = 1; } render();
+  }));
+  $('load').addEventListener('click', load);
+  $('filter').addEventListener('change', render);
+  $('token').addEventListener('keydown', (e) => { if (e.key === 'Enter') load(); });
+  $('auto').addEventListener('change', (e) => {
+    clearInterval(timer);
+    if (e.target.checked) timer = setInterval(load, 10000);
+  });
+  if ($('token').value) load();
+</script>
+</body>
+</html>
