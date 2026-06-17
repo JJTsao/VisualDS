@@ -191,52 +191,94 @@ function canonicalMerge(left, right) {
 }
 
 function createMergeRenderer(arr, n, stage) {
-  const work = [...arr];
-  const grid = document.createElement('div');
-  grid.className = 'merge-grid';
-  grid.style.gridTemplateColumns = `auto repeat(${n}, 54px)`;
-  stage.appendChild(grid);
+  // ── Build the recursive structure from n (split rule: half = floor(len/2)) ──
+  const divideLevels = [];          // top → singletons; each = list of [lo,hi]
+  const segLevel = new Map();       // "lo-hi" → divide-level index (for the merge row)
+  let cur = [[0, n - 1]];
+  divideLevels.push(cur);
+  cur.forEach(([lo, hi]) => segLevel.set(lo + '-' + hi, 0));
+  while (cur.some(([lo, hi]) => hi > lo)) {
+    const next = [];
+    for (const [lo, hi] of cur) {
+      if (hi > lo) { const mid = lo + Math.floor((hi - lo + 1) / 2) - 1; next.push([lo, mid], [mid + 1, hi]); }
+      else next.push([lo, hi]);
+    }
+    cur = next;
+    const lvl = divideLevels.length;
+    divideLevels.push(cur);
+    cur.forEach(([lo, hi]) => { const key = lo + '-' + hi; if (!segLevel.has(key)) segLevel.set(key, lvl); });
+  }
+  const k = divideLevels.length - 1;   // last divide level = all singletons
 
-  let active = null;        // { lo, mid, hi, li, ri, placePos } of the current merge
+  // Row plan: divide rows 0..k (top half), then merge rows for levels k-1..0.
+  const rows = [];
+  for (let d = 0; d <= k; d++) rows.push({ kind: 'divide', segs: divideLevels[d], label: d === 0 ? '原始' : (d === k ? '切到剩 1 個' : 'Divide') });
+  for (let d = k - 1; d >= 0; d--) rows.push({ kind: 'merge', level: d, segs: divideLevels[d], label: d === 0 ? '合併完成' : 'Merge' });
+  const mergeRowIndex = (d) => (k + 1) + (k - 1 - d);   // row index of merge level d
+
+  // ── State ──
+  const nodeVals = new Map();        // "lo-hi" → sorted values (results known so far)
+  for (let i = 0; i < n; i++) nodeVals.set(i + '-' + i, [arr[i]]);
+  let active = null;                 // { lo, mid, hi, li, ri, placePos }
   let finished = false;
 
-  function commit(seg) {    // write a completed merge's sorted values back into work
+  function commit(seg) {
     if (!seg) return;
-    const left = work.slice(seg.lo, seg.mid + 1);
-    const right = work.slice(seg.mid + 1, seg.hi + 1);
-    const merged = canonicalMerge(left, right);
-    for (let t = 0; t < merged.length; t++) work[seg.lo + t] = merged[t];
+    const left = nodeVals.get(seg.lo + '-' + seg.mid) || [];
+    const right = nodeVals.get((seg.mid + 1) + '-' + seg.hi) || [];
+    nodeVals.set(seg.lo + '-' + seg.hi, canonicalMerge(left, right));
   }
 
-  function sourceCell(i) {
-    if (finished) return `<div class="mg-cell done">${work[i]}</div>`;
-    if (!active || i < active.lo || i > active.hi) return `<div class="mg-cell idle">${work[i]}</div>`;
-    const { lo, mid, li, ri } = active;
-    const isLeft = i <= mid;
-    const candL = lo + li, candR = mid + 1 + ri;
-    let cls = isLeft ? 'src-left' : 'src-right';
-    if (i === candL || i === candR) cls += ' cand';
-    else if ((isLeft && i < candL) || (!isLeft && i < candR)) cls += ' consumed';
-    return `<div class="mg-cell ${cls}">${work[i]}</div>`;
-  }
+  // ── DOM ──
+  const grid = document.createElement('div');
+  grid.className = 'merge-tree';
+  grid.style.gridTemplateColumns = `auto repeat(${n}, 40px)`;
+  stage.appendChild(grid);
 
-  function resultCell(i) {
-    if (finished) return `<div class="mg-rcell filled">${work[i]}</div>`;
-    if (!active || i < active.lo || i > active.hi) return `<div class="mg-rcell"></div>`;
-    const { lo, mid, hi, placePos } = active;
-    if (i < placePos) {
-      const mergedFull = canonicalMerge(work.slice(lo, mid + 1), work.slice(mid + 1, hi + 1));
-      return `<div class="mg-rcell filled">${mergedFull[i - lo]}</div>`;
-    }
-    if (i === placePos) return `<div class="mg-rcell target">?</div>`;
-    return `<div class="mg-rcell"></div>`;
+  const chip = (v, cls) => `<span class="mt-chip ${cls || ''}">${v === '' || v == null ? '' : v}</span>`;
+  function chips(values, base, childPtr) {
+    return values.map((v, t) => {
+      let c = base;
+      if (childPtr != null) { if (t < childPtr) c += ' consumed'; else if (t === childPtr) c += ' cand'; }
+      return chip(v, c);
+    }).join('');
   }
 
   function render() {
-    let html = `<div class="mg-label">來源</div>`;
-    for (let i = 0; i < n; i++) html += sourceCell(i);
-    html += `<div class="mg-label">結果</div>`;
-    for (let i = 0; i < n; i++) html += resultCell(i);
+    const aKey = active ? active.lo + '-' + active.hi : null;
+    const parentRow = active ? mergeRowIndex(segLevel.get(aKey)) : -1;
+    const childRow = parentRow - 1;
+    let html = '';
+    rows.forEach((row, rIdx) => {
+      html += `<div class="mt-rowlabel" style="grid-row:${rIdx + 1}; grid-column:1">${row.label}</div>`;
+      for (const [lo, hi] of row.segs) {
+        const key = lo + '-' + hi;
+        const span = `grid-row:${rIdx + 1}; grid-column:${lo + 2} / ${hi + 3}`;
+        // Is this segment a candidate-child of the active merge (in the row above it)?
+        let childPtr = null;
+        if (active && !finished && rIdx === childRow) {
+          if (lo === active.lo && hi === active.mid) childPtr = active.li;
+          else if (lo === active.mid + 1 && hi === active.hi) childPtr = active.ri;
+        }
+        let cls = 'mt-seg', inner = '';
+        if (row.kind === 'divide') {
+          inner = chips(arr.slice(lo, hi + 1), 'ctx', childPtr);
+          cls += ' divide';
+        } else if (rIdx === parentRow && key === aKey && !finished) {
+          // the active merge node — partial result + target slot
+          const merged = canonicalMerge(nodeVals.get(active.lo + '-' + active.mid) || [], nodeVals.get((active.mid + 1) + '-' + active.hi) || []);
+          const placed = active.placePos - lo;
+          const out = [];
+          for (let t = 0; t <= hi - lo; t++) out.push(t < placed ? chip(merged[t], 'done') : (t === placed ? chip('?', 'target') : chip('', 'empty')));
+          inner = out.join(''); cls += ' active';
+        } else if (finished || (nodeVals.has(key) && segLevel.get(key) === row.level)) {
+          inner = chips(nodeVals.get(key), 'done', childPtr); cls += ' done';
+        } else {
+          for (let t = 0; t <= hi - lo; t++) inner += chip('', 'empty'); cls += ' pending';
+        }
+        html += `<div class="${cls}" style="${span}">${inner}</div>`;
+      }
+    });
     grid.innerHTML = html;
   }
   render();
@@ -244,10 +286,8 @@ function createMergeRenderer(arr, n, stage) {
   return {
     setFocus(f) {
       if (!f || typeof f !== 'object' || !('lo' in f)) return;
-      // Entering a different segment ⇒ the previous merge is done; bake it in.
-      if (!active || active.lo !== f.lo || active.hi !== f.hi) commit(active);
-      active = f;
-      render();
+      if (!active || active.lo !== f.lo || active.hi !== f.hi) commit(active);  // bake previous merge
+      active = f; render();
     },
     setPickable() {},
     markPicked() {},
