@@ -18,10 +18,10 @@ export function bubbleSortSteps(arr) {
         key: `p${pass}-i${i}`,
         phase: `pass-${pass + 1}`,
         kind: 'classify',
-        prompt: `第 ${pass + 1} 輪，比較 arr[${i}]=${a[i]} 與 arr[${i + 1}]=${a[i + 1]}：`,
+        prompt: `第 ${pass + 1} 輪：比較右圖反白的 arr[${i}] 與 arr[${i + 1}] 兩格，需要交換嗎？`,
         options: [
-          { value: 'swap', label: `交換（${a[i]} > ${a[i + 1]}）↕` },
-          { value: 'keep', label: '不交換' },
+          { value: 'swap', label: '交換 ↕' },
+          { value: 'keep', label: '不交換（保留）' },
         ],
         answer: needSwap ? 'swap' : 'keep',
         focusNode: { leftIdx: i, rightIdx: i + 1 },
