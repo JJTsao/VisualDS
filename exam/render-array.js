@@ -145,8 +145,9 @@ export function createSortingRenderer(instance, stage, { onPickNode }) {
           const li = m.leftIdx, ri = m.rightIdx;
           [currentArr[li], currentArr[ri]] = [currentArr[ri], currentArr[li]];
         }
-        // Update sorted boundary after each full pass
-        sortedFrom = m.sortedFrom !== undefined ? m.sortedFrom - 1 : sortedFrom;
+        // One element settles at the tail only when a full PASS completes — i.e.
+        // after the pass's last comparison (leftIdx === n-2-pass), not every step.
+        if (m.leftIdx === n - 2 - m.pass) sortedFrom = n - 1 - m.pass;
       }
       if (stype === 'selection') {
         const r = m.round ?? 0;
