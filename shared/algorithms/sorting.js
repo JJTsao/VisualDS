@@ -51,14 +51,25 @@ export function selectionSortSteps(arr) {
     let minIdx = r;
     for (let j = r + 1; j < n; j++) if (a[j] < a[minIdx]) minIdx = j;
 
+    // Step ①: which cell holds the minimum of the unsorted region?
     steps.push({
-      key: `round-${r}`,
+      key: `round-${r}-min`,
       phase: `round-${r + 1}`,
       kind: 'pick-node',
-      prompt: `第 ${r + 1} 輪：在 arr[${r}..${n - 1}] 中，點選含有最小值的格子。`,
+      prompt: `第 ${r + 1} 輪：在未排序區間 arr[${r}..${n - 1}] 中，點選含有最小值的格子。`,
       answer: minIdx,
-      focusNode: { sortedBoundary: r },
-      meta: { round: r, arr: [...a], sortedBoundary: r, minIdx, minVal: a[minIdx] },
+      focusNode: { sortedBoundary: r, mode: 'min' },
+      meta: { round: r, boundary: r, phase: 'min', minIdx },
+    });
+    // Step ②: which cell does that minimum swap WITH? (the front of the unsorted region, arr[r])
+    steps.push({
+      key: `round-${r}-swap`,
+      phase: `round-${r + 1}`,
+      kind: 'pick-node',
+      prompt: `已選出最小值。它要和「哪一格」交換？（點未排序區間最前面的那一格）`,
+      answer: r,
+      focusNode: { sortedBoundary: r, mode: 'swap', minIdx },
+      meta: { round: r, boundary: r, phase: 'swap', minIdx },
     });
 
     if (r !== minIdx) [a[r], a[minIdx]] = [a[minIdx], a[r]];

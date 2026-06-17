@@ -150,6 +150,11 @@
 .arr-cell.arr-picked     .arr-val { color: #40d0ff; }
 .arr-cell.arr-clickable  { cursor: pointer; }
 .arr-cell.arr-clickable:hover { border-color: var(--amber); background: rgba(255,199,64,.1); }
+.arr-cell.arr-found-min  { border-color: var(--amber-bright); background: rgba(255,199,64,.14);
+  box-shadow: 0 0 14px rgba(255,199,64,.45); }
+.arr-cell.arr-found-min  .arr-val { color: var(--amber-bright); }
+.arr-cell.arr-found-min::after { content: 'min'; position: absolute; top: 3px; right: 4px;
+  font-size: .5rem; color: var(--amber-bright); letter-spacing: .04em; }
 
 /* Merge-sort context row */
 .arr-merge-row {

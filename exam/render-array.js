@@ -23,7 +23,11 @@ export function makeSortingUI(type) {
     },
     hint(step) {
       if (type === 'bubble')    return '提示：arr[i] > arr[i+1] 時才需要交換。';
-      if (type === 'selection') return '提示：在未排序區間裡找到最小值所在格子。';
+      if (type === 'selection') {
+        if (step && step.meta && step.meta.phase === 'swap')
+          return '提示：最小值要和「未排序區間最前面的那一格」交換 —— 也就是這一輪的起點 arr[起點]。';
+        return '提示：在未排序區間裡找到最小值所在的格子。';
+      }
       if (type === 'merge')     return '提示：比較「來源」列反白的左右兩格，較小者先放入結果（平手取左）。';
       return '再試一次。';
     },
@@ -85,6 +89,7 @@ export function createSortingRenderer(instance, stage, { onPickNode }) {
   let pickable = false;
   let picked = null;
   let mergeContext = null;   // { leftArr, rightArr, li, ri } for merge-sort
+  let selMin = null;         // selection-sort: the chosen minimum cell (kept through the swap step)
 
   function refresh() {
     for (let i = 0; i < n; i++) {
@@ -107,6 +112,7 @@ export function createSortingRenderer(instance, stage, { onPickNode }) {
         if (i >= boundary) cell.classList.add('arr-clickable');
       }
       if (i === picked) cell.classList.add('arr-picked');
+      if (stype === 'selection' && selMin !== null && i === selMin) cell.classList.add('arr-found-min');
     }
 
     // Merge context
@@ -128,11 +134,10 @@ export function createSortingRenderer(instance, stage, { onPickNode }) {
   return {
     setFocus(focusNode) {
       focus = focusNode;
-      if (stype === 'merge' && focusNode && 'leftArr' in focusNode) {
-        mergeContext = focusNode;
-      } else {
-        mergeContext = null;
-      }
+      mergeContext = null;
+      // Selection: keep the chosen minimum highlighted through the swap step;
+      // clear it at the start of a new round's "find min" step.
+      if (stype === 'selection') selMin = (focusNode && focusNode.minIdx != null) ? focusNode.minIdx : null;
       refresh();
     },
     setPickable(b) {
@@ -153,16 +158,18 @@ export function createSortingRenderer(instance, stage, { onPickNode }) {
         if (m.leftIdx === n - 2 - m.pass) sortedFrom = n - 1 - m.pass;
       }
       if (stype === 'selection') {
-        const r = m.round ?? 0;
-        const minIdx = expected;  // the picked index
-        if (r !== minIdx) {
-          [currentArr[r], currentArr[minIdx]] = [currentArr[minIdx], currentArr[r]];
+        const r = m.boundary ?? m.round ?? 0;
+        if (m.phase === 'swap') {
+          const minIdx = m.minIdx;
+          if (r !== minIdx) [currentArr[r], currentArr[minIdx]] = [currentArr[minIdx], currentArr[r]];
+          sortedUpTo = r + 1;
+          selMin = null;
+        } else {
+          selMin = expected;   // reveal the chosen min; the swap happens on the next step
         }
-        sortedUpTo = r + 1;
       }
-      // merge-sort: no in-place update (just show comparison context)
       picked = null;
-      focus = null;
+      if (!(stype === 'selection' && m.phase === 'min')) focus = null;  // keep min highlight context
       mergeContext = null;
       refresh();
     },
