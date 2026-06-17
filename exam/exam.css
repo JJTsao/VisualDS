@@ -167,6 +167,26 @@
 .mctx-label { font-size: .62rem; color: var(--text-muted); padding: 0 2px; }
 .mctx-sep   { font-size: .8rem; color: var(--text-muted); padding: 0 4px; }
 
+/* Merge-sort: position-aligned 來源 / 結果 grid */
+.merge-grid { display: grid; justify-content: center; align-content: center;
+  column-gap: 8px; row-gap: 16px; padding: 26px 18px; }
+.mg-label { font-size: .64rem; color: var(--text-muted); align-self: center; text-align: right; padding-right: 8px; }
+.mg-cell, .mg-rcell { width: 54px; height: 48px; border-radius: 7px; display: grid; place-items: center;
+  font-family: var(--font-mono); font-weight: 700; font-size: 1rem;
+  border: 2px solid var(--border-mid); background: var(--bg-panel); color: var(--text-dim); transition: all .16s; }
+.mg-cell.idle      { opacity: .45; }
+.mg-cell.src-left  { border-color: var(--amber-dim); background: rgba(255,176,0,.05); }
+.mg-cell.src-right { border-color: #4a86c9; background: rgba(74,134,201,.08); color: #9ec2e8; }
+.mg-cell.cand      { border-color: var(--amber-bright); color: var(--amber-bright);
+  background: rgba(255,199,64,.16); box-shadow: 0 0 13px rgba(255,199,64,.45); }
+.mg-cell.consumed  { opacity: .25; text-decoration: line-through; }
+.mg-cell.done      { border-color: var(--success); color: var(--success); background: rgba(0,200,122,.08); }
+.mg-rcell          { border-style: dashed; color: var(--success); }
+.mg-rcell.filled   { border-style: solid; border-color: var(--success); background: rgba(0,200,122,.08); }
+.mg-rcell.target   { border-style: solid; border-color: var(--amber-bright); color: var(--amber-bright);
+  box-shadow: 0 0 12px rgba(255,199,64,.4); }
+.mg-rcell:empty    { opacity: .3; }
+
 /* ── BST traversal visit-order badge ─────────────────────────────────────── */
 .visit-order-badge {
   position: absolute; top: -10px; left: 50%; transform: translateX(-50%);

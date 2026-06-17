@@ -74,49 +74,52 @@ export function selectionSortSteps(arr) {
 
 export function mergeSortSteps(arr) {
   const steps = [];
+  const work = [...arr];   // merges write the sorted segment back in place (bottom-up)
   let mergeId = 0;
 
-  function mergeHalves(left, right) {
+  // Sort work[lo..hi] in place, emitting one decision step per merged position
+  // (only while BOTH halves still have elements — the tail needs no decision).
+  function rec(lo, hi) {
+    if (lo >= hi) return;
+    const half = Math.floor((hi - lo + 1) / 2);
+    const mid = lo + half - 1;          // last index of the left half
+    rec(lo, mid);
+    rec(mid + 1, hi);
+
+    const left = work.slice(lo, mid + 1);
+    const right = work.slice(mid + 1, hi + 1);
     const id = mergeId++;
-    let li = 0, ri = 0;
+    let li = 0, ri = 0, placePos = lo;
 
     while (li < left.length && ri < right.length) {
-      const takeLeft = left[li] <= right[ri]; // stable
+      const takeLeft = left[li] <= right[ri];   // stable: left wins ties
       steps.push({
-        key: `m${id}-pos${li + ri}`,
+        key: `m${id}-pos${placePos}`,
         phase: `merge-${id + 1}`,
         kind: 'classify',
-        prompt: `合併 [${left.join(',')}] 和 [${right.join(',')}]：比較 ${left[li]}（左）vs ${right[ri]}（右），取哪邊？`,
+        prompt: `合併 arr[${lo}..${hi}]：比較「來源」列反白的左右兩格，較小者放進「結果」列的待填格（位置 ${placePos}）。取左還是取右？`,
         options: [
-          { value: 'left',  label: `取左 (${left[li]})` },
-          { value: 'right', label: `取右 (${right[ri]})` },
+          { value: 'left',  label: '取左' },
+          { value: 'right', label: '取右' },
         ],
         answer: takeLeft ? 'left' : 'right',
-        focusNode: { mergeId: id, leftArr: [...left], rightArr: [...right], li, ri },
-        meta: { mergeId: id, li, ri, leftArr: [...left], rightArr: [...right] },
+        focusNode: { lo, mid, hi, li, ri, placePos },
+        meta: { lo, mid, hi, li, ri, placePos },
       });
       if (takeLeft) li++; else ri++;
+      placePos++;
     }
 
-    // Perform actual merge to return sorted result
-    const result = [];
+    // Write the fully merged segment back into work (so the next, larger merge
+    // reads the already-sorted sub-segments).
+    const merged = [];
     let l2 = 0, r2 = 0;
-    while (l2 < left.length && r2 < right.length) {
-      if (left[l2] <= right[r2]) result.push(left[l2++]); else result.push(right[r2++]);
-    }
-    while (l2 < left.length) result.push(left[l2++]);
-    while (r2 < right.length) result.push(right[r2++]);
-    return result;
+    while (l2 < left.length && r2 < right.length) merged.push(left[l2] <= right[r2] ? left[l2++] : right[r2++]);
+    while (l2 < left.length) merged.push(left[l2++]);
+    while (r2 < right.length) merged.push(right[r2++]);
+    for (let t = 0; t < merged.length; t++) work[lo + t] = merged[t];
   }
 
-  function sortRec(a) {
-    if (a.length <= 1) return [...a];
-    const mid = Math.floor(a.length / 2);
-    const left  = sortRec(a.slice(0, mid));
-    const right = sortRec(a.slice(mid));
-    return mergeHalves(left, right);
-  }
-
-  const sorted = sortRec([...arr]);
-  return { steps, sorted };
+  rec(0, arr.length - 1);
+  return { steps, sorted: work };
 }

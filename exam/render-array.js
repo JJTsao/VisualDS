@@ -10,7 +10,7 @@ const TITLES = {
 const CANVAS_LABELS = {
   bubble:    '陣列狀態 — Bubble Sort（橘色 = 正在比較；綠色 = 已就位）',
   selection: '陣列狀態 — Selection Sort（點選每輪最小值的格子；綠色 = 已就位）',
-  merge:     '陣列狀態 — Merge Sort（目前正在合併的兩個子陣列）',
+  merge:     '陣列狀態 — Merge Sort（上排=待合併的兩半段，下排=合併結果；橘色=正在比較的兩格）',
 };
 
 export function makeSortingUI(type) {
@@ -24,7 +24,7 @@ export function makeSortingUI(type) {
     hint(step) {
       if (type === 'bubble')    return '提示：arr[i] > arr[i+1] 時才需要交換。';
       if (type === 'selection') return '提示：在未排序區間裡找到最小值所在格子。';
-      if (type === 'merge')     return '提示：比較兩側指標所指的元素，取較小者（平手取左）。';
+      if (type === 'merge')     return '提示：比較「來源」列反白的左右兩格，較小者先放入結果（平手取左）。';
       return '再試一次。';
     },
   };
@@ -36,6 +36,9 @@ export function createSortingRenderer(instance, stage, { onPickNode }) {
   const arr = instance.arr;
   const n = arr.length;
   const stype = instance.type;
+
+  // Merge sort gets a dedicated position-aligned renderer (source + result rows).
+  if (stype === 'merge') return createMergeRenderer(arr, n, stage);
 
   // ── Build DOM ────────────────────────────────────────────────────────────────
   const wrapper = document.createElement('div');
@@ -169,5 +172,86 @@ export function createSortingRenderer(instance, stage, { onPickNode }) {
       if (stype === 'selection') sortedUpTo = n;
       refresh();
     },
+  };
+}
+
+// ── Merge-sort renderer ─────────────────────────────────────────────────────────
+// Two aligned rows over the original positions 0..n-1:
+//   「來源」 — the two sorted halves of the active segment [lo..hi] (left | right),
+//             with the two compared cells (li / ri pointers) highlighted.
+//   「結果」 — the merged output accumulating left-to-right; the next slot to fill
+//             is highlighted. When a merge finishes, its result is written back
+//             into `work`, becoming the input to the next (larger) merge.
+function canonicalMerge(left, right) {
+  const out = []; let l = 0, r = 0;
+  while (l < left.length && r < right.length) out.push(left[l] <= right[r] ? left[l++] : right[r++]);
+  while (l < left.length) out.push(left[l++]);
+  while (r < right.length) out.push(right[r++]);
+  return out;
+}
+
+function createMergeRenderer(arr, n, stage) {
+  const work = [...arr];
+  const grid = document.createElement('div');
+  grid.className = 'merge-grid';
+  grid.style.gridTemplateColumns = `auto repeat(${n}, 54px)`;
+  stage.appendChild(grid);
+
+  let active = null;        // { lo, mid, hi, li, ri, placePos } of the current merge
+  let finished = false;
+
+  function commit(seg) {    // write a completed merge's sorted values back into work
+    if (!seg) return;
+    const left = work.slice(seg.lo, seg.mid + 1);
+    const right = work.slice(seg.mid + 1, seg.hi + 1);
+    const merged = canonicalMerge(left, right);
+    for (let t = 0; t < merged.length; t++) work[seg.lo + t] = merged[t];
+  }
+
+  function sourceCell(i) {
+    if (finished) return `<div class="mg-cell done">${work[i]}</div>`;
+    if (!active || i < active.lo || i > active.hi) return `<div class="mg-cell idle">${work[i]}</div>`;
+    const { lo, mid, li, ri } = active;
+    const isLeft = i <= mid;
+    const candL = lo + li, candR = mid + 1 + ri;
+    let cls = isLeft ? 'src-left' : 'src-right';
+    if (i === candL || i === candR) cls += ' cand';
+    else if ((isLeft && i < candL) || (!isLeft && i < candR)) cls += ' consumed';
+    return `<div class="mg-cell ${cls}">${work[i]}</div>`;
+  }
+
+  function resultCell(i) {
+    if (finished) return `<div class="mg-rcell filled">${work[i]}</div>`;
+    if (!active || i < active.lo || i > active.hi) return `<div class="mg-rcell"></div>`;
+    const { lo, mid, hi, placePos } = active;
+    if (i < placePos) {
+      const mergedFull = canonicalMerge(work.slice(lo, mid + 1), work.slice(mid + 1, hi + 1));
+      return `<div class="mg-rcell filled">${mergedFull[i - lo]}</div>`;
+    }
+    if (i === placePos) return `<div class="mg-rcell target">?</div>`;
+    return `<div class="mg-rcell"></div>`;
+  }
+
+  function render() {
+    let html = `<div class="mg-label">來源</div>`;
+    for (let i = 0; i < n; i++) html += sourceCell(i);
+    html += `<div class="mg-label">結果</div>`;
+    for (let i = 0; i < n; i++) html += resultCell(i);
+    grid.innerHTML = html;
+  }
+  render();
+
+  return {
+    setFocus(f) {
+      if (!f || typeof f !== 'object' || !('lo' in f)) return;
+      // Entering a different segment ⇒ the previous merge is done; bake it in.
+      if (!active || active.lo !== f.lo || active.hi !== f.hi) commit(active);
+      active = f;
+      render();
+    },
+    setPickable() {},
+    markPicked() {},
+    onSettle() { /* visuals derive from each step's focusNode via setFocus */ },
+    finishView() { commit(active); active = null; finished = true; render(); },
   };
 }
