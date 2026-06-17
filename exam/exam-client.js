@@ -156,6 +156,7 @@ export async function runExam({ chapter, studentId, stage, els, renderModule }) 
   }
 
   function finish(r) {
+    window.__examDone = true;   // back-to-menu no longer needs to warn
     renderer.finishView();
     const secs = S.startMs ? Math.floor((Date.now() - S.startMs) / 1000) : 0;
     els.stepCard.innerHTML = `

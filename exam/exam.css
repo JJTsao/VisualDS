@@ -10,6 +10,10 @@
 .exam-left  { border-right: 1px solid var(--border); display: flex; flex-direction: column; gap: 18px; }
 .exam-right { position: relative; display: flex; flex-direction: column; gap: 14px; }
 
+.back-btn { display: inline-block; align-self: flex-start; text-decoration: none; font-size: .74rem;
+  color: var(--text-muted); border: 1px solid var(--border); border-radius: 6px; padding: 5px 10px;
+  margin-bottom: 4px; transition: all .15s; }
+.back-btn:hover { color: var(--amber); border-color: var(--amber-dim); }
 .exam-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 .exam-title { font-size: 1.15rem; font-weight: 800; color: var(--amber-bright);
   letter-spacing: .04em; text-transform: uppercase; }

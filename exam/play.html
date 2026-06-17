@@ -13,6 +13,7 @@
 <body>
 <div class="exam-wrapper">
   <div class="exam-col exam-left">
+    <a class="back-btn" id="back-btn" href="index.html">‹ 返回章節選單</a>
     <div class="exam-head">
       <span class="exam-title" id="exam-title">過程式測驗</span>
       <span class="exam-sub" id="seed-tag"></span>
@@ -73,6 +74,12 @@ if (!cfg) {
   document.getElementById('canvas-label').textContent = renderModule.chapterUI.canvasLabel;
   runExam({ chapter, studentId, stage, els, renderModule });
 }
+
+// Back-to-menu: warn before abandoning an in-progress (un-submitted) attempt.
+document.getElementById('back-btn').addEventListener('click', (e) => {
+  if (window.__examDone) return;   // already submitted → safe to leave
+  if (!confirm('離開將放棄這一關目前的作答進度(未提交的不會記錄)。確定回選單?')) e.preventDefault();
+});
 </script>
 </body>
 </html>
