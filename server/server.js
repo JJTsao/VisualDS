@@ -236,8 +236,10 @@ async function apiResults(req, res, url) {
 
 // ── static files ─────────────────────────────────────────────────────────────
 async function serveStatic(req, res, url) {
+  // Root → redirect to /exam/ (NOT serve the menu at '/', or the menu's relative
+  // links like play.html would resolve to /play.html instead of /exam/play.html).
+  if (url.pathname === '/') { res.writeHead(302, { Location: '/exam/' }); return res.end(); }
   let rel = decodeURIComponent(url.pathname);
-  if (rel === '/') rel = '/exam/index.html';        // root → chapter menu
   if (rel.endsWith('/')) rel += 'index.html';        // e.g. /exam/ → /exam/index.html
   const filePath = path.join(ROOT, rel);
   if (!filePath.startsWith(ROOT)) { res.writeHead(403); return res.end('forbidden'); }   // no traversal
