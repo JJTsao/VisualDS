@@ -20,6 +20,8 @@
     border-radius: 7px; border: 1px solid var(--amber-dim); background: rgba(255,176,0,.08); color: var(--amber);
     letter-spacing: .04em; transition: all .15s; }
   .btn:hover { background: var(--amber); color: var(--bg); }
+  .btn.danger { border-color: var(--error); color: var(--error); background: rgba(255,80,80,.08); }
+  .btn.danger:hover { background: var(--error); color: var(--bg); }
   .bar label { font-size: .74rem; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
 
   .cfg-panel { background: var(--bg-card); border: 1px solid var(--border); border-radius: 9px;
@@ -109,6 +111,10 @@
       <div class="cfg-set-title">各章配分（總分 = Σ 配分×完成比例，封頂 100）</div>
       <div id="chap-points" class="pts-grid"></div>
       <div class="pts-sum" id="pts-sum"></div>
+    </div>
+    <div class="cfg-row" style="margin-top:18px; border-top:1px solid var(--border); padding-top:14px">
+      <button class="btn danger" id="reset-data">🗑 清空所有成績（測試後歸零）</button>
+      <span class="msg" id="reset-msg"></span>
     </div>
   </details>
 
@@ -285,6 +291,27 @@
     }
   }
   $('set-cfg').addEventListener('click', setCfg);
+
+  async function resetData() {
+    const tok = $('token').value.trim();
+    const m = $('reset-msg');
+    if (!tok) { m.className = 'msg bad'; m.textContent = '請先輸入 token'; return; }
+    const okToGo = confirm(
+      '⚠ 確定要「清空所有成績」嗎?\n\n' +
+      '將刪除:所有已完成成績、進行中的作答、各生考試開始時間、防重做紀錄。\n' +
+      '會保留:考試設定(階段 / 題組 / 配分 / 時長)。\n\n' +
+      '注意:Google Sheet 上的資料「不會」被刪除,需自行到試算表清除。\n\n' +
+      '此動作無法復原。');
+    if (!okToGo) return;
+    m.className = 'msg'; m.textContent = '清除中…';
+    try {
+      const r = await fetch('/api/reset', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: tok }) }).then((x) => x.json());
+      if (r.error) { m.className = 'msg bad'; m.textContent = '清除失敗:' + r.error; return; }
+      m.className = 'msg'; m.textContent = '已清空成績(設定保留)。';
+      load();   // refresh → dashboard now empty
+    } catch (e) { m.className = 'msg bad'; m.textContent = '連線失敗:' + e.message; }
+  }
+  $('reset-data').addEventListener('click', resetData);
 
   $('load').addEventListener('click', load);
   $('filter').addEventListener('change', render);

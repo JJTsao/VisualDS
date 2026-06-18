@@ -96,6 +96,17 @@ try {
   ok(res.examChapters.join() === 'dijkstra', 'exam set re-scoped to dijkstra');
   ok(m.MX_A?.total === 80, 'A total now 80 (dijkstra only)');
   ok(!m.MX_B, 'B drops out of matrix (no dijkstra record)');
+
+  // ── reset: wipes grades, keeps config ──
+  const badReset = await post('/api/reset', { token: 'WRONG' });
+  ok(badReset.error === 'forbidden', 'reset rejects bad token');
+  const okReset = await post('/api/reset', { token: TOKEN });
+  ok(okReset.cleared === true, 'reset clears with valid token');
+  res = await get('/api/results?token=' + TOKEN);
+  ok((res.finished || []).length === 0, 'reset → finished empty');
+  ok((res.students || []).length === 0, 'reset → matrix empty');
+  ok(res.chapterPoints?.['dijkstra'] === 80, 'reset KEEPS weights');
+  ok(res.examChapters?.join() === 'dijkstra', 'reset KEEPS exam set');
 } finally {
   child.kill();
   await sleep(150);

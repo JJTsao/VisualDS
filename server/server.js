@@ -365,6 +365,22 @@ async function apiResults(req, res, url) {
   });
 }
 
+// Teacher-only: wipe all grades + per-student exam timers + in-memory indexes,
+// but KEEP the exam config (phase / chapter sets / weights / minutes). Lets the
+// teacher clear test submissions before the real exam without touching settings.
+// NOTE: does NOT touch the Google Sheet — those rows must be removed there manually.
+async function apiReset(req, res) {
+  const body = await readBody(req);
+  if (body.token !== TEACHER_TOKEN) return sendJSON(res, 403, { error: 'forbidden' });
+  if (!existsSync(DATA)) await mkdir(DATA, { recursive: true });
+  await writeFile(RESULTS, '[]');
+  await writeFile(EXAMS_FILE, '{}');
+  doneByStudent.clear();    // anti-retake index → fresh
+  examStartAt.clear();      // per-student exam start times → fresh
+  sessions.clear();         // drop any in-progress sessions
+  sendJSON(res, 200, { ok: true, cleared: true });
+}
+
 // ── static files ─────────────────────────────────────────────────────────────
 async function serveStatic(req, res, url) {
   // Root → redirect to /exam/ (NOT serve the menu at '/', or the menu's relative
@@ -397,6 +413,7 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === '/api/exam-start' && req.method === 'POST') return await apiExamStart(req, res);
     if (url.pathname === '/api/config') return await apiConfig(req, res, url);
     if (url.pathname === '/api/results' && req.method === 'GET') return await apiResults(req, res, url);
+    if (url.pathname === '/api/reset' && req.method === 'POST') return await apiReset(req, res);
     if (url.pathname.startsWith('/api/')) return sendJSON(res, 404, { error: 'no such endpoint' });
     return await serveStatic(req, res, url);
   } catch (err) {
