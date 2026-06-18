@@ -42,6 +42,12 @@ node server/server.js
 **身分 / 防重做**:學號在 `exam/index.html` 一次輸入(localStorage 記住),各章節沿用。
 每個學號每章節**只能作答一次** —— `/api/start` 會擋已完成的重做(開機從 `results.json` 重建索引)。
 
+**計時考試(選用)**:預設不限時(`examMinutes=0`)。老師在**看板 `results.html`** 填「考試時長(分鐘)」
+即時生效(`POST /api/config`,token)。學生在選單按「開始考試」才開始倒數(`/api/exam-start`,每生各自計時)。
+伺服器端強制:逾時後 `/api/start`、`/api/step` 一律擋下,改前端無效。設定與各生開始時間存
+`server/data/config.json` / `exams.json`(重啟不歸零)。亦可用環境變數 `EXAM_MINUTES` 設預設值。
+端點:`GET /api/exam-info?studentId=`、`POST /api/exam-start`、`GET|POST /api/config`。
+
 ## 防弊模型(首版)
 
 - **分數在伺服器,不可竄改**;**答案逐步揭曉**(學生提交後才給該步答案,且該步分數已定)。

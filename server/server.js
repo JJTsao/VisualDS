@@ -76,6 +76,29 @@ async function loadCompleted() {
   } catch { /* ignore */ }
 }
 
+// ── Timed-exam state ─────────────────────────────────────────────────────────
+// examMinutes: 0 = no limit (default). Teacher sets it at runtime via /api/config.
+// examStartAt: per-student exam start time; the deadline = start + minutes. Both
+// persisted so a server restart doesn't reset the clock mid-exam.
+const CONFIG_FILE = path.join(DATA, 'config.json');
+const EXAMS_FILE  = path.join(DATA, 'exams.json');
+let examMinutes = Number(process.env.EXAM_MINUTES) || 0;
+const examStartAt = new Map();   // studentId → epoch ms
+
+function examEndsAt(sid) { const s = examStartAt.get(sid); return s ? s + examMinutes * 60000 : null; }
+function examExpired(sid) { if (examMinutes <= 0) return false; const e = examEndsAt(sid); return e != null && Date.now() > e; }
+
+async function loadTimer() {
+  if (existsSync(CONFIG_FILE)) { try { const c = JSON.parse(await readFile(CONFIG_FILE, 'utf8')); if (Number.isFinite(c.examMinutes)) examMinutes = c.examMinutes; } catch { /* ignore */ } }
+  if (existsSync(EXAMS_FILE))  { try { const e = JSON.parse(await readFile(EXAMS_FILE, 'utf8')); for (const [k, v] of Object.entries(e)) examStartAt.set(k, v); } catch { /* ignore */ } }
+}
+async function saveConfig() { if (!existsSync(DATA)) await mkdir(DATA, { recursive: true }); await writeFile(CONFIG_FILE, JSON.stringify({ examMinutes })); }
+async function saveExams()  { if (!existsSync(DATA)) await mkdir(DATA, { recursive: true }); await writeFile(EXAMS_FILE, JSON.stringify(Object.fromEntries(examStartAt))); }
+function examInfo(sid) {
+  const startedAt = sid && examStartAt.has(sid) ? examStartAt.get(sid) : null;
+  return { minutes: examMinutes, startedAt, endsAt: startedAt ? startedAt + examMinutes * 60000 : null, now: Date.now() };
+}
+
 // A non-crypto seed source that avoids Math.random determinism concerns for a
 // classroom: mix time + a counter. (Reproducible runs can pass an explicit seed.)
 let seedSeq = 1;
@@ -141,6 +164,10 @@ async function apiStart(req, res) {
   const mod = CHAPTERS[chapter];
   if (!mod) return sendJSON(res, 400, { error: 'unknown chapter' });
   if (!studentId) return sendJSON(res, 400, { error: 'studentId required' });
+  if (examMinutes > 0) {
+    if (!examStartAt.has(studentId)) return sendJSON(res, 409, { error: 'exam-not-started', message: '請先在選單按「開始考試」。' });
+    if (examExpired(studentId)) return sendJSON(res, 409, { error: 'exam-over', message: '考試時間已結束。' });
+  }
   if (doneByStudent.get(studentId)?.has(chapter)) {
     return sendJSON(res, 409, { error: 'already-done', message: '你已完成此章節,不可重做。' });
   }
@@ -165,6 +192,7 @@ async function apiStep(req, res) {
   const sess = sessions.get(String(body.sessionId || ''));
   if (!sess) return sendJSON(res, 404, { error: 'no such session' });
   if (sess.done) return sendJSON(res, 409, { error: 'session finished' });
+  if (examMinutes > 0 && examExpired(sess.studentId)) return sendJSON(res, 409, { error: 'exam-over', message: '考試時間已結束。' });
   if (Number(body.stepIndex) !== sess.cursor) {
     return sendJSON(res, 409, { error: 'out of order', expectedStepIndex: sess.cursor });
   }
@@ -216,6 +244,33 @@ async function apiStep(req, res) {
   sendJSON(res, 200, payload);
 }
 
+// Exam-timer: read current minutes + this student's start/deadline (drives countdown).
+function apiExamInfo(res, url) {
+  sendJSON(res, 200, examInfo((url.searchParams.get('studentId') || '').trim()));
+}
+// Student presses "開始考試" — records their start time once (idempotent).
+async function apiExamStart(req, res) {
+  const body = await readBody(req);
+  const sid = String(body.studentId || '').trim();
+  if (!sid) return sendJSON(res, 400, { error: 'studentId required' });
+  if (examMinutes > 0 && !examStartAt.has(sid)) { examStartAt.set(sid, Date.now()); await saveExams(); }
+  sendJSON(res, 200, examInfo(sid));
+}
+// Teacher sets the exam duration at runtime (token-protected, persisted).
+async function apiConfig(req, res, url) {
+  if (req.method === 'GET') {
+    if (url.searchParams.get('token') !== TEACHER_TOKEN) return sendJSON(res, 403, { error: 'forbidden' });
+    return sendJSON(res, 200, { examMinutes });
+  }
+  const body = await readBody(req);
+  if (body.token !== TEACHER_TOKEN) return sendJSON(res, 403, { error: 'forbidden' });
+  const m = Number(body.minutes);
+  if (!Number.isFinite(m) || m < 0) return sendJSON(res, 400, { error: 'bad minutes' });
+  examMinutes = Math.round(m);
+  await saveConfig();
+  sendJSON(res, 200, { examMinutes });
+}
+
 // Which chapters has this student already finished? (drives the menu's ✓ marks)
 function apiMyStatus(res, url) {
   const sid = (url.searchParams.get('studentId') || '').trim();
@@ -258,6 +313,9 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === '/api/start' && req.method === 'POST') return await apiStart(req, res);
     if (url.pathname === '/api/step' && req.method === 'POST') return await apiStep(req, res);
     if (url.pathname === '/api/my-status' && req.method === 'GET') return apiMyStatus(res, url);
+    if (url.pathname === '/api/exam-info' && req.method === 'GET') return apiExamInfo(res, url);
+    if (url.pathname === '/api/exam-start' && req.method === 'POST') return await apiExamStart(req, res);
+    if (url.pathname === '/api/config') return await apiConfig(req, res, url);
     if (url.pathname === '/api/results' && req.method === 'GET') return await apiResults(req, res, url);
     if (url.pathname.startsWith('/api/')) return sendJSON(res, 404, { error: 'no such endpoint' });
     return await serveStatic(req, res, url);
@@ -267,6 +325,7 @@ const server = http.createServer(async (req, res) => {
 });
 
 await loadCompleted();   // rebuild "already finished" index from results.json
+await loadTimer();       // restore exam duration + per-student start times
 
 server.listen(PORT, HOST, () => {
   console.log(`\n  VisualDS Exam Server`);

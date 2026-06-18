@@ -23,6 +23,7 @@
       <div class="stat-box"><div class="k">進度</div><div class="v" id="stat-progress">0 / 0</div></div>
       <div class="stat-box"><div class="k">計時</div><div class="v" id="stat-timer">0:00</div></div>
     </div>
+    <div class="exam-cd" id="exam-cd" style="display:none"></div>
     <div class="info-call" id="info"></div>
     <div class="step-card" id="step-card"></div>
   </div>
@@ -73,6 +74,35 @@ if (!cfg) {
   document.getElementById('exam-title').textContent = renderModule.chapterUI.title;
   document.getElementById('canvas-label').textContent = renderModule.chapterUI.canvasLabel;
   runExam({ chapter, studentId, stage, els, renderModule });
+  setupExamCountdown(studentId);
+}
+
+// Exam-wide countdown (only when a time limit is set + the student has started).
+async function setupExamCountdown(studentId) {
+  const cd = document.getElementById('exam-cd');
+  let info; try { info = await fetch('/api/exam-info?studentId=' + encodeURIComponent(studentId)).then((r) => r.json()); }
+  catch { return; }
+  if (!info.minutes || !info.endsAt) return;   // no limit, or exam not started
+  const skew = info.now - Date.now();
+  cd.style.display = '';
+  let t;
+  const upd = () => {
+    const rem = info.endsAt - (Date.now() + skew);
+    if (rem <= 0) {
+      clearInterval(t);
+      cd.classList.add('over'); cd.textContent = '⏰ 考試時間已結束';
+      if (!window.__examDone) {
+        document.getElementById('step-card').innerHTML =
+          `<div class="final-card"><div class="feedback bad">⏰ 考試時間已結束。本關未提交完成的部分不計分。</div>
+           <div class="btn-row" style="margin-top:14px"><a class="ex-btn primary" href="index.html" style="text-decoration:none;text-align:center;display:block">← 返回章節選單</a></div></div>`;
+      }
+      return;
+    }
+    const s = Math.floor(rem / 1000);
+    cd.classList.toggle('low', s <= 60);
+    cd.textContent = `⏱ 考試剩餘 ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+  };
+  upd(); t = setInterval(upd, 1000);
 }
 
 // Back-to-menu: warn before abandoning an in-progress (un-submitted) attempt.

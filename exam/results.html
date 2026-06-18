@@ -55,6 +55,12 @@
     <span class="msg" id="msg"></span>
   </div>
 
+  <div class="bar">
+    <label>考試時長（分鐘，0 = 不限時）：<input id="exam-min" type="number" min="0" step="1" style="width:90px"></label>
+    <button class="btn" id="set-min">套用時長</button>
+    <span class="msg" id="cfg-msg"></span>
+  </div>
+
   <div class="summary" id="summary"></div>
   <div class="sec-label" id="ip-label" style="display:none">進行中</div>
   <div id="inprogress"></div>
@@ -82,7 +88,7 @@
       if (r.error) { msg('載入失敗:' + r.error, true); return; }
       rows = r.finished || [];
       renderInProgress(r.inProgress || []);
-      buildFilter(); render(); msg(`已載入 ${rows.length} 筆 · ${new Date().toLocaleTimeString()}`);
+      buildFilter(); render(); loadConfig(); msg(`已載入 ${rows.length} 筆 · ${new Date().toLocaleTimeString()}`);
     } catch (e) { msg('連線失敗:' + e.message, true); }
   }
   function msg(t, bad) { const m = $('msg'); m.className = 'msg' + (bad ? ' bad' : ''); m.textContent = t; }
@@ -128,6 +134,23 @@
   document.querySelectorAll('th[data-k]').forEach((th) => th.addEventListener('click', () => {
     const k = th.dataset.k; if (sortK === k) sortDir *= -1; else { sortK = k; sortDir = 1; } render();
   }));
+  async function loadConfig() {
+    const tok = $('token').value.trim(); if (!tok) return;
+    try { const c = await fetch('/api/config?token=' + encodeURIComponent(tok)).then((x) => x.json());
+      if (Number.isFinite(c.examMinutes) && document.activeElement !== $('exam-min')) $('exam-min').value = c.examMinutes;
+    } catch { /* ignore */ }
+  }
+  async function setMin() {
+    const tok = $('token').value.trim(); if (!tok) { $('cfg-msg').textContent = '請先輸入 token'; return; }
+    const minutes = Number($('exam-min').value);
+    const r = await fetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ minutes, token: tok }) }).then((x) => x.json());
+    const m = $('cfg-msg');
+    if (r.error) { m.className = 'msg bad'; m.textContent = '設定失敗：' + r.error; }
+    else { m.className = 'msg'; m.textContent = r.examMinutes > 0 ? `已設定考試時長 ${r.examMinutes} 分鐘` : '已設為不限時'; }
+  }
+  $('set-min').addEventListener('click', setMin);
+  $('exam-min').addEventListener('keydown', (e) => { if (e.key === 'Enter') setMin(); });
+
   $('load').addEventListener('click', load);
   $('filter').addEventListener('change', render);
   $('token').addEventListener('keydown', (e) => { if (e.key === 'Enter') load(); });

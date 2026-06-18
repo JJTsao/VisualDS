@@ -28,6 +28,18 @@
   .id-state { font-size: .76rem; color: var(--text-muted); }
   .id-state.warn { color: var(--warn); }
 
+  .exam-bar { margin-top: 14px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    animation: fadeSlideUp .5s both; }
+  .ex-start { cursor: pointer; font-family: var(--font-mono); font-weight: 800; font-size: .9rem;
+    padding: 11px 20px; border-radius: 8px; border: 1px solid var(--success); background: rgba(0,200,122,.1);
+    color: var(--success); letter-spacing: .03em; transition: all .15s; }
+  .ex-start:hover { background: var(--success); color: var(--bg); }
+  .ex-note  { font-size: .72rem; color: var(--text-muted); }
+  .ex-count { font-family: var(--font-mono); font-weight: 800; font-size: 1.15rem; color: var(--amber-bright);
+    letter-spacing: .04em; }
+  .ex-count.low { color: var(--error); animation: caret 1s step-end infinite; }
+  .ex-over  { font-family: var(--font-mono); font-weight: 800; font-size: 1rem; color: var(--error); }
+
   .cat { margin-top: 38px; }
   .cat-label { font-size: .72rem; letter-spacing: .18em; text-transform: uppercase; color: var(--amber-dim);
     border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 18px; }
@@ -49,8 +61,8 @@
   .ch-go { margin-top: 6px; font-size: .76rem; font-weight: 700; color: var(--amber);
     letter-spacing: .04em; transition: letter-spacing .18s; }
   .ch-card:hover .ch-go { letter-spacing: .12em; }
-  body.no-id .ch-card { opacity: .42; cursor: not-allowed; }
-  body.no-id .ch-card:hover { transform: none; border-color: var(--border); box-shadow: none; }
+  body.no-id .ch-card, body.exam-locked .ch-card { opacity: .42; cursor: not-allowed; }
+  body.no-id .ch-card:hover, body.exam-locked .ch-card:hover { transform: none; border-color: var(--border); box-shadow: none; }
   .ch-card.done { opacity: .6; cursor: default; }
   .ch-card.done:hover { transform: none; border-color: var(--success); box-shadow: none; }
   .ch-card.done::after { content: '✓ 已完成'; position: absolute; top: 13px; right: 14px;
@@ -75,6 +87,7 @@
       <input id="sid" placeholder="輸入後即可開始作答" autocomplete="off" spellcheck="false">
       <span class="id-state" id="id-state"></span>
     </div>
+    <div class="exam-bar" id="exam-bar" style="display:none"></div>
   </header>
 
   <section class="cat">
@@ -161,15 +174,56 @@
       idState.textContent = done.size ? `已完成 ${done.size} / ${cards.length} 章` : '';
     } catch { /* server may be down in static preview — ignore */ }
   }
+  // ── Timed exam ──
+  const examBar = document.getElementById('exam-bar');
+  let examMinutes = 0, examEndsAt = null, examStarted = false, examOver = false, skew = 0, tick = null;
+
+  async function refreshExam(sid) {
+    clearInterval(tick); tick = null;
+    if (!sid) { examBar.style.display = 'none'; examMinutes = 0; document.body.classList.remove('exam-locked'); return; }
+    let info; try { info = await fetch('/api/exam-info?studentId=' + encodeURIComponent(sid)).then((r) => r.json()); }
+    catch { return; }
+    examMinutes = info.minutes || 0; skew = info.now - Date.now();
+    if (examMinutes <= 0) { examBar.style.display = 'none'; examStarted = true; examOver = false; gate(); return; }
+    examBar.style.display = '';
+    examStarted = !!info.startedAt; examEndsAt = info.endsAt; examOver = false;
+    if (!examStarted) { renderStartBtn(); gate(); } else { startTick(); }
+  }
+  function renderStartBtn() {
+    examBar.innerHTML = `<button class="ex-start" id="ex-start">▶ 開始考試（${examMinutes} 分鐘）</button>
+      <span class="ex-note">按下後開始倒數,中途不可暫停</span>`;
+    document.getElementById('ex-start').addEventListener('click', async () => {
+      const sid = sidIn.value.trim(); if (!sid) return;
+      const info = await fetch('/api/exam-start', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ studentId: sid }) }).then((r) => r.json());
+      examStarted = true; examEndsAt = info.endsAt; skew = info.now - Date.now(); startTick();
+    });
+  }
+  function startTick() {
+    const upd = () => {
+      const rem = examEndsAt - (Date.now() + skew);
+      if (rem <= 0) { examOver = true; clearInterval(tick); examBar.innerHTML = `<span class="ex-over">⏰ 考試時間已結束</span>`; gate(); return; }
+      const s = Math.floor(rem / 1000);
+      examBar.innerHTML = `<span class="ex-count ${s <= 60 ? 'low' : ''}">⏱ 剩餘 ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}</span>`;
+      examOver = false; gate();
+    };
+    upd(); tick = setInterval(upd, 1000);
+  }
+  function gate() {
+    document.body.classList.toggle('exam-locked', examMinutes > 0 && (!examStarted || examOver));
+  }
+
   function apply() {
     const sid = sidIn.value.trim();
     document.body.classList.toggle('no-id', !sid);
     if (sid) localStorage.setItem(KEY, sid); else localStorage.removeItem(KEY);
     refreshDone(sid);
+    refreshExam(sid);
   }
   cards.forEach((c) => c.addEventListener('click', (e) => {
-    if (!sidIn.value.trim()) { e.preventDefault(); idState.className = 'id-state warn'; idState.textContent = '請先輸入學號'; sidIn.focus(); }
-    else if (c.classList.contains('done')) { e.preventDefault(); }
+    if (!sidIn.value.trim()) { e.preventDefault(); idState.className = 'id-state warn'; idState.textContent = '請先輸入學號'; sidIn.focus(); return; }
+    if (examMinutes > 0 && !examStarted) { e.preventDefault(); idState.className = 'id-state warn'; idState.textContent = '請先按「開始考試」'; return; }
+    if (examMinutes > 0 && examOver) { e.preventDefault(); idState.className = 'id-state warn'; idState.textContent = '考試時間已結束'; return; }
+    if (c.classList.contains('done')) { e.preventDefault(); }
   }));
   sidIn.value = localStorage.getItem(KEY) || '';
   sidIn.addEventListener('input', apply);
