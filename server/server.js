@@ -377,7 +377,11 @@ async function serveStatic(req, res, url) {
   if (!existsSync(filePath)) { res.writeHead(404); return res.end('not found'); }
   try {
     const data = await readFile(filePath);
-    res.writeHead(200, { 'Content-Type': MIME[path.extname(filePath)] || 'application/octet-stream' });
+    res.writeHead(200, {
+      'Content-Type': MIME[path.extname(filePath)] || 'application/octet-stream',
+      // 教室考試:永遠拿最新檔,避免學生/老師抓到舊的 HTML/JS(部署後快取不更新)。
+      'Cache-Control': 'no-store, must-revalidate',
+    });
     res.end(data);
   } catch { res.writeHead(500); res.end('error'); }
 }
