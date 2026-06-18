@@ -204,7 +204,7 @@ async function apiStart(req, res) {
     startedAt: Date.now(), done: false, practice: isPractice(),
   });
   sendJSON(res, 200, {
-    sessionId: id, chapter, seed, total: gen.steps.length,
+    sessionId: id, chapter, seed, total: gen.steps.length, practice: isPractice(),
     instance: gen.instance, steps: stepShells(gen.steps),
   });
 }

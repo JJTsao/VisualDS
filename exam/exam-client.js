@@ -35,7 +35,7 @@ export async function runExam({ chapter, studentId, stage, els, renderModule }) 
   const S = {
     steps: start.steps, total: start.total, idx: 0,
     sessionId: start.sessionId, picked: null, settled: false,
-    percent: 0, earned: 0, startMs: null,
+    percent: 0, earned: 0, startMs: null, practice: !!start.practice,
   };
   const renderer = createRenderer(start.instance, stage, { onPickNode: onPick });
 
@@ -163,7 +163,7 @@ export async function runExam({ chapter, studentId, stage, els, renderModule }) 
       <div class="final-card">
         <div class="final-score">${r.percent}%</div>
         <div class="final-sub">${r.earned.toFixed(2)} / ${r.total} 計分單位 · 用時 ${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}</div>
-        <div class="final-sub">成績已送出並記錄在伺服器。</div>
+        <div class="final-sub">${S.practice ? '本次為練習模式,成績不計入正式紀錄。' : '成績已送出並記錄在伺服器。'}</div>
         <div class="btn-row" style="margin-top:18px">
           <a class="ex-btn primary" href="index.html" style="text-decoration:none; text-align:center; display:block">← 返回章節選單</a>
         </div>
