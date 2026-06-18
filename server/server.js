@@ -82,21 +82,42 @@ async function loadCompleted() {
 // persisted so a server restart doesn't reset the clock mid-exam.
 const CONFIG_FILE = path.join(DATA, 'config.json');
 const EXAMS_FILE  = path.join(DATA, 'exams.json');
-let examMinutes = Number(process.env.EXAM_MINUTES) || 0;
-const examStartAt = new Map();   // studentId → epoch ms
+const ALL_CHAPTERS = Object.keys(CHAPTERS);
 
+let examMinutes = Number(process.env.EXAM_MINUTES) || 0;
+let phase = 'off';                              // 'off' (all open) | 'practice' | 'exam'
+let practiceChapters = [...ALL_CHAPTERS];
+let examChapters = [...ALL_CHAPTERS];
+const examStartAt = new Map();                  // studentId → epoch ms
+
+function activeChapters() { return phase === 'practice' ? practiceChapters : phase === 'exam' ? examChapters : ALL_CHAPTERS; }
+function isPractice() { return phase === 'practice'; }       // ungraded, unlimited, untimed
+function timerActive() { return phase === 'exam' && examMinutes > 0; }
 function examEndsAt(sid) { const s = examStartAt.get(sid); return s ? s + examMinutes * 60000 : null; }
-function examExpired(sid) { if (examMinutes <= 0) return false; const e = examEndsAt(sid); return e != null && Date.now() > e; }
+function examExpired(sid) { const e = examEndsAt(sid); return e != null && Date.now() > e; }
 
 async function loadTimer() {
-  if (existsSync(CONFIG_FILE)) { try { const c = JSON.parse(await readFile(CONFIG_FILE, 'utf8')); if (Number.isFinite(c.examMinutes)) examMinutes = c.examMinutes; } catch { /* ignore */ } }
-  if (existsSync(EXAMS_FILE))  { try { const e = JSON.parse(await readFile(EXAMS_FILE, 'utf8')); for (const [k, v] of Object.entries(e)) examStartAt.set(k, v); } catch { /* ignore */ } }
+  if (existsSync(CONFIG_FILE)) { try {
+    const c = JSON.parse(await readFile(CONFIG_FILE, 'utf8'));
+    if (Number.isFinite(c.examMinutes)) examMinutes = c.examMinutes;
+    if (['off', 'practice', 'exam'].includes(c.phase)) phase = c.phase;
+    if (Array.isArray(c.practiceChapters)) practiceChapters = c.practiceChapters.filter((x) => ALL_CHAPTERS.includes(x));
+    if (Array.isArray(c.examChapters)) examChapters = c.examChapters.filter((x) => ALL_CHAPTERS.includes(x));
+  } catch { /* ignore */ } }
+  if (existsSync(EXAMS_FILE)) { try { const e = JSON.parse(await readFile(EXAMS_FILE, 'utf8')); for (const [k, v] of Object.entries(e)) examStartAt.set(k, v); } catch { /* ignore */ } }
 }
-async function saveConfig() { if (!existsSync(DATA)) await mkdir(DATA, { recursive: true }); await writeFile(CONFIG_FILE, JSON.stringify({ examMinutes })); }
+async function saveConfig() { if (!existsSync(DATA)) await mkdir(DATA, { recursive: true }); await writeFile(CONFIG_FILE, JSON.stringify({ examMinutes, phase, practiceChapters, examChapters })); }
 async function saveExams()  { if (!existsSync(DATA)) await mkdir(DATA, { recursive: true }); await writeFile(EXAMS_FILE, JSON.stringify(Object.fromEntries(examStartAt))); }
+
 function examInfo(sid) {
   const startedAt = sid && examStartAt.has(sid) ? examStartAt.get(sid) : null;
-  return { minutes: examMinutes, startedAt, endsAt: startedAt ? startedAt + examMinutes * 60000 : null, now: Date.now() };
+  const minutes = timerActive() ? examMinutes : 0;
+  return {
+    phase, chapters: activeChapters(), practice: isPractice(), minutes,
+    startedAt, endsAt: (startedAt && minutes > 0) ? startedAt + examMinutes * 60000 : null,
+    now: Date.now(),
+    completed: sid ? [...(doneByStudent.get(sid) || [])] : [],
+  };
 }
 
 // A non-crypto seed source that avoids Math.random determinism concerns for a
@@ -164,11 +185,12 @@ async function apiStart(req, res) {
   const mod = CHAPTERS[chapter];
   if (!mod) return sendJSON(res, 400, { error: 'unknown chapter' });
   if (!studentId) return sendJSON(res, 400, { error: 'studentId required' });
-  if (examMinutes > 0) {
+  if (!activeChapters().includes(chapter)) return sendJSON(res, 409, { error: 'chapter-locked', message: '此章節目前未開放。' });
+  if (timerActive()) {
     if (!examStartAt.has(studentId)) return sendJSON(res, 409, { error: 'exam-not-started', message: '請先在選單按「開始考試」。' });
     if (examExpired(studentId)) return sendJSON(res, 409, { error: 'exam-over', message: '考試時間已結束。' });
   }
-  if (doneByStudent.get(studentId)?.has(chapter)) {
+  if (!isPractice() && doneByStudent.get(studentId)?.has(chapter)) {
     return sendJSON(res, 409, { error: 'already-done', message: '你已完成此章節,不可重做。' });
   }
 
@@ -179,7 +201,7 @@ async function apiStart(req, res) {
     id, studentId, chapter, seed,
     steps: gen.steps, instance: gen.instance, meta: gen.klass,
     cursor: 0, attempts: 0, earned: 0, total: gen.steps.length,
-    startedAt: Date.now(), done: false,
+    startedAt: Date.now(), done: false, practice: isPractice(),
   });
   sendJSON(res, 200, {
     sessionId: id, chapter, seed, total: gen.steps.length,
@@ -192,7 +214,7 @@ async function apiStep(req, res) {
   const sess = sessions.get(String(body.sessionId || ''));
   if (!sess) return sendJSON(res, 404, { error: 'no such session' });
   if (sess.done) return sendJSON(res, 409, { error: 'session finished' });
-  if (examMinutes > 0 && examExpired(sess.studentId)) return sendJSON(res, 409, { error: 'exam-over', message: '考試時間已結束。' });
+  if (timerActive() && examExpired(sess.studentId)) return sendJSON(res, 409, { error: 'exam-over', message: '考試時間已結束。' });
   if (Number(body.stepIndex) !== sess.cursor) {
     return sendJSON(res, 409, { error: 'out of order', expectedStepIndex: sess.cursor });
   }
@@ -230,9 +252,11 @@ async function apiStep(req, res) {
         earned: Number(sess.earned.toFixed(2)), total: sess.total, percent,
         durationSec, finishedAt: new Date(sess.startedAt + durationSec * 1000).toISOString(),
       };
-      markDone(sess.studentId, sess.chapter);   // one attempt per student per chapter
-      await persistResult(rec);     // local backup
-      await postToSheet(rec);       // durable store (if configured)
+      if (!sess.practice) {                       // practice attempts are NOT recorded
+        markDone(sess.studentId, sess.chapter);   // one attempt per student per chapter
+        await persistResult(rec);                 // local backup
+        await postToSheet(rec);                   // durable store (if configured)
+      }
     }
     payload.nextStepIndex = sess.done ? null : sess.cursor;
     payload.done = sess.done;
@@ -258,17 +282,26 @@ async function apiExamStart(req, res) {
 }
 // Teacher sets the exam duration at runtime (token-protected, persisted).
 async function apiConfig(req, res, url) {
+  const snapshot = () => ({ examMinutes, phase, practiceChapters, examChapters, allChapters: ALL_CHAPTERS });
   if (req.method === 'GET') {
     if (url.searchParams.get('token') !== TEACHER_TOKEN) return sendJSON(res, 403, { error: 'forbidden' });
-    return sendJSON(res, 200, { examMinutes });
+    return sendJSON(res, 200, snapshot());
   }
   const body = await readBody(req);
   if (body.token !== TEACHER_TOKEN) return sendJSON(res, 403, { error: 'forbidden' });
-  const m = Number(body.minutes);
-  if (!Number.isFinite(m) || m < 0) return sendJSON(res, 400, { error: 'bad minutes' });
-  examMinutes = Math.round(m);
+  if (body.minutes != null) {
+    const m = Number(body.minutes);
+    if (!Number.isFinite(m) || m < 0) return sendJSON(res, 400, { error: 'bad minutes' });
+    examMinutes = Math.round(m);
+  }
+  if (body.phase != null) {
+    if (!['off', 'practice', 'exam'].includes(body.phase)) return sendJSON(res, 400, { error: 'bad phase' });
+    phase = body.phase;
+  }
+  if (Array.isArray(body.practiceChapters)) practiceChapters = body.practiceChapters.filter((x) => ALL_CHAPTERS.includes(x));
+  if (Array.isArray(body.examChapters)) examChapters = body.examChapters.filter((x) => ALL_CHAPTERS.includes(x));
   await saveConfig();
-  sendJSON(res, 200, { examMinutes });
+  sendJSON(res, 200, snapshot());
 }
 
 // Which chapters has this student already finished? (drives the menu's ✓ marks)

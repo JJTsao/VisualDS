@@ -40,7 +40,13 @@
   .ex-count.low { color: var(--error); animation: caret 1s step-end infinite; }
   .ex-over  { font-family: var(--font-mono); font-weight: 800; font-size: 1rem; color: var(--error); }
 
+  .phase-banner { margin: 26px 0 4px; padding: 11px 16px; border-radius: 8px; font-size: .82rem; font-weight: 700;
+    border: 1px solid; letter-spacing: .02em; }
+  .phase-banner.practice { color: var(--success); border-color: var(--success); background: rgba(0,200,122,.08); }
+  .phase-banner.exam { color: var(--amber-bright); border-color: var(--amber-dim); background: rgba(255,176,0,.07); }
+
   .cat { margin-top: 38px; }
+  .cat[hidden] { display: none; }
   .cat-label { font-size: .72rem; letter-spacing: .18em; text-transform: uppercase; color: var(--amber-dim);
     border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 18px; }
 
@@ -89,6 +95,8 @@
     </div>
     <div class="exam-bar" id="exam-bar" style="display:none"></div>
   </header>
+
+  <div class="phase-banner" id="phase-banner" style="display:none"></div>
 
   <section class="cat">
     <div class="cat-label">二元搜尋樹　Binary Search Tree</div>
@@ -163,26 +171,36 @@
   const cards = [...document.querySelectorAll('.ch-card')];
   const chapterOf = (a) => new URL(a.href).searchParams.get('chapter');
 
-  async function refreshDone(sid) {
-    cards.forEach((c) => c.classList.remove('done'));
-    if (!sid) { idState.textContent = ''; return; }
-    try {
-      const r = await fetch('/api/my-status?studentId=' + encodeURIComponent(sid)).then((x) => x.json());
-      const done = new Set(r.completed || []);
-      cards.forEach((c) => { if (done.has(chapterOf(c))) c.classList.add('done'); });
-      idState.className = 'id-state';
-      idState.textContent = done.size ? `已完成 ${done.size} / ${cards.length} 章` : '';
-    } catch { /* server may be down in static preview — ignore */ }
-  }
-  // ── Timed exam ──
+  const banner = document.getElementById('phase-banner');
+  const cats = [...document.querySelectorAll('.cat')];
+
+  // ── One fetch drives: chapter filter + phase banner + done-marks + timer ──
   const examBar = document.getElementById('exam-bar');
   let examMinutes = 0, examEndsAt = null, examStarted = false, examOver = false, skew = 0, tick = null;
 
-  async function refreshExam(sid) {
+  async function refreshMenu(sid) {
     clearInterval(tick); tick = null;
-    if (!sid) { examBar.style.display = 'none'; examMinutes = 0; document.body.classList.remove('exam-locked'); return; }
+    if (!sid) { examBar.style.display = 'none'; banner.style.display = 'none'; document.body.classList.remove('exam-locked'); idState.textContent = ''; return; }
     let info; try { info = await fetch('/api/exam-info?studentId=' + encodeURIComponent(sid)).then((r) => r.json()); }
     catch { return; }
+
+    // Chapter filter: only show cards whose chapter is in the active set; hide empty sections.
+    const active = new Set(info.chapters || []);
+    cards.forEach((c) => { c.style.display = active.has(chapterOf(c)) ? '' : 'none'; });
+    cats.forEach((cat) => { cat.hidden = ![...cat.querySelectorAll('.ch-card')].some((c) => c.style.display !== 'none'); });
+
+    // Phase banner
+    if (info.phase === 'practice') { banner.style.display = ''; banner.className = 'phase-banner practice'; banner.textContent = '● 練習模式 — 不計分,可重複練習,沒有時間限制。'; }
+    else if (info.phase === 'exam') { banner.style.display = ''; banner.className = 'phase-banner exam'; banner.textContent = '● 正式考試 — 計分、每關僅一次、計時。'; }
+    else { banner.style.display = 'none'; }
+
+    // Done-marks: only when graded (not practice); practice is retakeable
+    const done = new Set(info.phase === 'practice' ? [] : (info.completed || []));
+    cards.forEach((c) => c.classList.toggle('done', done.has(chapterOf(c))));
+    idState.className = 'id-state';
+    idState.textContent = done.size ? `已完成 ${done.size} 章` : '';
+
+    // Timer (exam phase with minutes only)
     examMinutes = info.minutes || 0; skew = info.now - Date.now();
     if (examMinutes <= 0) { examBar.style.display = 'none'; examStarted = true; examOver = false; gate(); return; }
     examBar.style.display = '';
@@ -216,8 +234,7 @@
     const sid = sidIn.value.trim();
     document.body.classList.toggle('no-id', !sid);
     if (sid) localStorage.setItem(KEY, sid); else localStorage.removeItem(KEY);
-    refreshDone(sid);
-    refreshExam(sid);
+    refreshMenu(sid);
   }
   cards.forEach((c) => c.addEventListener('click', (e) => {
     if (!sidIn.value.trim()) { e.preventDefault(); idState.className = 'id-state warn'; idState.textContent = '請先輸入學號'; sidIn.focus(); return; }
