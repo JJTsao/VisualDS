@@ -54,6 +54,26 @@
   .msg.bad { color: var(--error); }
   .sec-label { font-size: .72rem; letter-spacing: .14em; text-transform: uppercase; color: var(--amber-dim);
     margin: 26px 0 10px; }
+
+  /* score matrix */
+  #matrix-wrap { overflow-x: auto; }
+  table.matrix th { text-align: right; vertical-align: bottom; white-space: nowrap; }
+  table.matrix th[data-mk="studentId"] { text-align: left; }
+  table.matrix td:first-child { white-space: nowrap; }
+  .cfg-max { font-size: .58rem; color: var(--text-muted); font-weight: 400; letter-spacing: 0; }
+  table.matrix td.tot { font-size: 1rem; }
+  table.matrix .dash { color: var(--text-muted); }
+  table.matrix tr.avg-row td { border-top: 2px solid var(--amber-dim); color: var(--amber-dim);
+    font-style: italic; background: rgba(255,176,0,.03); }
+  table.matrix td.avg { color: var(--amber-dim); }
+
+  /* chapter-points editor */
+  .pts-grid { display: grid; grid-template-columns: repeat(2, minmax(150px, 1fr)); gap: 6px 22px; margin-top: 6px; }
+  .pts-grid label { font-size: .74rem; color: var(--text-dim); display: flex; align-items: center;
+    justify-content: space-between; gap: 8px; }
+  .pts-grid input { width: 56px; }
+  .pts-sum { font-size: .74rem; color: var(--amber); margin-top: 10px; }
+  .pts-sum.warn { color: var(--warn); }
 </style>
 </head>
 <body>
@@ -85,16 +105,27 @@
       <div class="cfg-set"><div class="cfg-set-title">練習題組</div><div id="prac-chaps" class="chap-checks"></div></div>
       <div class="cfg-set"><div class="cfg-set-title">正式題組</div><div id="exam-chaps" class="chap-checks"></div></div>
     </div>
+    <div class="cfg-set" style="margin-top:16px">
+      <div class="cfg-set-title">各章配分（總分 = Σ 配分×完成比例，封頂 100）</div>
+      <div id="chap-points" class="pts-grid"></div>
+      <div class="pts-sum" id="pts-sum"></div>
+    </div>
   </details>
 
   <div class="summary" id="summary"></div>
   <div class="sec-label" id="ip-label" style="display:none">進行中</div>
   <div id="inprogress"></div>
-  <div class="sec-label">已完成成績</div>
-  <table id="tbl"><thead><tr>
-    <th data-k="finishedAt">時間</th><th data-k="studentId">學號</th><th data-k="chapter">章節</th>
-    <th data-k="percent">得分%</th><th data-k="earned">計分</th><th data-k="durationSec">用時</th><th data-k="seed">seed</th>
-  </tr></thead><tbody id="tbody"></tbody></table>
+
+  <div class="sec-label">成績矩陣 · 正式題組（點欄頭排序）</div>
+  <div id="matrix-wrap"></div>
+
+  <details style="margin-top:26px">
+    <summary class="sec-label" style="cursor:pointer; display:list-item">逐筆明細 · 原始紀錄</summary>
+    <table id="tbl"><thead><tr>
+      <th data-k="finishedAt">時間</th><th data-k="studentId">學號</th><th data-k="chapter">章節</th>
+      <th data-k="percent">得分%</th><th data-k="earned">計分</th><th data-k="durationSec">用時</th><th data-k="seed">seed</th>
+    </tr></thead><tbody id="tbody"></tbody></table>
+  </details>
 </div>
 
 <script>
@@ -102,6 +133,7 @@
     'dijkstra':'Dijkstra','dfs':'DFS','bubble-sort':'Bubble','selection-sort':'Selection','merge-sort':'Merge' };
   const $ = (id) => document.getElementById(id);
   let rows = [], sortK = 'finishedAt', sortDir = -1, timer = null;
+  let matrix = [], chapPoints = {}, examCols = [], matSortK = 'total', matSortDir = -1;
 
   $('token').value = localStorage.getItem('vds_exam_token') || '';
 
@@ -113,8 +145,10 @@
       const r = await fetch('/api/results?token=' + encodeURIComponent(tok)).then((x) => x.json());
       if (r.error) { msg('載入失敗:' + r.error, true); return; }
       rows = r.finished || [];
+      matrix = r.students || []; chapPoints = r.chapterPoints || {}; examCols = r.examChapters || [];
       renderInProgress(r.inProgress || []);
-      buildFilter(); render(); loadConfig(); msg(`已載入 ${rows.length} 筆 · ${new Date().toLocaleTimeString()}`);
+      buildFilter(); render(); renderMatrix(); loadConfig();
+      msg(`已載入 ${rows.length} 筆 · ${new Date().toLocaleTimeString()}`);
     } catch (e) { msg('連線失敗:' + e.message, true); }
   }
   function msg(t, bad) { const m = $('msg'); m.className = 'msg' + (bad ? ' bad' : ''); m.textContent = t; }
@@ -148,7 +182,42 @@
     $('summary').innerHTML = `
       <div class="scard"><div class="k">提交數</div><div class="v">${n}</div></div>
       <div class="scard"><div class="k">學生數</div><div class="v">${students}</div></div>
-      <div class="scard"><div class="k">平均分</div><div class="v">${avg}%</div></div>`;
+      <div class="scard"><div class="k">平均完成度</div><div class="v">${avg}%</div></div>`;
+  }
+
+  function renderMatrix() {
+    const cols = examCols;
+    if (!cols.length || !matrix.length) {
+      $('matrix-wrap').innerHTML = '<div class="msg">尚無正式題組成績（未設定正式題組，或還沒有人在此題組交卷）。</div>';
+      return;
+    }
+    const list = matrix.slice().sort((a, b) => {
+      if (matSortK === 'studentId') return matSortDir * String(a.studentId).localeCompare(String(b.studentId));
+      const x = matSortK === 'total' ? a.total : (a.chapters[matSortK]?.points ?? -1);
+      const y = matSortK === 'total' ? b.total : (b.chapters[matSortK]?.points ?? -1);
+      return matSortDir * (x - y);
+    });
+    const head = `<tr>
+      <th data-mk="studentId">學號</th>
+      ${cols.map((c) => `<th data-mk="${c}" class="num">${CH[c] || c}<br><span class="cfg-max">/${chapPoints[c] ?? '?'}</span></th>`).join('')}
+      <th data-mk="total" class="num">總分<br><span class="cfg-max">/100</span></th>
+    </tr>`;
+    const body = list.map((s) => `<tr>
+      <td>${s.studentId}</td>
+      ${cols.map((c) => { const cell = s.chapters[c];
+        return `<td class="num">${cell ? cell.points.toFixed(1) : '<span class="dash">—</span>'}</td>`; }).join('')}
+      <td class="num tot ${s.total >= 60 ? 'pct-hi' : 'pct-lo'}">${s.total}${s.total >= 100 ? ' ✓' : ''}</td>
+    </tr>`).join('');
+    const avgCell = (vals) => `<td class="num avg">${vals.length ? (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1) : '—'}</td>`;
+    const avgRow = `<tr class="avg-row"><td>班平均</td>${
+      cols.map((c) => avgCell(list.map((s) => s.chapters[c]?.points).filter((v) => v != null))).join('')
+    }${avgCell(list.map((s) => s.total))}</tr>`;
+    $('matrix-wrap').innerHTML = `<table class="matrix"><thead>${head}</thead><tbody>${body}${avgRow}</tbody></table>`;
+    $('matrix-wrap').querySelectorAll('th[data-mk]').forEach((th) => th.addEventListener('click', () => {
+      const k = th.dataset.mk;
+      if (matSortK === k) matSortDir *= -1; else { matSortK = k; matSortDir = (k === 'studentId') ? 1 : -1; }
+      renderMatrix();
+    }));
   }
 
   function renderInProgress(ip) {
@@ -168,6 +237,18 @@
     mk($('prac-chaps'), set1); mk($('exam-chaps'), set2);
     cfgBuilt = true;
   }
+  function buildPoints(allChapters, pts) {
+    $('chap-points').innerHTML = allChapters.map((c) =>
+      `<label>${CH[c] || c}<input type="number" min="0" step="1" data-ch="${c}" value="${pts[c] ?? 0}"></label>`).join('');
+    $('chap-points').querySelectorAll('input').forEach((i) => i.addEventListener('input', updatePtsSum));
+    updatePtsSum();
+  }
+  function updatePtsSum() {
+    const sum = [...$('chap-points').querySelectorAll('input')].reduce((s, i) => s + (Number(i.value) || 0), 0);
+    const el = $('pts-sum');
+    el.textContent = `合計配分：${sum}（建議 120~130；總分仍封頂 100）`;
+    el.className = 'pts-sum' + (sum < 100 ? ' warn' : '');
+  }
   async function loadConfig() {
     const tok = $('token').value.trim(); if (!tok) return;
     try {
@@ -175,7 +256,10 @@
       if (c.error) return;
       if (document.activeElement !== $('exam-min')) $('exam-min').value = c.examMinutes ?? 0;
       if (document.activeElement !== $('phase')) $('phase').value = c.phase || 'off';
-      if (!cfgBuilt) buildChecks(c.allChapters || [], c.practiceChapters || [], c.examChapters || []);
+      if (!cfgBuilt) {
+        buildChecks(c.allChapters || [], c.practiceChapters || [], c.examChapters || []);
+        buildPoints(c.allChapters || [], c.chapterPoints || {});
+      }
     } catch { /* ignore */ }
   }
   const checkedVals = (host) => [...host.querySelectorAll('input:checked')].map((i) => i.value);
@@ -187,6 +271,8 @@
       minutes: Number($('exam-min').value),
       practiceChapters: checkedVals($('prac-chaps')),
       examChapters: checkedVals($('exam-chaps')),
+      chapterPoints: Object.fromEntries(
+        [...$('chap-points').querySelectorAll('input')].map((i) => [i.dataset.ch, Number(i.value)])),
     };
     const r = await fetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then((x) => x.json());
     const m = $('cfg-msg');
@@ -195,6 +281,7 @@
       m.className = 'msg';
       const pn = { off: '關閉（全開放）', practice: '練習模式', exam: '正式考試' }[r.phase] || r.phase;
       m.textContent = `已套用：${pn}${r.phase === 'exam' ? `,時長 ${r.examMinutes} 分` : ''}`;
+      load();   // refresh matrix with the new exam set / weights
     }
   }
   $('set-cfg').addEventListener('click', setCfg);

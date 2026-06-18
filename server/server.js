@@ -88,6 +88,14 @@ let examMinutes = Number(process.env.EXAM_MINUTES) || 0;
 let phase = 'off';                              // 'off' (all open) | 'practice' | 'exam'
 let practiceChapters = [...ALL_CHAPTERS];
 let examChapters = [...ALL_CHAPTERS];
+// 各章配分(難度加權,預設合計 125)。整場總分 = Σ(配分 × 該章完成比例),封頂 100。
+// 老師可在看板的考試設定面板即時改,存入 config.json。
+const DEFAULT_POINTS = {
+  'bst-insert': 10, 'bst-delete': 15, 'bst-traversal': 10, 'dfs': 15,
+  'selection-sort': 15, 'bubble-sort': 15, 'dijkstra': 25, 'merge-sort': 20,
+};
+let chapterPoints = Object.fromEntries(ALL_CHAPTERS.map((c) => [c, DEFAULT_POINTS[c] ?? 10]));
+const SCORE_CAP = 100;                           // 硬封頂
 const examStartAt = new Map();                  // studentId → epoch ms
 
 function activeChapters() { return phase === 'practice' ? practiceChapters : phase === 'exam' ? examChapters : ALL_CHAPTERS; }
@@ -103,10 +111,13 @@ async function loadTimer() {
     if (['off', 'practice', 'exam'].includes(c.phase)) phase = c.phase;
     if (Array.isArray(c.practiceChapters)) practiceChapters = c.practiceChapters.filter((x) => ALL_CHAPTERS.includes(x));
     if (Array.isArray(c.examChapters)) examChapters = c.examChapters.filter((x) => ALL_CHAPTERS.includes(x));
+    if (c.chapterPoints && typeof c.chapterPoints === 'object') {
+      for (const k of ALL_CHAPTERS) if (Number.isFinite(c.chapterPoints[k])) chapterPoints[k] = c.chapterPoints[k];
+    }
   } catch { /* ignore */ } }
   if (existsSync(EXAMS_FILE)) { try { const e = JSON.parse(await readFile(EXAMS_FILE, 'utf8')); for (const [k, v] of Object.entries(e)) examStartAt.set(k, v); } catch { /* ignore */ } }
 }
-async function saveConfig() { if (!existsSync(DATA)) await mkdir(DATA, { recursive: true }); await writeFile(CONFIG_FILE, JSON.stringify({ examMinutes, phase, practiceChapters, examChapters })); }
+async function saveConfig() { if (!existsSync(DATA)) await mkdir(DATA, { recursive: true }); await writeFile(CONFIG_FILE, JSON.stringify({ examMinutes, phase, practiceChapters, examChapters, chapterPoints })); }
 async function saveExams()  { if (!existsSync(DATA)) await mkdir(DATA, { recursive: true }); await writeFile(EXAMS_FILE, JSON.stringify(Object.fromEntries(examStartAt))); }
 
 function examInfo(sid) {
@@ -282,7 +293,7 @@ async function apiExamStart(req, res) {
 }
 // Teacher sets the exam duration at runtime (token-protected, persisted).
 async function apiConfig(req, res, url) {
-  const snapshot = () => ({ examMinutes, phase, practiceChapters, examChapters, allChapters: ALL_CHAPTERS });
+  const snapshot = () => ({ examMinutes, phase, practiceChapters, examChapters, chapterPoints, allChapters: ALL_CHAPTERS });
   if (req.method === 'GET') {
     if (url.searchParams.get('token') !== TEACHER_TOKEN) return sendJSON(res, 403, { error: 'forbidden' });
     return sendJSON(res, 200, snapshot());
@@ -300,6 +311,12 @@ async function apiConfig(req, res, url) {
   }
   if (Array.isArray(body.practiceChapters)) practiceChapters = body.practiceChapters.filter((x) => ALL_CHAPTERS.includes(x));
   if (Array.isArray(body.examChapters)) examChapters = body.examChapters.filter((x) => ALL_CHAPTERS.includes(x));
+  if (body.chapterPoints && typeof body.chapterPoints === 'object') {
+    for (const k of ALL_CHAPTERS) {
+      const v = Number(body.chapterPoints[k]);
+      if (Number.isFinite(v) && v >= 0) chapterPoints[k] = v;
+    }
+  }
   await saveConfig();
   sendJSON(res, 200, snapshot());
 }
@@ -311,6 +328,29 @@ function apiMyStatus(res, url) {
   sendJSON(res, 200, { studentId: sid, completed });
 }
 
+// Aggregate finished records into a per-student matrix over the EXAM chapter set.
+// Each cell = chapterPoints × (earned/total); row total = Σ cells, capped at SCORE_CAP.
+function buildMatrix(finished) {
+  const cols = examChapters.slice();
+  const colSet = new Set(cols);
+  const byStudent = new Map();
+  for (const r of finished) {
+    if (!colSet.has(r.chapter)) continue;                 // matrix only spans the exam set
+    let stu = byStudent.get(r.studentId);
+    if (!stu) { stu = { studentId: r.studentId, chapters: {} }; byStudent.set(r.studentId, stu); }
+    const ratio = r.total ? r.earned / r.total : 0;
+    const pts = Math.round((chapterPoints[r.chapter] ?? 0) * ratio * 10) / 10;
+    const prev = stu.chapters[r.chapter];
+    if (!prev || pts > prev.points) stu.chapters[r.chapter] = { points: pts, percent: r.percent };
+  }
+  const out = [...byStudent.values()].map((stu) => {
+    let raw = 0;
+    for (const ch of cols) if (stu.chapters[ch]) raw += stu.chapters[ch].points;
+    return { ...stu, rawTotal: Math.round(raw * 10) / 10, total: Math.min(SCORE_CAP, Math.round(raw)) };
+  });
+  return out;
+}
+
 async function apiResults(req, res, url) {
   if (url.searchParams.get('token') !== TEACHER_TOKEN) return sendJSON(res, 403, { error: 'forbidden' });
   let arr = [];
@@ -319,7 +359,10 @@ async function apiResults(req, res, url) {
     studentId: s.studentId, chapter: s.chapter, percent: s.total ? Math.round((s.earned / s.total) * 100) : 0,
     progress: `${s.cursor}/${s.total}`, inProgress: true,
   }));
-  sendJSON(res, 200, { finished: arr, inProgress: live });
+  sendJSON(res, 200, {
+    finished: arr, inProgress: live,
+    students: buildMatrix(arr), chapterPoints, examChapters, scoreCap: SCORE_CAP,
+  });
 }
 
 // ── static files ─────────────────────────────────────────────────────────────
