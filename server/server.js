@@ -84,10 +84,17 @@ const CONFIG_FILE = path.join(DATA, 'config.json');
 const EXAMS_FILE  = path.join(DATA, 'exams.json');
 const ALL_CHAPTERS = Object.keys(CHAPTERS);
 
+// 開機預設(可被 data/config.json 覆寫)。⚠ Render 免費磁碟是暫時的:重啟會清掉
+// config.json,屆時這些「環境變數預設」會接手 → 避免回到 'off'(全開放且計分)而毀掉
+// 練習設定。練習週請在 Render 設 EXAM_PHASE=practice + PRACTICE_CHAPTERS=...。
+const envList = (name) => {
+  const v = process.env[name];
+  return v ? v.split(',').map((s) => s.trim()).filter((x) => ALL_CHAPTERS.includes(x)) : null;
+};
 let examMinutes = Number(process.env.EXAM_MINUTES) || 0;
-let phase = 'off';                              // 'off' (all open) | 'practice' | 'exam'
-let practiceChapters = [...ALL_CHAPTERS];
-let examChapters = [...ALL_CHAPTERS];
+let phase = ['off', 'practice', 'exam'].includes(process.env.EXAM_PHASE) ? process.env.EXAM_PHASE : 'off';
+let practiceChapters = envList('PRACTICE_CHAPTERS') || [...ALL_CHAPTERS];
+let examChapters = envList('EXAM_CHAPTERS') || [...ALL_CHAPTERS];
 // 各章配分(難度加權,預設合計 125)。整場總分 = Σ(配分 × 該章完成比例),封頂 100。
 // 老師可在看板的考試設定面板即時改,存入 config.json。
 const DEFAULT_POINTS = {
