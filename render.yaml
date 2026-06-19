@@ -15,3 +15,11 @@ services:
         sync: false        # the Apps Script /exec URL
       - key: SHEETS_TOKEN
         sync: false        # shared secret echoed to the Apps Script
+      # 開機預設(version-controlled,重啟/redeploy 不丟)。App 內看板仍可即時覆寫
+      # (寫 config.json),redeploy 後回到這裡的基準。改階段/題組就改這裡再 push。
+      - key: EXAM_PHASE
+        value: practice                                    # off | practice | exam
+      - key: PRACTICE_CHAPTERS
+        value: "bst-insert,bst-traversal,dijkstra,dfs"     # 練習開放章節
+      - key: EXAM_TITLE
+        value: "2026 MUST DS Final Practice"               # 學生畫面大標
