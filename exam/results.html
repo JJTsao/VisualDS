@@ -92,6 +92,9 @@
   <details class="cfg-panel" id="cfg-panel">
     <summary>⚙ 考試設定（階段 / 題組 / 時長）</summary>
     <div class="cfg-row">
+      <label>測驗標題（學生畫面大標）：<input id="exam-title-in" type="text" maxlength="60" placeholder="過程式測驗" style="width:220px"></label>
+    </div>
+    <div class="cfg-row">
       <label>階段：
         <select id="phase">
           <option value="off">關閉（全部開放 · 自己測試用）</option>
@@ -262,6 +265,7 @@
       if (c.error) return;
       if (document.activeElement !== $('exam-min')) $('exam-min').value = c.examMinutes ?? 0;
       if (document.activeElement !== $('phase')) $('phase').value = c.phase || 'off';
+      if (document.activeElement !== $('exam-title-in')) $('exam-title-in').value = c.examTitle || '';
       if (!cfgBuilt) {
         buildChecks(c.allChapters || [], c.practiceChapters || [], c.examChapters || []);
         buildPoints(c.allChapters || [], c.chapterPoints || {});
@@ -275,6 +279,7 @@
       token: tok,
       phase: $('phase').value,
       minutes: Number($('exam-min').value),
+      examTitle: $('exam-title-in').value,
       practiceChapters: checkedVals($('prac-chaps')),
       examChapters: checkedVals($('exam-chaps')),
       chapterPoints: Object.fromEntries(

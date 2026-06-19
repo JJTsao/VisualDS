@@ -63,6 +63,15 @@ try {
   ok(cfg.chapterPoints['bst-delete'] === 80, 'config stores custom weight 80');
   ok(cfg.examChapters.join() === 'bst-delete,dijkstra', 'config stores exam set');
 
+  // exam-info exposes points/cap/title for the student menu
+  const ei = await get('/api/exam-info?studentId=');
+  ok(ei.chapterPoints?.['dijkstra'] === 80, 'exam-info exposes chapterPoints');
+  ok(ei.scoreCap === 100, 'exam-info exposes scoreCap');
+  const ct = await post('/api/config', { token: TOKEN, examTitle: '資料結構期末考' });
+  ok(ct.examTitle === '資料結構期末考', 'config stores examTitle');
+  const ei2 = await get('/api/exam-info?studentId=');
+  ok(ei2.examTitle === '資料結構期末考', 'exam-info exposes examTitle');
+
   const bstLocal = bst.generate(seedB), dijLocal = dij.generate(seedD);
 
   await complete('MX_A', 'bst-delete', seedB, 'correct', bstLocal.steps);

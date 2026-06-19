@@ -45,6 +45,11 @@
   .phase-banner.practice { color: var(--success); border-color: var(--success); background: rgba(0,200,122,.08); }
   .phase-banner.exam { color: var(--amber-bright); border-color: var(--amber-dim); background: rgba(255,176,0,.07); }
 
+  .score-note { margin: 14px 0 0; padding: 11px 16px; border-radius: 8px; font-size: .82rem; line-height: 1.75;
+    color: var(--text-dim); border: 1px dashed var(--amber-dim); background: rgba(255,176,0,.04); }
+  .score-note b { color: var(--amber-bright); }
+  .ch-pts { color: var(--amber); font-weight: 700; }
+
   .cat { margin-top: 38px; }
   .cat[hidden] { display: none; }
   .cat-label { font-size: .72rem; letter-spacing: .18em; text-transform: uppercase; color: var(--amber-dim);
@@ -85,7 +90,7 @@
 <body>
 <div class="menu-wrap">
   <header class="menu-head">
-    <h1 class="menu-title">過程式測驗<span class="blink">_</span></h1>
+    <h1 class="menu-title"><span id="menu-title-text">過程式測驗</span><span class="blink">_</span></h1>
     <p class="menu-sub">在隨機生成的題目上,<b>逐步手動執行演算法</b> —— 系統在伺服器端逐步判分,
       考的是過程而非只看最終答案。先輸入學號,再選一個章節開始。</p>
     <div class="id-bar">
@@ -97,6 +102,7 @@
   </header>
 
   <div class="phase-banner" id="phase-banner" style="display:none"></div>
+  <div class="score-note" id="score-note" style="display:none"></div>
 
   <section class="cat">
     <div class="cat-label">二元搜尋樹　Binary Search Tree</div>
@@ -178,11 +184,43 @@
   const examBar = document.getElementById('exam-bar');
   let examMinutes = 0, examEndsAt = null, examStarted = false, examOver = false, skew = 0, tick = null;
 
+  const titleText = document.getElementById('menu-title-text');
+  const scoreNote = document.getElementById('score-note');
+  function applyTitle(t) {
+    const title = (t && t.trim()) || '過程式測驗';
+    titleText.textContent = title;
+    document.title = title + ' · 章節選單 — VisualDS Exam';
+  }
+  function applyScoreInfo(info, active) {
+    const pts = info.chapterPoints || {};
+    const isExam = info.phase === 'exam';
+    // per-card 配分 badge — appended to the category label, e.g. "Graph · 25 分"
+    cards.forEach((c) => {
+      const ch = chapterOf(c);
+      const catEl = c.querySelector('.ch-cat');
+      if (!catEl.dataset.base) catEl.dataset.base = catEl.textContent;
+      catEl.innerHTML = (isExam && pts[ch] != null)
+        ? `${catEl.dataset.base} · <span class="ch-pts">${pts[ch]} 分</span>` : catEl.dataset.base;
+    });
+    if (isExam) {
+      const cols = [...active].filter((c) => pts[c] != null);
+      const sum = cols.reduce((s, c) => s + pts[c], 0);
+      const cap = info.scoreCap || 100;
+      scoreNote.style.display = '';
+      scoreNote.innerHTML = `本次考試共 <b>${cols.length}</b> 章 · 合計 <b>${sum}</b> 分。`
+        + `答滿 <b>${cap}</b> 分即為滿分,可<b>自行選擇</b>章節作答,不必全部完成。`;
+    } else {
+      scoreNote.style.display = 'none';
+    }
+  }
+
   async function refreshMenu(sid) {
     clearInterval(tick); tick = null;
-    if (!sid) { examBar.style.display = 'none'; banner.style.display = 'none'; document.body.classList.remove('exam-locked'); idState.textContent = ''; return; }
-    let info; try { info = await fetch('/api/exam-info?studentId=' + encodeURIComponent(sid)).then((r) => r.json()); }
+    let info; try { info = await fetch('/api/exam-info?studentId=' + encodeURIComponent(sid || '')).then((r) => r.json()); }
     catch { return; }
+
+    // Exam title (configurable by teacher) — applies with or without a student id.
+    applyTitle(info.examTitle);
 
     // Chapter filter: only show cards whose chapter is in the active set; hide empty sections.
     const active = new Set(info.chapters || []);
@@ -193,6 +231,12 @@
     if (info.phase === 'practice') { banner.style.display = ''; banner.className = 'phase-banner practice'; banner.textContent = '● 練習模式 — 不計分,可重複練習,沒有時間限制。'; }
     else if (info.phase === 'exam') { banner.style.display = ''; banner.className = 'phase-banner exam'; banner.textContent = '● 正式考試 — 計分、每關僅一次、計時。'; }
     else { banner.style.display = 'none'; }
+
+    // Score info: per-card 配分 badge + cap rule (exam phase only)
+    applyScoreInfo(info, active);
+
+    // Without a student id: title + filter + banner + score info are shown; gating waits for id.
+    if (!sid) { examBar.style.display = 'none'; document.body.classList.remove('exam-locked'); idState.textContent = ''; return; }
 
     // Done-marks: only when graded (not practice); practice is retakeable
     const done = new Set(info.phase === 'practice' ? [] : (info.completed || []));

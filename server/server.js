@@ -96,6 +96,7 @@ const DEFAULT_POINTS = {
 };
 let chapterPoints = Object.fromEntries(ALL_CHAPTERS.map((c) => [c, DEFAULT_POINTS[c] ?? 10]));
 const SCORE_CAP = 100;                           // 硬封頂
+let examTitle = process.env.EXAM_TITLE || '過程式測驗';   // 學生畫面大標,老師可在看板改
 const examStartAt = new Map();                  // studentId → epoch ms
 
 function activeChapters() { return phase === 'practice' ? practiceChapters : phase === 'exam' ? examChapters : ALL_CHAPTERS; }
@@ -114,10 +115,11 @@ async function loadTimer() {
     if (c.chapterPoints && typeof c.chapterPoints === 'object') {
       for (const k of ALL_CHAPTERS) if (Number.isFinite(c.chapterPoints[k])) chapterPoints[k] = c.chapterPoints[k];
     }
+    if (typeof c.examTitle === 'string' && c.examTitle.trim()) examTitle = c.examTitle;
   } catch { /* ignore */ } }
   if (existsSync(EXAMS_FILE)) { try { const e = JSON.parse(await readFile(EXAMS_FILE, 'utf8')); for (const [k, v] of Object.entries(e)) examStartAt.set(k, v); } catch { /* ignore */ } }
 }
-async function saveConfig() { if (!existsSync(DATA)) await mkdir(DATA, { recursive: true }); await writeFile(CONFIG_FILE, JSON.stringify({ examMinutes, phase, practiceChapters, examChapters, chapterPoints })); }
+async function saveConfig() { if (!existsSync(DATA)) await mkdir(DATA, { recursive: true }); await writeFile(CONFIG_FILE, JSON.stringify({ examMinutes, phase, practiceChapters, examChapters, chapterPoints, examTitle })); }
 async function saveExams()  { if (!existsSync(DATA)) await mkdir(DATA, { recursive: true }); await writeFile(EXAMS_FILE, JSON.stringify(Object.fromEntries(examStartAt))); }
 
 function examInfo(sid) {
@@ -128,6 +130,7 @@ function examInfo(sid) {
     startedAt, endsAt: (startedAt && minutes > 0) ? startedAt + examMinutes * 60000 : null,
     now: Date.now(),
     completed: sid ? [...(doneByStudent.get(sid) || [])] : [],
+    examTitle, chapterPoints, scoreCap: SCORE_CAP,
   };
 }
 
@@ -293,7 +296,7 @@ async function apiExamStart(req, res) {
 }
 // Teacher sets the exam duration at runtime (token-protected, persisted).
 async function apiConfig(req, res, url) {
-  const snapshot = () => ({ examMinutes, phase, practiceChapters, examChapters, chapterPoints, allChapters: ALL_CHAPTERS });
+  const snapshot = () => ({ examMinutes, phase, practiceChapters, examChapters, chapterPoints, examTitle, allChapters: ALL_CHAPTERS });
   if (req.method === 'GET') {
     if (url.searchParams.get('token') !== TEACHER_TOKEN) return sendJSON(res, 403, { error: 'forbidden' });
     return sendJSON(res, 200, snapshot());
@@ -317,6 +320,7 @@ async function apiConfig(req, res, url) {
       if (Number.isFinite(v) && v >= 0) chapterPoints[k] = v;
     }
   }
+  if (typeof body.examTitle === 'string') { examTitle = body.examTitle.trim().slice(0, 60) || '過程式測驗'; }
   await saveConfig();
   sendJSON(res, 200, snapshot());
 }
