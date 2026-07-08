@@ -8,3 +8,7 @@ Thumbs.db
 
 # Editor
 .vscode/settings.json
+
+# 成績資料 / 匯出報表(含學生個資,不進版控)
+*Results.csv
+成績調整-*
