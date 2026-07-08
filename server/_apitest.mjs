@@ -1,6 +1,8 @@
 // End-to-end API test: drives the running server over HTTP with a fixed seed,
 // using the chapter module locally only to know the correct answers.
 import http from 'node:http';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import * as bst from './chapters/bst-delete.js';
 import * as dij from './chapters/dijkstra.js';
 
@@ -41,6 +43,13 @@ for (const step of local.steps) {
 const res1 = await get('/api/results?token=teacher');
 ok(res1.finished.some(x => x.studentId === 'TEST001' && x.percent === 100), 'TEST001 persisted at 100%');
 
+// persisted record carries per-step attemptLog (for retro-scoring analysis)
+const RESULTS_FILE = fileURLToPath(new URL('./data/results.json', import.meta.url));
+const persisted = JSON.parse(readFileSync(RESULTS_FILE, 'utf8'));
+const t1 = persisted.find(r => r.studentId === 'TEST001');
+ok(Array.isArray(t1?.attemptLog) && t1.attemptLog.length === local.steps.length, 'attemptLog persisted, one entry per step');
+ok(t1?.attemptLog.every(e => e.wrong === 0 && e.correct === true), 'all-correct run → every step 0 wrong');
+
 // ── 2) wrong-then-retry: lock-step, diminishing credit ──
 const s2 = await post('/api/start', { chapter: 'bst-delete', studentId: 'TEST002', seed });
 const step0 = local.steps[0];
@@ -48,10 +57,10 @@ const wrong = step0.answer === 'left' ? 'right' : 'left';
 let r0 = await post('/api/step', { sessionId: s2.sessionId, stepIndex: 0, answer: wrong });
 ok(r0.correct === false && r0.settled === false, 'wrong attempt 1: not settled');
 ok(r0.expected === undefined, 'no reveal while retries remain');
-ok(r0.attemptsLeft === 2, 'attemptsLeft decremented to 2');
+ok(r0.attemptsLeft === 1, 'attemptsLeft decremented to 1');   // ATTEMPT_CREDIT=[1,0.25] → 2 tries
 r0 = await post('/api/step', { sessionId: s2.sessionId, stepIndex: 0, answer: step0.answer });
 ok(r0.correct && r0.settled, 'retry correct → settled');
-ok(r0.creditAwarded === 0.5, 'second-attempt credit = 0.5');
+ok(r0.creditAwarded === 0.25, 'second-attempt credit = 0.25');
 
 // ── 3) out-of-order rejected ──
 const oo = await post('/api/step', { sessionId: s2.sessionId, stepIndex: 99, answer: 'x' });

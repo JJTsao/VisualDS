@@ -39,7 +39,7 @@ const RESULTS = path.join(DATA, 'results.json');
 const PORT = Number(process.env.PORT) || 8090;
 const HOST = process.env.HOST || '0.0.0.0';            // 0.0.0.0 ⇒ reachable over LAN
 const TEACHER_TOKEN = process.env.TEACHER_TOKEN || 'teacher';
-const ATTEMPT_CREDIT = [1, 0.5, 0.25];                 // diminishing credit per attempt
+const ATTEMPT_CREDIT = [1, 0.25];                      // diminishing credit per attempt（收緊:兩次,二次才對只給 0.25,再錯 0 分。原為 [1,0.5,0.25]。最嚴可改 [1,0]）
 
 // Optional Google Sheets sink (a published Apps Script web app URL). When set,
 // each finished result is POSTed there so grades survive ephemeral cloud disks.
@@ -222,6 +222,7 @@ async function apiStart(req, res) {
     id, studentId, chapter, seed,
     steps: gen.steps, instance: gen.instance, meta: gen.klass,
     cursor: 0, attempts: 0, earned: 0, total: gen.steps.length,
+    attemptLog: [],   // per-step wrong-attempt count (for retro-scoring analysis)
     startedAt: Date.now(), done: false, practice: isPractice(),
   });
   sendJSON(res, 200, {
@@ -261,6 +262,10 @@ async function apiStep(req, res) {
   };
 
   if (settled) {
+    // record this step's wrong-attempt count + credit before resetting (enables
+    // retro-scoring under any ATTEMPT_CREDIT next time). result.correct false here
+    // means the step was exhausted (all attempts wrong → 0 credit).
+    sess.attemptLog.push({ key: step.key, wrong: sess.attempts, correct: result.correct, credit: creditAwarded });
     payload.expected = step.answer;            // revealed only after commit
     sess.cursor++;
     sess.attempts = 0;
@@ -272,6 +277,7 @@ async function apiStep(req, res) {
         studentId: sess.studentId, chapter: sess.chapter, seed: sess.seed,
         earned: Number(sess.earned.toFixed(2)), total: sess.total, percent,
         durationSec, finishedAt: new Date(sess.startedAt + durationSec * 1000).toISOString(),
+        attemptLog: sess.attemptLog,   // per-step wrong-attempt detail for retro-scoring
       };
       if (!sess.practice) {                       // practice attempts are NOT recorded
         markDone(sess.studentId, sess.chapter);   // one attempt per student per chapter
