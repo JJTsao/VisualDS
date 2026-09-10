@@ -1,5 +1,5 @@
 /* ===================================================
-   Data Structure Visualizer — Amber Phosphor Terminal
+   Data Structure Visualizer — Light learning workspace
    Custom property system + animation classes
    =================================================== */
 
@@ -7,32 +7,32 @@
 
 /* ─── Design Tokens ──────────────────────────────── */
 :root {
-  --bg:            #070501;
-  --bg-panel:      #0e0900;
-  --bg-card:       #120d00;
-  --bg-card-hover: #1a1200;
-  --bg-input:      #090600;
+  --bg:            #f5f8fb;
+  --bg-panel:      #ffffff;
+  --bg-card:       #ffffff;
+  --bg-card-hover: #edf6f8;
+  --bg-input:      #f8fafc;
 
-  --border:        #2e2200;
-  --border-mid:    #4a3600;
-  --border-bright: #6b5000;
+  --border:        #dce5ed;
+  --border-mid:    #b9cbd8;
+  --border-bright: #8ba7bc;
 
-  --amber:         #e8a500;
-  --amber-bright:  #ffc740;
-  --amber-dim:     #7a5800;
-  --amber-glow:    rgba(232, 165, 0, 0.18);
-  --amber-glow-sm: rgba(232, 165, 0, 0.08);
+  --amber:         #087682;
+  --amber-bright:  #086875;
+  --amber-dim:     #426d80;
+  --amber-glow:    rgba(8, 127, 140, 0.18);
+  --amber-glow-sm: rgba(8, 127, 140, 0.08);
 
-  --text:          #d4a820;
-  --text-dim:      #b08c30;   /* secondary text — ~6:1 on bg */
-  --text-muted:    #9a7530;   /* tertiary text — ~4.8:1 on bg, was #6b5020 */
+  --text:          #213547;
+  --text-dim:      #4c6274;   /* secondary text — ~6:1 on bg */
+  --text-muted:    #586e80;   /* tertiary text — ~4.8:1 on bg, was #586e80 */
 
-  --success:       #00c87a;
-  --success-dim:   rgba(0, 200, 122, 0.12);
-  --error:         #ff3b3b;
-  --error-dim:     rgba(255, 59, 59, 0.15);
-  --warn:          #ff8c00;
-  --declare:       #ffc740;
+  --success:       #137650;
+  --success-dim:   rgba(22, 128, 91, 0.12);
+  --error:         #c63748;
+  --error-dim:     rgba(198, 55, 72, 0.15);
+  --warn:          #98540d;
+  --declare:       #086875;
 
   --font-mono: 'JetBrains Mono', 'Courier New', monospace;
   --transition: 0.2s ease;
@@ -120,7 +120,7 @@ a { text-decoration: none; color: inherit; }
   position: sticky;
   top: 0;
   z-index: 100;
-  background: rgba(7, 5, 1, 0.92);
+  background: rgba(255, 255, 255, 0.92);
   border-bottom: 1px solid var(--border);
   backdrop-filter: blur(8px);
   padding: 0.35rem 1.5rem;
@@ -192,7 +192,7 @@ a { text-decoration: none; color: inherit; }
 }
 
 #code-input::selection {
-  background: rgba(232, 165, 0, 0.25);
+  background: rgba(8, 127, 140, 0.25);
 }
 
 /* ─── Buttons ────────────────────────────────────── */
@@ -214,10 +214,10 @@ a { text-decoration: none; color: inherit; }
   color: var(--amber-bright);
 }
 .btn-primary:hover {
-  background: rgba(232, 165, 0, 0.25);
+  background: rgba(8, 127, 140, 0.25);
   box-shadow: 0 0 16px var(--amber-glow), 0 0 4px var(--amber-glow);
 }
-.btn-primary:active { background: rgba(232, 165, 0, 0.35); }
+.btn-primary:active { background: rgba(8, 127, 140, 0.35); }
 .btn-primary:disabled {
   opacity: 0.3;
   cursor: not-allowed;
@@ -309,17 +309,17 @@ a { text-decoration: none; color: inherit; }
     45deg,
     transparent,
     transparent 4px,
-    rgba(255, 165, 0, 0.015) 4px,
-    rgba(255, 165, 0, 0.015) 5px
+    rgba(8, 127, 140, 0.015) 4px,
+    rgba(8, 127, 140, 0.015) 5px
   );
   pointer-events: none;
 }
 
 .array-cell.initialized {
   border-color: var(--amber-dim);
-  background: #0d0900;
+  background: #f3f8fb;
   color: var(--amber);
-  box-shadow: 0 0 8px var(--amber-glow-sm), inset 0 0 10px rgba(232, 165, 0, 0.04);
+  box-shadow: 0 0 8px var(--amber-glow-sm), inset 0 0 10px rgba(8, 127, 140, 0.04);
 }
 .array-cell.initialized::before { display: none; }
 
@@ -339,11 +339,11 @@ a { text-decoration: none; color: inherit; }
 
 /* ─── Animation: .highlight ──────────────────────── */
 @keyframes highlightFlash {
-  0%   { background: #0d0900;  border-color: var(--amber-dim); box-shadow: none; }
-  15%  { background: #2a1a00;  border-color: var(--amber-bright); box-shadow: 0 0 20px rgba(255, 199, 64, 0.6), inset 0 0 12px rgba(255, 199, 64, 0.2); color: var(--amber-bright); }
-  40%  { background: #1f1300;  border-color: var(--amber); box-shadow: 0 0 12px rgba(232, 165, 0, 0.4); }
-  65%  { background: #2a1a00;  border-color: var(--amber-bright); box-shadow: 0 0 18px rgba(255, 199, 64, 0.5); }
-  100% { background: #0d0900;  border-color: var(--amber-dim); box-shadow: 0 0 8px var(--amber-glow-sm); color: var(--amber); }
+  0%   { background: #f3f8fb;  border-color: var(--amber-dim); box-shadow: none; }
+  15%  { background: #d9f0f2;  border-color: var(--amber-bright); box-shadow: 0 0 20px rgba(8, 127, 140, 0.6), inset 0 0 12px rgba(8, 127, 140, 0.2); color: var(--amber-bright); }
+  40%  { background: #e7f5f6;  border-color: var(--amber); box-shadow: 0 0 12px rgba(8, 127, 140, 0.4); }
+  65%  { background: #d9f0f2;  border-color: var(--amber-bright); box-shadow: 0 0 18px rgba(8, 127, 140, 0.5); }
+  100% { background: #f3f8fb;  border-color: var(--amber-dim); box-shadow: 0 0 8px var(--amber-glow-sm); color: var(--amber); }
 }
 
 .highlight {
@@ -377,8 +377,8 @@ a { text-decoration: none; color: inherit; }
 }
 
 @keyframes errorCellPulse {
-  0%, 100% { border-color: var(--error); background: #150000; color: #ff8080; box-shadow: 0 0 6px rgba(255, 59, 59, 0.3); }
-  50%       { border-color: #ff7070;     background: #200000; color: var(--error); box-shadow: 0 0 20px rgba(255, 59, 59, 0.5); }
+  0%, 100% { border-color: var(--error); background: #fff0f1; color: #a92a3a; box-shadow: 0 0 6px rgba(198, 55, 72, 0.3); }
+  50%       { border-color: #c63748;     background: #ffe2e6; color: var(--error); box-shadow: 0 0 20px rgba(198, 55, 72, 0.5); }
 }
 
 .error-shake {
@@ -469,7 +469,7 @@ a { text-decoration: none; color: inherit; }
 .op-btn:hover .op-en        { color: var(--text-dim); }
 .op-btn:hover .op-zh        { color: var(--text-muted); opacity: 1; }
 
-.op-btn.active              { background: rgba(232, 165, 0, 0.07); border-bottom: 2px solid var(--amber); }
+.op-btn.active              { background: rgba(8, 127, 140, 0.07); border-bottom: 2px solid var(--amber); }
 .op-btn.active .op-en       { color: var(--amber); }
 .op-btn.active .op-zh       { color: var(--amber-dim); opacity: 1; }
 
@@ -534,7 +534,7 @@ a { text-decoration: none; color: inherit; }
 
 .node-data-cell.initialized,
 .node-next-cell.initialized {
-  background: #0d0900;
+  background: #f3f8fb;
   border-color: var(--amber-dim);
 }
 
@@ -669,23 +669,23 @@ a { text-decoration: none; color: inherit; }
 
 /* ─── Linked List Animations ──────────────────────── */
 @keyframes nodeHighlight {
-  0%   { background: #0d0900; border-color: var(--amber-dim); box-shadow: none; }
-  20%  { background: #2a1a00; border-color: var(--amber-bright); box-shadow: 0 0 16px rgba(255,199,64,0.5); }
-  60%  { background: #1a1000; border-color: var(--amber); }
-  100% { background: #0d0900; border-color: var(--amber-dim); box-shadow: none; }
+  0%   { background: #f3f8fb; border-color: var(--amber-dim); box-shadow: none; }
+  20%  { background: #d9f0f2; border-color: var(--amber-bright); box-shadow: 0 0 16px rgba(8, 127, 140,0.5); }
+  60%  { background: #e7f5f6; border-color: var(--amber); }
+  100% { background: #f3f8fb; border-color: var(--amber-dim); box-shadow: none; }
 }
 .node-highlight { animation: nodeHighlight 0.9s ease forwards; }
 
 @keyframes ptrUpdate {
   0%   { background: var(--bg-panel); border-color: var(--border-mid); }
-  25%  { background: rgba(0,200,122,0.12); border-color: var(--success); box-shadow: 0 0 10px rgba(0,200,122,0.3); }
-  100% { background: #0d0900; border-color: var(--amber-dim); }
+  25%  { background: rgba(22, 128, 91,0.12); border-color: var(--success); box-shadow: 0 0 10px rgba(22, 128, 91,0.3); }
+  100% { background: #f3f8fb; border-color: var(--amber-dim); }
 }
 .node-ptr-update { animation: ptrUpdate 0.9s ease forwards; }
 
 @keyframes nodeSpawn {
   0%   { opacity: 0; transform: scale(0.65) translateY(10px); }
-  60%  { opacity: 1; transform: scale(1.06) translateY(0); box-shadow: 0 0 18px rgba(255,199,64,0.35); }
+  60%  { opacity: 1; transform: scale(1.06) translateY(0); box-shadow: 0 0 18px rgba(8, 127, 140,0.35); }
   100% { opacity: 1; transform: scale(1)    translateY(0); box-shadow: none; }
 }
 .node-spawn { animation: nodeSpawn 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
@@ -720,9 +720,9 @@ a { text-decoration: none; color: inherit; }
 
 /* Overflow: 紅色 pulse */
 @keyframes queueOverflow {
-  0%   { border-color: var(--error); box-shadow: 0 0 0 rgba(255,60,60,0); }
-  40%  { border-color: var(--error); box-shadow: 0 0 10px rgba(255,60,60,0.6); background: #1a0000; }
-  100% { border-color: var(--error); box-shadow: 0 0 0 rgba(255,60,60,0); }
+  0%   { border-color: var(--error); box-shadow: 0 0 0 rgba(198, 55, 72,0); }
+  40%  { border-color: var(--error); box-shadow: 0 0 10px rgba(198, 55, 72,0.6); background: #fff0f1; }
+  100% { border-color: var(--error); box-shadow: 0 0 0 rgba(198, 55, 72,0); }
 }
 .queue-cell-overflow {
   animation: queueOverflow 0.7s ease forwards;
@@ -740,7 +740,7 @@ a { text-decoration: none; color: inherit; }
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #0d0900;
+  background: #f3f8fb;
   border: 1px solid var(--amber-dim);
   color: var(--amber);
   font-family: var(--font-mono);
@@ -749,7 +749,7 @@ a { text-decoration: none; color: inherit; }
   letter-spacing: 0.02em;
   box-shadow:
     0 0 8px var(--amber-glow-sm),
-    inset 0 0 8px rgba(232, 165, 0, 0.04);
+    inset 0 0 8px rgba(8, 127, 140, 0.04);
   transform: translate(-50%, -50%);
   transition: left 0.4s ease, top 0.4s ease;
   pointer-events: auto;
@@ -774,8 +774,8 @@ a { text-decoration: none; color: inherit; }
 /* Spawn: fade + scale-up. Note: keyframes must preserve translate(-50%,-50%). */
 @keyframes treeNodeSpawn {
   0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.4); }
-  60%  { opacity: 1; transform: translate(-50%, -50%) scale(1.15); box-shadow: 0 0 18px rgba(255,199,64,0.45); }
-  100% { opacity: 1; transform: translate(-50%, -50%) scale(1);    box-shadow: 0 0 8px var(--amber-glow-sm), inset 0 0 8px rgba(232,165,0,0.04); }
+  60%  { opacity: 1; transform: translate(-50%, -50%) scale(1.15); box-shadow: 0 0 18px rgba(8, 127, 140,0.45); }
+  100% { opacity: 1; transform: translate(-50%, -50%) scale(1);    box-shadow: 0 0 8px var(--amber-glow-sm), inset 0 0 8px rgba(8, 127, 140,0.04); }
 }
 .tree-node-spawn {
   animation: treeNodeSpawn 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
@@ -783,10 +783,10 @@ a { text-decoration: none; color: inherit; }
 
 /* Visit: brief amber pulse during traversal — also keeps translate intact. */
 @keyframes treeNodeVisit {
-  0%   { background: #0d0900;            border-color: var(--amber-dim);    color: var(--amber);        box-shadow: 0 0 8px var(--amber-glow-sm); transform: translate(-50%, -50%) scale(1); }
-  35%  { background: #2a1a00;            border-color: var(--amber-bright); color: var(--amber-bright); box-shadow: 0 0 20px rgba(255,199,64,0.65), inset 0 0 12px rgba(255,199,64,0.18); transform: translate(-50%, -50%) scale(1.15); }
-  70%  { background: #1f1300;            border-color: var(--amber);        color: var(--amber-bright); box-shadow: 0 0 14px rgba(232,165,0,0.45); transform: translate(-50%, -50%) scale(1.08); }
-  100% { background: #0d0900;            border-color: var(--amber-dim);    color: var(--amber);        box-shadow: 0 0 8px var(--amber-glow-sm); transform: translate(-50%, -50%) scale(1); }
+  0%   { background: #f3f8fb;            border-color: var(--amber-dim);    color: var(--amber);        box-shadow: 0 0 8px var(--amber-glow-sm); transform: translate(-50%, -50%) scale(1); }
+  35%  { background: #d9f0f2;            border-color: var(--amber-bright); color: var(--amber-bright); box-shadow: 0 0 20px rgba(8, 127, 140,0.65), inset 0 0 12px rgba(8, 127, 140,0.18); transform: translate(-50%, -50%) scale(1.15); }
+  70%  { background: #e7f5f6;            border-color: var(--amber);        color: var(--amber-bright); box-shadow: 0 0 14px rgba(8, 127, 140,0.45); transform: translate(-50%, -50%) scale(1.08); }
+  100% { background: #f3f8fb;            border-color: var(--amber-dim);    color: var(--amber);        box-shadow: 0 0 8px var(--amber-glow-sm); transform: translate(-50%, -50%) scale(1); }
 }
 .tree-node-visit {
   animation: treeNodeVisit 0.42s ease forwards;
@@ -795,11 +795,11 @@ a { text-decoration: none; color: inherit; }
 
 /* Active: persists while a node is on the recursion call stack (slow pulse). */
 @keyframes treeNodeActivePulse {
-  0%, 100% { box-shadow: 0 0 8px rgba(232,165,0,0.35), inset 0 0 6px rgba(232,165,0,0.10); }
-  50%       { box-shadow: 0 0 16px rgba(232,165,0,0.55), inset 0 0 10px rgba(232,165,0,0.18); }
+  0%, 100% { box-shadow: 0 0 8px rgba(8, 127, 140,0.35), inset 0 0 6px rgba(8, 127, 140,0.10); }
+  50%       { box-shadow: 0 0 16px rgba(8, 127, 140,0.55), inset 0 0 10px rgba(8, 127, 140,0.18); }
 }
 .tree-node-active {
-  background: #1a1100;
+  background: #e7f5f6;
   border-color: var(--amber-bright);
   color: var(--amber-bright);
   animation: treeNodeActivePulse 1.4s ease-in-out infinite;
@@ -808,9 +808,9 @@ a { text-decoration: none; color: inherit; }
 
 /* Visited (traversal moment): green flash, then settles into visited-done. */
 @keyframes treeNodeVisited {
-  0%   { background: #1a1100;            border-color: var(--amber);        color: var(--amber-bright); box-shadow: 0 0 10px var(--amber-glow); transform: translate(-50%, -50%) scale(1); }
-  40%  { background: rgba(0,200,122,0.30); border-color: #4dffa8;            color: #d9ffe8; box-shadow: 0 0 24px rgba(0,200,122,0.75), inset 0 0 14px rgba(0,200,122,0.25); transform: translate(-50%, -50%) scale(1.22); }
-  100% { background: rgba(0,200,122,0.10); border-color: var(--success);     color: var(--success); box-shadow: 0 0 10px rgba(0,200,122,0.35); transform: translate(-50%, -50%) scale(1); }
+  0%   { background: #e7f5f6;            border-color: var(--amber);        color: var(--amber-bright); box-shadow: 0 0 10px var(--amber-glow); transform: translate(-50%, -50%) scale(1); }
+  40%  { background: rgba(22, 128, 91,0.30); border-color: #137650;            color: #136545; box-shadow: 0 0 24px rgba(22, 128, 91,0.75), inset 0 0 14px rgba(22, 128, 91,0.25); transform: translate(-50%, -50%) scale(1.22); }
+  100% { background: rgba(22, 128, 91,0.10); border-color: var(--success);     color: var(--success); box-shadow: 0 0 10px rgba(22, 128, 91,0.35); transform: translate(-50%, -50%) scale(1); }
 }
 .tree-node-visited {
   animation: treeNodeVisited 0.5s ease forwards;
@@ -819,18 +819,18 @@ a { text-decoration: none; color: inherit; }
 
 /* Visited-done: static green-tint that persists for the rest of the traversal. */
 .tree-node-visited-done {
-  background: rgba(0, 200, 122, 0.07);
-  border-color: rgba(0, 200, 122, 0.5);
+  background: rgba(22, 128, 91, 0.07);
+  border-color: rgba(22, 128, 91, 0.5);
   color: var(--success);
-  box-shadow: 0 0 6px rgba(0, 200, 122, 0.18);
+  box-shadow: 0 0 6px rgba(22, 128, 91, 0.18);
 }
 
 /* Found (search hit): strong green pulse, holds. */
 @keyframes treeNodeFound {
-  0%   { background: rgba(0,200,122,0.08); border-color: var(--success); color: var(--success);   box-shadow: 0 0 10px rgba(0,200,122,0.3);  transform: translate(-50%, -50%) scale(1); }
-  25%  { background: rgba(0,200,122,0.40); border-color: #4dffa8;        color: #eaffe9;          box-shadow: 0 0 36px rgba(0,200,122,0.9), inset 0 0 18px rgba(0,200,122,0.35); transform: translate(-50%, -50%) scale(1.30); }
-  60%  { background: rgba(0,200,122,0.20); border-color: var(--success); color: #c9ffd8;          box-shadow: 0 0 22px rgba(0,200,122,0.55); transform: translate(-50%, -50%) scale(1.10); }
-  100% { background: rgba(0,200,122,0.18); border-color: var(--success); color: var(--success);   box-shadow: 0 0 14px rgba(0,200,122,0.45); transform: translate(-50%, -50%) scale(1.05); }
+  0%   { background: rgba(22, 128, 91,0.08); border-color: var(--success); color: var(--success);   box-shadow: 0 0 10px rgba(22, 128, 91,0.3);  transform: translate(-50%, -50%) scale(1); }
+  25%  { background: rgba(22, 128, 91,0.40); border-color: #137650;        color: #136545;          box-shadow: 0 0 36px rgba(22, 128, 91,0.9), inset 0 0 18px rgba(22, 128, 91,0.35); transform: translate(-50%, -50%) scale(1.30); }
+  60%  { background: rgba(22, 128, 91,0.20); border-color: var(--success); color: #136545;          box-shadow: 0 0 22px rgba(22, 128, 91,0.55); transform: translate(-50%, -50%) scale(1.10); }
+  100% { background: rgba(22, 128, 91,0.18); border-color: var(--success); color: var(--success);   box-shadow: 0 0 14px rgba(22, 128, 91,0.45); transform: translate(-50%, -50%) scale(1.05); }
 }
 .tree-node-found {
   animation: treeNodeFound 0.9s ease forwards;
@@ -839,9 +839,9 @@ a { text-decoration: none; color: inherit; }
 
 /* Miss (search exhausted): red flash on last node visited. */
 @keyframes treeNodeMiss {
-  0%   { background: #0d0900;             border-color: var(--amber-dim); color: var(--amber);    box-shadow: 0 0 8px var(--amber-glow-sm); transform: translate(-50%, -50%) scale(1); }
-  30%  { background: rgba(255,60,60,0.35); border-color: var(--error);    color: #ffd0d0;         box-shadow: 0 0 24px rgba(255,60,60,0.7), inset 0 0 12px rgba(255,60,60,0.3); transform: translate(-50%, -50%) scale(1.15); }
-  100% { background: #0d0900;             border-color: var(--amber-dim); color: var(--amber);    box-shadow: 0 0 8px var(--amber-glow-sm); transform: translate(-50%, -50%) scale(1); }
+  0%   { background: #f3f8fb;             border-color: var(--amber-dim); color: var(--amber);    box-shadow: 0 0 8px var(--amber-glow-sm); transform: translate(-50%, -50%) scale(1); }
+  30%  { background: rgba(198, 55, 72,0.35); border-color: var(--error);    color: #a92a3a;         box-shadow: 0 0 24px rgba(198, 55, 72,0.7), inset 0 0 12px rgba(198, 55, 72,0.3); transform: translate(-50%, -50%) scale(1.15); }
+  100% { background: #f3f8fb;             border-color: var(--amber-dim); color: var(--amber);    box-shadow: 0 0 8px var(--amber-glow-sm); transform: translate(-50%, -50%) scale(1); }
 }
 .tree-node-miss {
   animation: treeNodeMiss 0.7s ease forwards;
@@ -850,8 +850,8 @@ a { text-decoration: none; color: inherit; }
 
 /* Whole-canvas red flash on search miss. */
 @keyframes treeCanvasMiss {
-  0%, 100% { box-shadow: inset 0 0 0 rgba(255, 60, 60, 0); }
-  30%       { box-shadow: inset 0 0 40px rgba(255, 60, 60, 0.45); }
+  0%, 100% { box-shadow: inset 0 0 0 rgba(198, 55, 72, 0); }
+  30%       { box-shadow: inset 0 0 40px rgba(198, 55, 72, 0.45); }
 }
 .tree-canvas-miss {
   animation: treeCanvasMiss 0.7s ease;
@@ -868,8 +868,8 @@ a { text-decoration: none; color: inherit; }
   font-size: 0.8rem;
   font-weight: 700;
   color: var(--success);
-  background: rgba(0, 200, 122, 0.08);
-  border: 1px solid rgba(0, 200, 122, 0.5);
+  background: rgba(22, 128, 91, 0.08);
+  border: 1px solid rgba(22, 128, 91, 0.5);
   padding: 0.15rem 0.5rem;
   border-radius: 2px;
   letter-spacing: 0.04em;
@@ -904,9 +904,9 @@ a { text-decoration: none; color: inherit; }
 /* Deletion target — strong red pulse on the node about to be removed.
    forwards-hold so it stays red until either fade-out or Case 3 clears it. */
 @keyframes treeNodeDeletionTarget {
-  0%   { background: #0d0900;             border-color: var(--amber-dim);   color: var(--amber);  box-shadow: 0 0 8px var(--amber-glow-sm); transform: translate(-50%, -50%) scale(1); }
-  35%  { background: rgba(255,60,60,0.45); border-color: var(--error);      color: #fff;          box-shadow: 0 0 30px rgba(255,60,60,0.85), inset 0 0 16px rgba(255,60,60,0.35); transform: translate(-50%, -50%) scale(1.25); }
-  100% { background: rgba(255,60,60,0.35); border-color: var(--error);      color: #ffcccc;       box-shadow: 0 0 22px rgba(255,60,60,0.6),  inset 0 0 10px rgba(255,60,60,0.2);  transform: translate(-50%, -50%) scale(1.15); }
+  0%   { background: #f3f8fb;             border-color: var(--amber-dim);   color: var(--amber);  box-shadow: 0 0 8px var(--amber-glow-sm); transform: translate(-50%, -50%) scale(1); }
+  35%  { background: rgba(198, 55, 72,0.45); border-color: var(--error);      color: #fff;          box-shadow: 0 0 30px rgba(198, 55, 72,0.85), inset 0 0 16px rgba(198, 55, 72,0.35); transform: translate(-50%, -50%) scale(1.25); }
+  100% { background: rgba(198, 55, 72,0.35); border-color: var(--error);      color: #a92a3a;       box-shadow: 0 0 22px rgba(198, 55, 72,0.6),  inset 0 0 10px rgba(198, 55, 72,0.2);  transform: translate(-50%, -50%) scale(1.15); }
 }
 .tree-node-target {
   animation: treeNodeDeletionTarget 0.55s ease forwards;
@@ -915,9 +915,9 @@ a { text-decoration: none; color: inherit; }
 
 /* In-order successor — green pulse held until value-swap completes. */
 @keyframes treeNodeSuccessor {
-  0%   { background: #0d0900;              border-color: var(--amber-dim); color: var(--amber);   box-shadow: 0 0 8px var(--amber-glow-sm); transform: translate(-50%, -50%) scale(1); }
-  40%  { background: rgba(0,200,122,0.40); border-color: #4dffa8;          color: #eaffe9;        box-shadow: 0 0 28px rgba(0,200,122,0.8), inset 0 0 14px rgba(0,200,122,0.3); transform: translate(-50%, -50%) scale(1.25); }
-  100% { background: rgba(0,200,122,0.18); border-color: var(--success);   color: var(--success); box-shadow: 0 0 14px rgba(0,200,122,0.45); transform: translate(-50%, -50%) scale(1.05); }
+  0%   { background: #f3f8fb;              border-color: var(--amber-dim); color: var(--amber);   box-shadow: 0 0 8px var(--amber-glow-sm); transform: translate(-50%, -50%) scale(1); }
+  40%  { background: rgba(22, 128, 91,0.40); border-color: #137650;          color: #136545;        box-shadow: 0 0 28px rgba(22, 128, 91,0.8), inset 0 0 14px rgba(22, 128, 91,0.3); transform: translate(-50%, -50%) scale(1.25); }
+  100% { background: rgba(22, 128, 91,0.18); border-color: var(--success);   color: var(--success); box-shadow: 0 0 14px rgba(22, 128, 91,0.45); transform: translate(-50%, -50%) scale(1.05); }
 }
 .tree-node-successor {
   animation: treeNodeSuccessor 0.55s ease forwards;
@@ -928,8 +928,8 @@ a { text-decoration: none; color: inherit; }
    target inherits the in-order successor's value. */
 @keyframes treeValueSwap {
   0%   { transform: scale(1);                                                  }
-  35%  { transform: scale(1.8);  text-shadow: 0 0 18px rgba(255,199,64,0.85);  filter: brightness(1.4); }
-  60%  { transform: scale(1.8);  text-shadow: 0 0 12px rgba(232,165,0,0.7);   }
+  35%  { transform: scale(1.8);  text-shadow: 0 0 18px rgba(8, 127, 140,0.85);  filter: brightness(1.4); }
+  60%  { transform: scale(1.8);  text-shadow: 0 0 12px rgba(8, 127, 140,0.7);   }
   100% { transform: scale(1);                                                  }
 }
 .tree-value-swap {
@@ -942,9 +942,9 @@ a { text-decoration: none; color: inherit; }
    keyframe matches treeNodeDeletionTarget's 100% (held red state) for a
    seamless red → invisible transition. */
 @keyframes treeNodeFadeOut {
-  0%   { opacity: 1; transform: translate(-50%, -50%) scale(1.15); background: rgba(255,60,60,0.35); border-color: var(--error); color: #ffcccc;          box-shadow: 0 0 22px rgba(255,60,60,0.6); }
-  60%  { opacity: 0.55; transform: translate(-50%, -50%) scale(0.85); background: rgba(255,60,60,0.2); border-color: rgba(255,60,60,0.4); color: rgba(255,200,200,0.6); }
-  100% { opacity: 0; transform: translate(-50%, -50%) scale(0.3);    background: rgba(255,60,60,0);  border-color: rgba(255,60,60,0);   color: transparent;       box-shadow: none; }
+  0%   { opacity: 1; transform: translate(-50%, -50%) scale(1.15); background: rgba(198, 55, 72,0.35); border-color: var(--error); color: #a92a3a;          box-shadow: 0 0 22px rgba(198, 55, 72,0.6); }
+  60%  { opacity: 0.55; transform: translate(-50%, -50%) scale(0.85); background: rgba(198, 55, 72,0.2); border-color: rgba(198, 55, 72,0.4); color: rgba(255,200,200,0.6); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(0.3);    background: rgba(198, 55, 72,0);  border-color: rgba(198, 55, 72,0);   color: transparent;       box-shadow: none; }
 }
 .tree-node-fade-out {
   animation: treeNodeFadeOut 0.5s ease forwards;
@@ -960,10 +960,10 @@ a { text-decoration: none; color: inherit; }
 /* Invert swap — quick cyan flash on a node whose left/right pointers were
    just exchanged. Reverts to base on completion. */
 @keyframes treeNodeSwap {
-  0%   { background: #0d0900;             border-color: var(--amber-dim);    color: var(--amber);   box-shadow: 0 0 8px var(--amber-glow-sm); transform: translate(-50%, -50%) scale(1); }
-  35%  { background: rgba(64,208,255,0.40); border-color: #40d0ff;            color: #e0f5ff;        box-shadow: 0 0 26px rgba(64,208,255,0.75), inset 0 0 14px rgba(64,208,255,0.30); transform: translate(-50%, -50%) scale(1.22); }
-  70%  { background: rgba(64,208,255,0.20); border-color: #40d0ff;            color: #b0e0ff;        box-shadow: 0 0 14px rgba(64,208,255,0.4); transform: translate(-50%, -50%) scale(1.08); }
-  100% { background: #0d0900;             border-color: var(--amber-dim);    color: var(--amber);   box-shadow: 0 0 8px var(--amber-glow-sm); transform: translate(-50%, -50%) scale(1); }
+  0%   { background: #f3f8fb;             border-color: var(--amber-dim);    color: var(--amber);   box-shadow: 0 0 8px var(--amber-glow-sm); transform: translate(-50%, -50%) scale(1); }
+  35%  { background: rgba(37, 99, 176,0.40); border-color: #2563b0;            color: #245d91;        box-shadow: 0 0 26px rgba(37, 99, 176,0.75), inset 0 0 14px rgba(37, 99, 176,0.30); transform: translate(-50%, -50%) scale(1.22); }
+  70%  { background: rgba(37, 99, 176,0.20); border-color: #2563b0;            color: #245d91;        box-shadow: 0 0 14px rgba(37, 99, 176,0.4); transform: translate(-50%, -50%) scale(1.08); }
+  100% { background: #f3f8fb;             border-color: var(--amber-dim);    color: var(--amber);   box-shadow: 0 0 8px var(--amber-glow-sm); transform: translate(-50%, -50%) scale(1); }
 }
 .tree-node-swap {
   animation: treeNodeSwap 0.45s ease;
@@ -973,9 +973,9 @@ a { text-decoration: none; color: inherit; }
 /* Deepest path — purple sustained highlight on each node along the longest
    root-to-leaf path; persists until the next operation calls resetNodeStates. */
 @keyframes treeNodeDeepest {
-  0%   { background: #0d0900;             border-color: var(--amber-dim);  color: var(--amber);   box-shadow: 0 0 8px var(--amber-glow-sm); transform: translate(-50%, -50%) scale(1); }
-  45%  { background: rgba(180,100,255,0.45); border-color: #c9a0ff;         color: #f3deff;        box-shadow: 0 0 28px rgba(180,100,255,0.75), inset 0 0 16px rgba(180,100,255,0.3); transform: translate(-50%, -50%) scale(1.20); }
-  100% { background: rgba(180,100,255,0.20); border-color: #b48bff;         color: #e8d4ff;        box-shadow: 0 0 16px rgba(180,100,255,0.55);                                       transform: translate(-50%, -50%) scale(1.08); }
+  0%   { background: #f3f8fb;             border-color: var(--amber-dim);  color: var(--amber);   box-shadow: 0 0 8px var(--amber-glow-sm); transform: translate(-50%, -50%) scale(1); }
+  45%  { background: rgba(121, 83, 181,0.45); border-color: #7953b5;         color: #654298;        box-shadow: 0 0 28px rgba(121, 83, 181,0.75), inset 0 0 16px rgba(121, 83, 181,0.3); transform: translate(-50%, -50%) scale(1.20); }
+  100% { background: rgba(121, 83, 181,0.20); border-color: #7953b5;         color: #654298;        box-shadow: 0 0 16px rgba(121, 83, 181,0.55);                                       transform: translate(-50%, -50%) scale(1.08); }
 }
 .tree-node-deepest {
   animation: treeNodeDeepest 0.55s ease forwards;
@@ -984,10 +984,10 @@ a { text-decoration: none; color: inherit; }
 
 /* Edge on the deepest path — purple stroke with a soft glow. */
 .tree-edge.tree-edge-deepest {
-  stroke: #c9a0ff;
+  stroke: #7953b5;
   stroke-width: 2.4;
   opacity: 1;
-  filter: drop-shadow(0 0 5px rgba(180, 100, 255, 0.7));
+  filter: drop-shadow(0 0 5px rgba(121, 83, 181, 0.7));
   transition: stroke 0.3s ease, stroke-width 0.3s ease;
 }
 
@@ -1004,14 +1004,14 @@ a { text-decoration: none; color: inherit; }
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #0d0900;
+  background: #f3f8fb;
   border: 1.5px solid var(--amber-dim);
   color: var(--amber);
   font-family: var(--font-mono);
   font-weight: 700;
   font-size: 1.05rem;
   letter-spacing: 0.02em;
-  box-shadow: 0 0 8px var(--amber-glow-sm), inset 0 0 8px rgba(232, 165, 0, 0.04);
+  box-shadow: 0 0 8px var(--amber-glow-sm), inset 0 0 8px rgba(8, 127, 140, 0.04);
   transform: translate(-50%, -50%);
   transition: left 0.35s ease, top 0.35s ease,
               background var(--transition), border-color var(--transition),
@@ -1040,7 +1040,7 @@ a { text-decoration: none; color: inherit; }
   align-items: center;
   justify-content: center;
   border-radius: 10px;
-  background: #1a1100;
+  background: #e7f5f6;
   border: 1px solid var(--border-bright);
   color: var(--text-dim);
   font-size: 0.66rem;
@@ -1053,22 +1053,22 @@ a { text-decoration: none; color: inherit; }
 
 @keyframes graphDistPop {
   0%   { transform: scale(1);   }
-  45%  { transform: scale(1.6); background: rgba(0,200,122,0.4); border-color: #4dffa8; color: #eaffe9; box-shadow: 0 0 14px rgba(0,200,122,0.7); }
+  45%  { transform: scale(1.6); background: rgba(22, 128, 91,0.4); border-color: #137650; color: #136545; box-shadow: 0 0 14px rgba(22, 128, 91,0.7); }
   100% { transform: scale(1);   }
 }
 .graph-node-dist.dist-relaxed {
-  background: rgba(0,200,122,0.18);
+  background: rgba(22, 128, 91,0.18);
   border-color: var(--success);
-  color: #b8ffd6;
+  color: #136545;
   animation: graphDistPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 /* Edge-build selection — first endpoint waiting for its partner (cyan ring). */
 .graph-node-selected {
-  border-color: #40d0ff;
-  color: #cdeeff;
-  background: #04141c;
-  box-shadow: 0 0 20px rgba(64, 208, 255, 0.6), inset 0 0 10px rgba(64, 208, 255, 0.2);
+  border-color: #2563b0;
+  color: #245d91;
+  background: #e7f3fb;
+  box-shadow: 0 0 20px rgba(37, 99, 176, 0.6), inset 0 0 10px rgba(37, 99, 176, 0.2);
 }
 
 /* Start node — sustained badge ring so the source is always identifiable. */
@@ -1077,38 +1077,38 @@ a { text-decoration: none; color: inherit; }
 /* Spawn — fade + scale-in for a newly placed vertex (keeps translate intact). */
 @keyframes graphNodeSpawn {
   0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.4); }
-  60%  { opacity: 1; transform: translate(-50%, -50%) scale(1.18); box-shadow: 0 0 18px rgba(255,199,64,0.45); }
+  60%  { opacity: 1; transform: translate(-50%, -50%) scale(1.18); box-shadow: 0 0 18px rgba(8, 127, 140,0.45); }
   100% { opacity: 1; transform: translate(-50%, -50%) scale(1);    box-shadow: 0 0 8px var(--amber-glow-sm); }
 }
 .graph-node-spawn { animation: graphNodeSpawn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
 
 /* Frontier — discovered & enqueued / in stack but not yet processed (amber). */
 .graph-node-frontier {
-  background: #2a1a00;
+  background: #d9f0f2;
   border-color: var(--amber-bright);
   color: var(--amber-bright);
-  box-shadow: 0 0 16px rgba(255, 199, 64, 0.5), inset 0 0 8px rgba(255, 199, 64, 0.2);
+  box-shadow: 0 0 16px rgba(8, 127, 140, 0.5), inset 0 0 8px rgba(8, 127, 140, 0.2);
 }
 
 /* Current — the vertex actively being processed (strong pulse, scales up). */
 @keyframes graphNodeCurrentPulse {
-  0%, 100% { box-shadow: 0 0 16px rgba(255,199,64,0.55), inset 0 0 8px rgba(255,199,64,0.2); transform: translate(-50%, -50%) scale(1.14); }
-  50%       { box-shadow: 0 0 28px rgba(255,199,64,0.85), inset 0 0 12px rgba(255,199,64,0.35); transform: translate(-50%, -50%) scale(1.2); }
+  0%, 100% { box-shadow: 0 0 16px rgba(8, 127, 140,0.55), inset 0 0 8px rgba(8, 127, 140,0.2); transform: translate(-50%, -50%) scale(1.14); }
+  50%       { box-shadow: 0 0 28px rgba(8, 127, 140,0.85), inset 0 0 12px rgba(8, 127, 140,0.35); transform: translate(-50%, -50%) scale(1.2); }
 }
 .graph-node-current {
-  background: #3a2600;
+  background: #b9d9de;
   border-color: var(--amber-bright);
-  color: #fff3d6;
+  color: #086875;
   animation: graphNodeCurrentPulse 0.9s ease-in-out infinite;
   z-index: 4;
 }
 
 /* Visited — fully processed (green, holds for the rest of the run). */
 .graph-node-visited {
-  background: rgba(0, 200, 122, 0.14);
+  background: rgba(22, 128, 91, 0.14);
   border-color: var(--success);
   color: var(--success);
-  box-shadow: 0 0 12px rgba(0, 200, 122, 0.4);
+  box-shadow: 0 0 12px rgba(22, 128, 91, 0.4);
 }
 
 /* ── Edges (SVG <line>) ── */
@@ -1125,7 +1125,7 @@ a { text-decoration: none; color: inherit; }
   stroke: var(--amber-bright);
   stroke-width: 3.5;
   opacity: 1;
-  filter: drop-shadow(0 0 5px rgba(255, 199, 64, 0.8));
+  filter: drop-shadow(0 0 5px rgba(8, 127, 140, 0.8));
 }
 
 /* Traversed — edge used to discover a vertex in BFS / DFS (settled green). */
@@ -1137,10 +1137,10 @@ a { text-decoration: none; color: inherit; }
 
 /* Tree — final shortest-path tree edge in Dijkstra (bold green + glow). */
 .graph-edge.graph-edge-tree {
-  stroke: #4dffa8;
+  stroke: #137650;
   stroke-width: 3.5;
   opacity: 1;
-  filter: drop-shadow(0 0 6px rgba(0, 200, 122, 0.8));
+  filter: drop-shadow(0 0 6px rgba(22, 128, 91, 0.8));
 }
 
 /* Edge weight label — outlined for legibility over lines / background. */
@@ -1158,4 +1158,4 @@ a { text-decoration: none; color: inherit; }
   user-select: none;
 }
 .graph-edge-weight.weight-active { fill: var(--amber-bright); }
-.graph-edge-weight.weight-tree   { fill: #4dffa8; }
+.graph-edge-weight.weight-tree   { fill: #137650; }

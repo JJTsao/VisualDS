@@ -140,7 +140,7 @@
     #current-line-highlight {
       position: absolute;
       left: 0; right: 0;
-      background: rgba(232, 165, 0, 0.10);
+      background: rgba(8, 127, 140, 0.10);
       border-left: 2px solid var(--amber);
       pointer-events: none;
       z-index: 1;
@@ -149,7 +149,7 @@
 
     .line-gutter {
       padding: 0.875rem 0.4rem 0.875rem 0.5rem;
-      background: rgba(0,0,0,0.35);
+      background: #edf4f8;
       border-right: 1px solid var(--border);
       display: flex;
       flex-direction: column;
@@ -224,7 +224,7 @@
 
     .concept-list code {
       color: var(--amber);
-      background: rgba(232, 165, 0, 0.08);
+      background: rgba(8, 127, 140, 0.08);
       padding: 0 3px;
       border-radius: 2px;
       font-size: 0.85rem;
@@ -308,8 +308,8 @@
 
     /* Head pointer label — distinct from regular node var labels */
     .node-var-label.head-ptr-label {
-      color: #40d0ff;
-      text-shadow: 0 0 8px rgba(64, 208, 255, 0.45);
+      color: #2563b0;
+      text-shadow: 0 0 8px rgba(37, 99, 176, 0.45);
       letter-spacing: 0.1em;
     }
 
@@ -330,8 +330,8 @@
       font-weight: 700;
       letter-spacing: 0.07em;
       color: var(--success);
-      background: rgba(0, 200, 122, 0.10);
-      border: 1px solid rgba(0, 200, 122, 0.45);
+      background: rgba(22, 128, 91, 0.10);
+      border: 1px solid rgba(22, 128, 91, 0.45);
       padding: 2px 7px;
       border-radius: 2px;
       animation: ptrBadgePulse 2s ease-in-out infinite;
@@ -346,18 +346,18 @@
       transform: translateX(-50%);
       border-left: 4px solid transparent;
       border-right: 4px solid transparent;
-      border-top: 5px solid rgba(0, 200, 122, 0.55);
+      border-top: 5px solid rgba(22, 128, 91, 0.55);
     }
 
     /* Node box highlight when a traversal ptr points here */
     .node-has-traverse-ptr .node-box {
-      border-color: rgba(0, 200, 122, 0.55);
-      box-shadow: 0 0 10px rgba(0, 200, 122, 0.18), inset 0 0 6px rgba(0, 200, 122, 0.06);
+      border-color: rgba(22, 128, 91, 0.55);
+      box-shadow: 0 0 10px rgba(22, 128, 91, 0.18), inset 0 0 6px rgba(22, 128, 91, 0.06);
     }
 
     @keyframes ptrBadgePulse {
       0%, 100% { box-shadow: none; }
-      50%       { box-shadow: 0 0 8px rgba(0, 200, 122, 0.45); }
+      50%       { box-shadow: 0 0 8px rgba(22, 128, 91, 0.45); }
     }
 
     /* Empty state */
@@ -444,9 +444,9 @@
       flex-shrink: 0;
     }
     .lc-uninit  { border-color: var(--border-mid); background: var(--bg-panel); }
-    .lc-init    { border-color: var(--amber-dim);  background: #0d0900; box-shadow: 0 0 5px var(--amber-glow-sm); }
-    .lc-active  { border-color: var(--amber-bright); background: #2a1a00; box-shadow: 0 0 8px rgba(255,199,64,0.4); }
-    .lc-error   { border-color: var(--error); background: #150000; }
+    .lc-init    { border-color: var(--amber-dim);  background: #f3f8fb; box-shadow: 0 0 5px var(--amber-glow-sm); }
+    .lc-active  { border-color: var(--amber-bright); background: #d9f0f2; box-shadow: 0 0 8px rgba(8, 127, 140,0.4); }
+    .lc-error   { border-color: var(--error); background: #fff0f1; }
 
     /* op-grid override: 3 columns for linked list */
     .op-grid-3 {
@@ -455,6 +455,7 @@
       border-top: 1px solid var(--border);
     }
   </style>
+<link rel="stylesheet" href="css/light-theme.css">
 </head>
 <body>
 

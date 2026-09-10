@@ -512,7 +512,7 @@ function renderArrows() {
   marker.setAttribute('orient', 'auto');
   const mPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
   mPath.setAttribute('d', 'M0,0 L0,6 L8,3 z');
-  mPath.setAttribute('fill', '#8a6300');
+  mPath.setAttribute('fill', '#426d80');
   marker.appendChild(mPath);
   defs.appendChild(marker);
   svg.appendChild(defs);
@@ -554,7 +554,7 @@ function svgArrow(svg, x1, y1, x2, y2) {
   const lift = Math.abs(dy) < 18 ? -30 : (dy > 0 ? -12 : 12);
   const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
   path.setAttribute('d', `M${x1},${y1} Q${mx},${my + lift} ${x2},${y2}`);
-  path.setAttribute('stroke', '#8a6300');
+  path.setAttribute('stroke', '#426d80');
   path.setAttribute('stroke-width', '1.5');
   path.setAttribute('fill', 'none');
   path.setAttribute('marker-end', 'url(#ll-ah)');
@@ -566,7 +566,7 @@ function svgNullTerminator(svg, x1, y1) {
   const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
   line.setAttribute('x1', x1);      line.setAttribute('y1', y1);
   line.setAttribute('x2', x1 + 26); line.setAttribute('y2', y1);
-  line.setAttribute('stroke', '#4a3600');
+  line.setAttribute('stroke', '#b9cbd8');
   line.setAttribute('stroke-width', '1');
   line.setAttribute('stroke-dasharray', '4,3');
   svg.appendChild(line);
@@ -575,8 +575,8 @@ function svgNullTerminator(svg, x1, y1) {
   rect.setAttribute('x', x1 + 26);   rect.setAttribute('y', y1 - 10);
   rect.setAttribute('width', '38');  rect.setAttribute('height', '20');
   rect.setAttribute('rx', '2');
-  rect.setAttribute('fill', '#0a0700');
-  rect.setAttribute('stroke', '#3a2800');
+  rect.setAttribute('fill', '#f8fafc');
+  rect.setAttribute('stroke', '#b9d9de');
   rect.setAttribute('stroke-width', '1');
   svg.appendChild(rect);
   // NULL text
@@ -586,7 +586,7 @@ function svgNullTerminator(svg, x1, y1) {
   text.setAttribute('font-family', "'JetBrains Mono', monospace");
   text.setAttribute('font-size', '9');
   text.setAttribute('letter-spacing', '0.05em');
-  text.setAttribute('fill', '#5a4a30');
+  text.setAttribute('fill', '#586e80');
   text.textContent = 'NULL';
   svg.appendChild(text);
 }

@@ -214,7 +214,7 @@
     }
     .algo-btn:hover:not(:disabled) .algo-en { color: var(--text-dim); }
     .algo-btn.active {
-      background: rgba(232, 165, 0, 0.07);
+      background: rgba(8, 127, 140, 0.07);
       border-bottom: 2px solid var(--amber);
       margin-bottom: -1px;
     }
@@ -277,7 +277,7 @@
     }
     .concept-list code {
       color: var(--amber);
-      background: rgba(232, 165, 0, 0.08);
+      background: rgba(8, 127, 140, 0.08);
       padding: 0 3px;
       border-radius: 2px;
       font-size: 0.8rem;
@@ -339,7 +339,7 @@
       min-height: 360px;
       padding: 1.1rem 1.25rem 0.5rem;
       background:
-        radial-gradient(ellipse at 50% 100%, rgba(232,165,0,0.06), transparent 65%),
+        radial-gradient(ellipse at 50% 100%, rgba(8, 127, 140,0.06), transparent 65%),
         var(--bg-input);
       display: flex;
       flex-direction: column;
@@ -373,7 +373,7 @@
       min-width: 4px;
       position: relative;
       border-radius: 2px 2px 0 0;
-      background: linear-gradient(180deg, var(--amber-dim), #4a3600);
+      background: linear-gradient(180deg, var(--amber-dim), #b9cbd8);
       border: 1px solid var(--amber-dim);
       border-bottom: none;
       box-shadow: 0 0 6px var(--amber-glow-sm), inset 0 0 4px rgba(0,0,0,0.4);
@@ -414,41 +414,41 @@
       background: linear-gradient(180deg, var(--amber-bright), var(--amber));
       border-color: var(--amber-bright);
       box-shadow:
-        0 0 14px rgba(255, 199, 64, 0.55),
-        inset 0 0 6px rgba(255, 199, 64, 0.25);
+        0 0 14px rgba(8, 127, 140, 0.55),
+        inset 0 0 6px rgba(8, 127, 140, 0.25);
     }
     .bar-comparing .bar-value { color: var(--amber-bright); }
 
     /* State: swapping — strong red flash */
     .bar-swapping {
       background: linear-gradient(180deg, #ff6060, #b50000);
-      border-color: #ff8080;
+      border-color: #a92a3a;
       box-shadow:
-        0 0 16px rgba(255, 60, 60, 0.65),
-        inset 0 0 8px rgba(255, 60, 60, 0.3);
+        0 0 16px rgba(198, 55, 72, 0.65),
+        inset 0 0 8px rgba(198, 55, 72, 0.3);
       transform: translateY(-3px);
     }
-    .bar-swapping .bar-value { color: #ffd0d0; }
+    .bar-swapping .bar-value { color: #a92a3a; }
 
     /* State: pivot — purple sustained */
     .bar-pivot {
-      background: linear-gradient(180deg, #c9a0ff, #6a3ebd);
-      border-color: #c9a0ff;
+      background: linear-gradient(180deg, #7953b5, #6a3ebd);
+      border-color: #7953b5;
       box-shadow:
-        0 0 14px rgba(180, 100, 255, 0.55),
-        inset 0 0 8px rgba(180, 100, 255, 0.25);
+        0 0 14px rgba(121, 83, 181, 0.55),
+        inset 0 0 8px rgba(121, 83, 181, 0.25);
     }
     .bar-pivot .bar-value { color: #e6d4ff; }
 
     /* State: sorted — green, holds */
     .bar-sorted {
-      background: linear-gradient(180deg, #4dffa8, #006b3d);
-      border-color: #4dffa8;
+      background: linear-gradient(180deg, #137650, #006b3d);
+      border-color: #137650;
       box-shadow:
-        0 0 12px rgba(0, 200, 122, 0.55),
-        inset 0 0 6px rgba(0, 200, 122, 0.2);
+        0 0 12px rgba(22, 128, 91, 0.55),
+        inset 0 0 6px rgba(22, 128, 91, 0.2);
     }
-    .bar-sorted .bar-value { color: #b8ffd6; }
+    .bar-sorted .bar-value { color: #136545; }
 
     /* State: range (sub-array being merged in merge sort) — dim purple wash */
     .bar-range {
@@ -460,11 +460,11 @@
 
     /* Boundary marker — used as the "i" pointer in quick sort partition */
     .bar-boundary {
-      outline: 2px solid #40d0ff;
+      outline: 2px solid #2563b0;
       outline-offset: -2px;
       box-shadow:
-        0 0 14px rgba(64, 208, 255, 0.5),
-        inset 0 0 6px rgba(64, 208, 255, 0.15);
+        0 0 14px rgba(37, 99, 176, 0.5),
+        inset 0 0 6px rgba(37, 99, 176, 0.15);
     }
 
     /* Brief flash when a value is overwritten (merge sort writes, insertion overwrites) */
@@ -477,9 +477,9 @@
 
     /* Subtle finishing wave — sequentially trigger after sort completes */
     @keyframes sortedFlash {
-      0%   { transform: translateY(0)   scaleY(1);    box-shadow: 0 0 12px rgba(0,200,122,0.55), inset 0 0 6px rgba(0,200,122,0.2); }
+      0%   { transform: translateY(0)   scaleY(1);    box-shadow: 0 0 12px rgba(22, 128, 91,0.55), inset 0 0 6px rgba(22, 128, 91,0.2); }
       40%  { transform: translateY(-8px) scaleY(1.05); box-shadow: 0 0 22px rgba(77,255,168,0.85), inset 0 0 10px rgba(77,255,168,0.4); }
-      100% { transform: translateY(0)   scaleY(1);    box-shadow: 0 0 12px rgba(0,200,122,0.55), inset 0 0 6px rgba(0,200,122,0.2); }
+      100% { transform: translateY(0)   scaleY(1);    box-shadow: 0 0 12px rgba(22, 128, 91,0.55), inset 0 0 6px rgba(22, 128, 91,0.2); }
     }
     .bar-finale { animation: sortedFlash 0.45s ease; }
 
@@ -507,11 +507,11 @@
       border-radius: 2px;
       border: 1px solid;
     }
-    .ls-default   { background: linear-gradient(180deg, var(--amber-dim), #4a3600); border-color: var(--amber-dim); }
+    .ls-default   { background: linear-gradient(180deg, var(--amber-dim), #b9cbd8); border-color: var(--amber-dim); }
     .ls-comparing { background: linear-gradient(180deg, var(--amber-bright), var(--amber)); border-color: var(--amber-bright); }
-    .ls-swapping  { background: linear-gradient(180deg, #ff6060, #b50000); border-color: #ff8080; }
-    .ls-pivot     { background: linear-gradient(180deg, #c9a0ff, #6a3ebd); border-color: #c9a0ff; }
-    .ls-sorted    { background: linear-gradient(180deg, #4dffa8, #006b3d); border-color: #4dffa8; }
+    .ls-swapping  { background: linear-gradient(180deg, #ff6060, #b50000); border-color: #a92a3a; }
+    .ls-pivot     { background: linear-gradient(180deg, #7953b5, #6a3ebd); border-color: #7953b5; }
+    .ls-sorted    { background: linear-gradient(180deg, #137650, #006b3d); border-color: #137650; }
 
     /* ── Stat strip (counters) ── */
     .stat-strip {
@@ -594,7 +594,7 @@
     }
     .input-hint code {
       color: var(--amber-dim);
-      background: rgba(232, 165, 0, 0.06);
+      background: rgba(8, 127, 140, 0.06);
       padding: 0 4px;
       border-radius: 2px;
     }
@@ -608,7 +608,7 @@
       gap: 0.6rem;
       padding: 0.45rem 0.7rem;
       margin-bottom: 0.55rem;
-      background: rgba(0, 0, 0, 0.4);
+      background: #edf4f8;
       border: 1px solid var(--border);
       border-radius: 3px;
       flex-shrink: 0;
@@ -654,7 +654,7 @@
       height: 132px;
       flex-shrink: 0;
       margin-top: 0.55rem;
-      background: rgba(0, 0, 0, 0.42);
+      background: #edf4f8;
       border: 1px solid var(--border);
       border-radius: 3px;
       overflow: hidden;
@@ -742,8 +742,8 @@
     .tray-bar.candidate {
       background: linear-gradient(180deg, var(--amber-bright), var(--amber));
       border-color: var(--amber-bright);
-      box-shadow: 0 0 14px rgba(255, 199, 64, 0.7),
-                  inset 0 0 6px rgba(255, 199, 64, 0.3);
+      box-shadow: 0 0 14px rgba(8, 127, 140, 0.7),
+                  inset 0 0 6px rgba(8, 127, 140, 0.3);
       transform: translateY(-4px);
       z-index: 2;
     }
@@ -762,6 +762,7 @@
     }
     .tray-bar.chosen { animation: trayChosenPop 0.36s ease; }
   </style>
+<link rel="stylesheet" href="css/light-theme.css">
 </head>
 <body>
 

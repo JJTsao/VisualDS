@@ -60,7 +60,7 @@
     padding: 11px; border-radius: 8px; border: 1px solid var(--amber-dim); background: transparent;
     color: var(--amber); letter-spacing: .04em; transition: all .15s; }
   .ex-btn:hover:not(:disabled) { background: var(--amber); color: var(--bg); }
-  .ex-btn.primary { border-color: var(--amber); background: rgba(255,176,0,.08); }
+  .ex-btn.primary { border-color: var(--amber); background: rgba(8, 127, 140,.08); }
   .ex-btn:disabled { opacity: .35; cursor: not-allowed; }
 
   .feedback { font-size: .8rem; line-height: 1.6; min-height: 1.2em; }
@@ -84,7 +84,7 @@
     pointer-events: auto; transition: all .2s; }
   .ex-node.unvisited { cursor: pointer; }
   .ex-node.unvisited:hover { border-color: var(--amber); color: var(--amber-bright); }
-  .ex-node.picked  { border-color: #40d0ff; color: #40d0ff; box-shadow: 0 0 14px rgba(64,208,255,.6); }
+  .ex-node.picked  { border-color: #2563b0; color: #2563b0; box-shadow: 0 0 14px rgba(37, 99, 176,.6); }
   .ex-node.current { border-color: var(--amber-bright); color: var(--amber-bright);
     box-shadow: 0 0 18px var(--amber-glow); animation: pulseGlow 1.1s infinite; }
   .ex-node.visited { border-color: var(--success); color: var(--success); background: rgba(80,220,120,.08); }
@@ -107,6 +107,7 @@
   .final-score { font-size: 2.6rem; font-weight: 800; color: var(--amber-bright); }
   .final-sub { color: var(--text-dim); font-size: .85rem; margin-top: 6px; }
 </style>
+<link rel="stylesheet" href="../css/light-theme.css">
 </head>
 <body>
 <div class="exam-wrapper">

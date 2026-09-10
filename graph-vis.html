@@ -194,13 +194,13 @@
     .btn-row .btn { flex: 1; padding: 0.6rem 0.5rem; }
 
     .btn-danger {
-      border-color: rgba(255, 60, 60, 0.4);
-      color: #ff8080;
+      border-color: rgba(198, 55, 72, 0.4);
+      color: #a92a3a;
     }
     .btn-danger:hover:not(:disabled) {
       border-color: var(--error); color: #ffb0b0;
-      background: rgba(255, 60, 60, 0.08);
-      box-shadow: 0 0 12px rgba(255, 60, 60, 0.25);
+      background: rgba(198, 55, 72, 0.08);
+      box-shadow: 0 0 12px rgba(198, 55, 72, 0.25);
     }
 
     .input-hint {
@@ -208,7 +208,7 @@
       letter-spacing: 0.03em; line-height: 1.6;
     }
     .input-hint code {
-      color: var(--amber-dim); background: rgba(232, 165, 0, 0.06);
+      color: var(--amber-dim); background: rgba(8, 127, 140, 0.06);
       padding: 0 4px; border-radius: 2px;
     }
 
@@ -225,7 +225,7 @@
     }
     .concept-list li::before { content: '›'; position: absolute; left: 0; color: var(--amber-dim); }
     .concept-list code {
-      color: var(--amber); background: rgba(232, 165, 0, 0.08);
+      color: var(--amber); background: rgba(8, 127, 140, 0.08);
       padding: 0 3px; border-radius: 2px; font-size: 0.8rem;
     }
 
@@ -256,7 +256,7 @@
       min-height: 340px;
       overflow: hidden;
       background:
-        radial-gradient(circle at 50% 0%, rgba(232,165,0,0.05), transparent 60%),
+        radial-gradient(circle at 50% 0%, rgba(8, 127, 140,0.05), transparent 60%),
         var(--bg-input);
       cursor: crosshair;
     }
@@ -283,7 +283,7 @@
     .empty-glyph { font-size: 2.2rem; opacity: 0.18; font-weight: 700; line-height: 1; }
     .empty-text { font-size: 0.82rem; letter-spacing: 0.08em; color: var(--text-muted); }
     .empty-hint { font-size: 0.7rem; color: var(--text-muted); opacity: 0.65; letter-spacing: 0.03em; text-align: center; }
-    .empty-hint code { color: var(--amber-dim); background: rgba(232,165,0,0.06); padding: 0 4px; border-radius: 2px; }
+    .empty-hint code { color: var(--amber-dim); background: rgba(8, 127, 140,0.06); padding: 0 4px; border-radius: 2px; }
 
     /* Mode banner — top-left hint on what a click does right now */
     .canvas-mode-banner {
@@ -302,7 +302,7 @@
       width: 7px; height: 7px; border-radius: 50%;
       background: var(--amber); box-shadow: 0 0 6px var(--amber);
     }
-    .canvas-mode-banner.edge .mb-dot { background: #40d0ff; box-shadow: 0 0 6px #40d0ff; }
+    .canvas-mode-banner.edge .mb-dot { background: #2563b0; box-shadow: 0 0 6px #2563b0; }
     .canvas-mode-banner.busy .mb-dot { background: var(--amber-bright); }
 
     /* ── Right footer: Console (left) + Info (right) ── */
@@ -355,11 +355,11 @@
     }
     .legend-item { display: flex; align-items: center; gap: 0.4rem; font-size: 0.64rem; color: var(--text-muted); letter-spacing: 0.04em; }
     .legend-swatch { width: 14px; height: 14px; border-radius: 50%; border: 1.5px solid; }
-    .ls-default   { background: #0d0900; border-color: var(--amber-dim); }
-    .ls-frontier  { background: #2a1a00; border-color: var(--amber-bright); }
-    .ls-current   { background: #3a2600; border-color: var(--amber-bright); }
-    .ls-visited   { background: rgba(0,200,122,0.14); border-color: var(--success); }
-    .ls-tree      { width: 16px; height: 0; border-radius: 0; border: none; border-top: 3px solid #4dffa8; }
+    .ls-default   { background: #f3f8fb; border-color: var(--amber-dim); }
+    .ls-frontier  { background: #d9f0f2; border-color: var(--amber-bright); }
+    .ls-current   { background: #b9d9de; border-color: var(--amber-bright); }
+    .ls-visited   { background: rgba(22, 128, 91,0.14); border-color: var(--success); }
+    .ls-tree      { width: 16px; height: 0; border-radius: 0; border: none; border-top: 3px solid #137650; }
 
     /* ── Output / Info bar ── */
     .output-bar {
@@ -392,8 +392,8 @@
     }
     .graph-token {
       font-family: var(--font-mono); font-size: 0.8rem; font-weight: 700;
-      color: var(--success); background: rgba(0,200,122,0.08);
-      border: 1px solid rgba(0,200,122,0.5);
+      color: var(--success); background: rgba(22, 128, 91,0.08);
+      border: 1px solid rgba(22, 128, 91,0.5);
       padding: 0.15rem 0.55rem; border-radius: 2px; letter-spacing: 0.04em;
       animation: graphTokenIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
       flex-shrink: 0; white-space: nowrap;
@@ -432,6 +432,7 @@
 
     .hidden { display: none !important; }
   </style>
+<link rel="stylesheet" href="css/light-theme.css">
 </head>
 <body>
 

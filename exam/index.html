@@ -31,7 +31,7 @@
   .exam-bar { margin-top: 14px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
     animation: fadeSlideUp .5s both; }
   .ex-start { cursor: pointer; font-family: var(--font-mono); font-weight: 800; font-size: .9rem;
-    padding: 11px 20px; border-radius: 8px; border: 1px solid var(--success); background: rgba(0,200,122,.1);
+    padding: 11px 20px; border-radius: 8px; border: 1px solid var(--success); background: rgba(22, 128, 91,.1);
     color: var(--success); letter-spacing: .03em; transition: all .15s; }
   .ex-start:hover { background: var(--success); color: var(--bg); }
   .ex-note  { font-size: .72rem; color: var(--text-muted); }
@@ -42,11 +42,11 @@
 
   .phase-banner { margin: 26px 0 4px; padding: 11px 16px; border-radius: 8px; font-size: .82rem; font-weight: 700;
     border: 1px solid; letter-spacing: .02em; }
-  .phase-banner.practice { color: var(--success); border-color: var(--success); background: rgba(0,200,122,.08); }
-  .phase-banner.exam { color: var(--amber-bright); border-color: var(--amber-dim); background: rgba(255,176,0,.07); }
+  .phase-banner.practice { color: var(--success); border-color: var(--success); background: rgba(22, 128, 91,.08); }
+  .phase-banner.exam { color: var(--amber-bright); border-color: var(--amber-dim); background: rgba(8, 127, 140,.07); }
 
   .score-note { margin: 14px 0 0; padding: 11px 16px; border-radius: 8px; font-size: .82rem; line-height: 1.75;
-    color: var(--text-dim); border: 1px dashed var(--amber-dim); background: rgba(255,176,0,.04); }
+    color: var(--text-dim); border: 1px dashed var(--amber-dim); background: rgba(8, 127, 140,.04); }
   .score-note b { color: var(--amber-bright); }
   .ch-pts { color: var(--amber); font-weight: 700; }
 
@@ -86,6 +86,7 @@
 
   @keyframes caret { 50% { opacity: 0; } }
 </style>
+<link rel="stylesheet" href="../css/light-theme.css">
 </head>
 <body>
 <div class="menu-wrap">
@@ -128,12 +129,12 @@
   <section class="cat">
     <div class="cat-label">圖　Graph</div>
     <div class="grid">
-      <a class="ch-card" style="--i:3; --accent:#40d0ff" href="play.html?chapter=dijkstra">
+      <a class="ch-card" style="--i:3; --accent:#2563b0" href="play.html?chapter=dijkstra">
         <span class="ch-cat">Graph</span><span class="ch-title">Dijkstra 最短路徑</span>
         <span class="ch-desc">逐輪挑出暫定距離最小的節點,鬆弛鄰居、更新距離,直到全部確定。</span>
         <span class="ch-go">開始作答 →</span>
       </a>
-      <a class="ch-card" style="--i:4; --accent:#40d0ff" href="play.html?chapter=dfs">
+      <a class="ch-card" style="--i:4; --accent:#2563b0" href="play.html?chapter=dfs">
         <span class="ch-cat">Graph</span><span class="ch-title">DFS 走訪</span>
         <span class="ch-desc">沿深度優先規則,逐步點出節點的拜訪順序。</span>
         <span class="ch-go">開始作答 →</span>
