@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>期中考作答範例 · VisualDS</title>
+<style>
+/* Standalone handout: keep the site's colors and controls without external assets. */
+:root { color-scheme:light; --bg:#f5f8fb; --bg-panel:#fff; --bg-input:#f8fafc; --border:#dce5ed; --amber:#087682; --text:#213547; --text-dim:#4c6274; --success:#137650; --error:#c63748; }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--text); font:16px/1.7 'Segoe UI','Microsoft JhengHei',sans-serif; }
+main { max-width:1100px; margin:auto; padding:28px 24px 48px; }
+h1 { margin:8px 0; font-size:clamp(1.5rem,4vw,2rem); } h2 { font-size:1.2rem; margin:0 0 12px; } h3 { font-size:1rem; margin:14px 0 8px; }
+p { margin:8px 0; } .muted,small { color:var(--text-dim); } small { font-size:.875rem; }
+.toolbar,.samples,.score-strip,.chain,.buttons { display:flex; flex-wrap:wrap; align-items:center; gap:10px; }
+.toolbar { justify-content:space-between; margin:16px 0; } .samples { margin:22px 0 16px; } .samples button { flex:1; min-width:130px; }
+button { font:inherit; cursor:pointer; padding:10px 14px; border:1px solid var(--border); border-radius:8px; background:var(--bg-panel); color:var(--amber); min-height:44px; }
+button.primary,button[aria-pressed="true"] { background:var(--amber); color:#fff; border-color:var(--amber); }
+button:disabled { cursor:default; opacity:.5; } :is(button,select,summary):focus-visible { outline:3px solid #2563b0; outline-offset:3px; }
+.workspace { display:grid; grid-template-columns:minmax(0,1.15fr) minmax(0,1fr); gap:20px; align-items:start; }
+.card { border:1px solid var(--border); border-radius:12px; background:var(--bg-panel); padding:22px; min-width:0; }
+.score-strip { border-block:1px solid var(--border); padding:10px 0; margin:12px 0; font-size:.9rem; }
+.score-strip strong { color:var(--amber); } .stage { color:var(--amber); font-size:.9rem; }
+label { display:grid; gap:6px; margin:16px 0; } select { width:100%; min-width:0; font:inherit; padding:10px; color:var(--text); background:var(--bg-input); border:1px solid var(--border); border-radius:8px; }
+pre { white-space:pre-wrap; overflow-wrap:anywhere; padding:14px; background:var(--bg-input); border-radius:8px; font:1rem/1.8 Consolas,'Courier New',monospace; }
+.blank { display:inline-block; white-space:nowrap; padding:0 4px; border:1px solid var(--amber); color:var(--amber); border-radius:4px; font-weight:700; }
+.chain { margin:16px 0; } .node { padding:8px 14px; border:1px solid var(--amber); border-radius:8px; background:var(--bg-input); }
+.feedback { border-left:3px solid var(--amber); padding:10px 14px; margin:14px 0; background:var(--bg-input); overflow-wrap:anywhere; }
+.error { color:var(--error); } .pass { color:var(--success); } .test-row { border-bottom:1px solid var(--border); padding:10px 0; overflow-wrap:anywhere; }
+summary { cursor:pointer; padding:8px 0; } ol { padding-left:24px; } li { margin:8px 0; } .buttons { margin-top:18px; }
+table { width:100%; border-collapse:collapse; } th,td { text-align:left; padding:8px; border-bottom:1px solid var(--border); } footer { margin-top:24px; font-size:.875rem; color:var(--text-dim); }
+@media(max-width:760px) { .workspace { grid-template-columns:1fr; } main { padding:18px 14px 36px; } .card { padding:16px; } .samples button { min-width:calc(50% - 10px); } }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <small>Array · Linked List · Stack · Queue</small>
+    <h1>期中考作答範例</h1>
+    <p>先預測 → 看證據找原因 → 修正並試跑 → 獨立完成新題。</p>
+    <p class="muted">四題各自示範完整流程。可反覆練習、不列入成績、不需學號；正式題目與配分另行公告。</p>
+    <div class="toolbar"><span>直接選擇下方章節即可線上練習；每題25分僅供回饋。</span><button id="download">下載離線範例檔（選用）</button></div>
+  </header>
+  <nav id="sample-menu" class="samples" aria-label="選擇範例題"></nav>
+  <div class="workspace"><section id="answer" class="card" aria-label="作答區"></section><aside id="context" class="card" aria-label="題目與測試回饋"></aside></div>
+  <footer>可直接在線上作答，也可選擇下載後離線練習。練習資料不會上傳，關閉或重新整理後會從頭開始。正式測驗的作答保存方式依考試公告為準。</footer>
+</main>
+<script id="example-model">
+const stageNames = ['首次預測', '證據診斷', '修正與測試', '獨立新題'];
+const stageMax = [5, 5, 10, 5];
+const yesCases = [['both','兩個案例都通過'],['first','只有案例1通過'],['second','只有案例2通過'],['neither','兩個案例都未通過']];
+const exampleBank = [
+  {
+    id:'array', title:'Array｜刪除後的搬移', goal:'刪除索引 k 的元素，保留其他元素的順序。索引從0開始；迴圈上界包含在內，最後只取前 n−1 項。',
+    initial:['10','20','30','40'], orientation:'索引 0 → 3；本例 k = 1',
+    code:'if k < 0 or k >= n: return arr\nfor i = k to n - 2:\n    arr[i] = arr[i]\nreturn arr 的前 n - 1 項',
+    template:'if k < 0 or k >= n: return arr\nfor i = k to [填空 A]:\n    arr[i] = arr[i + [填空 B]]\nreturn arr 的前 n - 1 項',
+    bug:{end:'n-2',shift:'0'}, correct:{end:'n-2',shift:'1'},
+    prediction:{prompt:'錯誤程式執行後，回傳哪個陣列？', options:[['[10,30,40]','[10,30,40]'],['[10,20,30]','[10,20,30]'],['[20,30,40]','[20,30,40]']]},
+    diagnosis:{prompt:'為什麼要刪除20，卻留下20並丟失40？',options:[['self','每格只複製自己，沒有把右邊元素搬過來'],['index','索引必須從1開始'],['reverse','刪除前應先反轉陣列']],correct:'self'},
+    fields:[{key:'end',label:'填空 A：最後一個搬移目的位置',options:[['n-2','n - 2'],['n-1','n - 1'],['k','k']]},{key:'shift',label:'填空 B：來源相對於目的位置的距離',options:[['0','0'],['1','1'],['2','2']]}],
+    cases:[{name:'中間刪除',items:[10,20,30,40],k:1,expected:'[10,30,40]'},{name:'刪除第一項',items:[3,6,9],k:0,expected:'[6,9]'},{name:'刪除最後一項',items:[7,8],k:1,expected:'[7]'},{name:'唯一元素',items:[5],k:0,expected:'[]'},{name:'索引不存在',items:[2,4],k:2,expected:'[2,4]'}],
+    transfer:{prompt:'陣列 [6,9,12,15] 正確刪除索引2後，內容為何？',options:[['[6,9,15]','[6,9,15]'],['[6,12,15]','[6,12,15]'],['[6,9,12]','[6,9,12]']],correct:'[6,9,15]'},
+    explanation:'刪除位置右邊的元素依序向左搬一格：arr[i] = arr[i + 1]。最後搬入的位置是 n−2，避免讀取 arr[n]。'
+  },
+  {
+    id:'linked-list',title:'Linked List｜繞過目標節點',goal:'從 head 可達的串列中刪除B，保留其他節點。只評量連結；搜尋目標與記憶體釋放不在本題範圍。',
+    initial:['A','B','C','D'],orientation:'head → A → B → C → D → null',code:'target = B\ntarget.next = target.next.next',
+    template:'if target == null: return head\nif prev == null:\n    head = [填空 A]\nelse:\n    [填空 B] = [填空 C]\nreturn head',
+    bug:{head:'head',left:'target.next',right:'target.next.next'},correct:{head:'target.next',left:'prev.next',right:'target.next'},
+    prediction:{prompt:'錯誤操作後，從 head 走訪會經過哪些節點？',options:[['A → C → D → null','A → C → D → null'],['A → B → D → null','A → B → D → null'],['A → B → C → D → null','A → B → C → D → null']]},
+    diagnosis:{prompt:'為何B仍可達，C卻消失了？',options:[['predecessor','前驅仍連到B，卻把B的後繼跳過'],['value','B的資料值沒有清空'],['head','所有刪除都必須把head設為null']],correct:'predecessor'},
+    fields:[{key:'head',label:'填空 A：刪除頭節點時，head 指向',options:[['head','head'],['target.next','target.next'],['null','null']]},{key:'left',label:'填空 B：其他情況，要修改的指標',options:[['target.next','target.next'],['prev.next','prev.next']]},{key:'right',label:'填空 C：指向',options:[['target.next.next','target.next.next'],['target.next','target.next'],['target','target'],['null','null']]}],
+    cases:[{name:'中間節點',items:['A','B','C','D'],target:'B',expected:'A → C → D → null'},{name:'頭節點',items:['A','B','C'],target:'A',expected:'B → C → null'},{name:'尾節點',items:['P','Q','R'],target:'R',expected:'P → Q → null'},{name:'唯一節點',items:['P'],target:'P',expected:'null'},{name:'目標不存在',items:['P','Q'],target:'Z',expected:'P → Q → null'}],
+    transfer:{prompt:'X → Y → Z → null 刪除頭節點X後，head與Y.next應分別指向？',options:[['Y,Z','head → Y；Y.next → Z'],['X,Z','head → X；Y.next → Z'],['Y,null','head → Y；Y.next → null']],correct:'Y,Z'},
+    explanation:'中間或尾節點的刪除須修改前驅：prev.next = target.next。刪除頭節點則更新 head = target.next；其餘節點連結保持原順序。'
+  },
+  {
+    id:'stack',title:'Stack｜讀取與移除的差別',goal:'實作 peek：讀取頂端元素，但不改變Stack。以下以陣列表示Stack，右端是頂端；pop會移除並回傳最後一項。',
+    initial:['2','5','9'],orientation:'底部在左；頂端在右',code:'if stack 為空: return 空Stack\nvalue = stack.pop()\nreturn value',template:'if stack 為空: return 空Stack\nvalue = [填空 A]\nreturn value',
+    bug:{read:'pop'},correct:{read:'peek'},prediction:{prompt:'呼叫這個錯誤的peek後，回傳值與Stack狀態為何？',options:[['回傳 9；Stack [2,5]','回傳9；Stack剩下[2,5]'],['回傳 9；Stack [2,5,9]','回傳9；Stack維持[2,5,9]'],['回傳 2；Stack [5,9]','回傳2；Stack剩下[5,9]']]},
+    diagnosis:{prompt:'這段程式違反了peek的哪個要求？',options:[['remove','它讀取頂端時也移除了頂端元素'],['first','peek應回傳最早加入的元素'],['sort','讀取前必須先排序']],correct:'remove'},
+    fields:[{key:'read',label:'填空 A：只讀取頂端',options:[['pop','stack.pop()'],['peek','stack[stack.length - 1]'],['first','stack[0]']]}],
+    cases:[{name:'多個元素',items:[2,5,9],expected:'回傳 9；Stack [2,5,9]'},{name:'單一元素',items:[7],expected:'回傳 7；Stack [7]'},{name:'空Stack',items:[],expected:'空Stack；Stack []'},{name:'重複數值',items:[4,4],expected:'回傳 4；Stack [4,4]'},{name:'頂端較小',items:[8,3,6,1],expected:'回傳 1；Stack [8,3,6,1]'}],
+    transfer:{prompt:'從空Stack依序 push(4)、push(8)、peek()、pop()。最後兩次回傳值與剩餘內容為何？',options:[['8,8,4','peek回傳8；pop回傳8；剩下[4]'],['8,4,empty','peek回傳8；pop回傳4；變成空Stack'],['4,8,4','peek回傳4；pop回傳8；剩下[4]']],correct:'8,8,4'},
+    explanation:'peek只觀察頂端，不改變大小或內容。pop才會移除頂端。即使只有一個元素，peek後該元素也必須保留。'
+  },
+  {
+    id:'queue',title:'Queue｜從正確的一端取出',goal:'實作dequeue：移除並回傳最早加入的元素。以下用陣列表示Queue，左端是隊首；shift移除第一項，pop移除最後一項。',
+    initial:['A','B','C'],orientation:'隊首在左；新元素加入右端',code:'if queue 為空: return 空Queue\nvalue = queue.pop()\nreturn value',template:'if queue 為空: return 空Queue\nvalue = [填空 A]\nreturn value',
+    bug:{take:'pop'},correct:{take:'shift'},prediction:{prompt:'錯誤程式會取出誰？Queue還剩下什麼？',options:[['取出 C；Queue [A,B]','取出C；剩下[A,B]'],['取出 A；Queue [B,C]','取出A；剩下[B,C]'],['取出 A；Queue [A,B,C]','回傳A；維持[A,B,C]']]},
+    diagnosis:{prompt:'這個操作違反Queue的哪個規則？',options:[['fifo','它移除了最後加入者，而非最早加入者'],['sort','字母必須按逆序取出'],['keep','dequeue不應移除元素']],correct:'fifo'},
+    fields:[{key:'take',label:'填空 A：取出隊首並移除',options:[['pop','queue.pop()'],['shift','queue.shift()'],['peek','queue[0]']]}],
+    cases:[{name:'三個元素',items:['A','B','C'],expected:'取出 A；Queue [B,C]'},{name:'單一元素',items:['K'],expected:'取出 K；Queue []'},{name:'空Queue',items:[],expected:'空Queue；Queue []'},{name:'兩個元素',items:['X','Y'],expected:'取出 X；Queue [Y]'},{name:'重複數值',items:['A','A','B'],expected:'取出 A；Queue [A,B]'}],
+    transfer:{prompt:'從空Queue依序 enqueue(R)、enqueue(S)、dequeue()、enqueue(T)。最後從隊首到隊尾為何？',options:[['S,T','S → T'],['R,T','R → T'],['T,S','T → S']],correct:'S,T'},
+    explanation:'Queue採先進先出：enqueue加在隊尾，dequeue移除隊首。只回傳queue[0]也不完整，因為該元素還必須從Queue移除。此處陣列只是操作示意。'
+  }
+];
+
+function simulateExample(kind, test, rule) {
+  const items = test.items.slice();
+  if (kind === 'array') {
+    const n = items.length, k = test.k;
+    if (k < 0 || k >= n) return JSON.stringify(items);
+    const end = rule.end === 'n-2' ? n - 2 : rule.end === 'n-1' ? n - 1 : k;
+    for (let i = k; i <= end; i++) {
+      const source = i + Number(rule.shift);
+      if (source >= n) return '錯誤：存取陣列範圍外';
+      items[i] = items[source];
+    }
+    return JSON.stringify(items.slice(0, n - 1));
+  }
+  if (kind === 'linked-list') {
+    const next = Object.fromEntries(items.map((id,i) => [id,items[i+1] ?? null]));
+    let head = items[0] ?? null;
+    const index = items.indexOf(test.target), target = test.target;
+    if (index >= 0) {
+      if (index === 0) head = rule.head === 'head' ? head : rule.head === 'null' ? null : next[target];
+      else {
+        if (rule.right === 'target.next.next' && next[target] === null) return '錯誤：讀取 null.next';
+        const value = rule.right === 'target' ? target : rule.right === 'null' ? null : rule.right === 'target.next' ? next[target] : next[next[target]];
+        next[rule.left === 'prev.next' ? items[index-1] : target] = value;
+      }
+    }
+    const out = [], seen = new Set();
+    for (let node = head; node !== null; node = next[node]) {
+      if (seen.has(node)) return '錯誤：形成環';
+      if (!Object.hasOwn(next,node)) return '錯誤：無效指標';
+      seen.add(node); out.push(node);
+    }
+    return [...out,'null'].join(' → ');
+  }
+  if (kind === 'stack') {
+    if (!items.length) return '空Stack；Stack []';
+    const value = rule.read === 'pop' ? items.pop() : rule.read === 'first' ? items[0] : items.at(-1);
+    return `回傳 ${value}；Stack ${JSON.stringify(items)}`;
+  }
+  if (!items.length) return '空Queue；Queue []';
+  const value = rule.take === 'pop' ? items.pop() : rule.take === 'shift' ? items.shift() : items[0];
+  return `取出 ${value}；Queue [${items.join(',')}]`;
+}
+function newExampleAttempt() { return {phase:0,scores:[null,null,null,null],answers:{},trials:[],history:[],feedback:''}; }
+function submitExample(sample, state, action, answer) {
+  if (![['prediction'],['diagnosis'],['test','repair'],['transfer']][state.phase]?.includes(action)) throw Error('此階段已鎖定。');
+  if (action === 'test' || action === 'repair') {
+    if (sample.fields.some(f => !f.options.some(o => o[0] === answer[f.key])) || !yesCases.some(o => o[0] === answer.hypothesis)) throw Error('請完成所有填空與測試預測。');
+  } else if (!sample[action].options.some(o => o[0] === answer.choice)) throw Error('請先選擇答案。');
+  let score, results;
+  if (action === 'test' || action === 'repair') {
+    results = sample.cases.map(c => { const actual = simulateExample(sample.id,c,answer); return {name:c.name,actual,expected:c.expected,passed:actual === c.expected}; });
+    if (action === 'test') {
+      state.trials.push({rule:{...answer},results:results.slice(0,2)});
+      state.answers.draft = {...answer};
+      state.history.push({action,answer:{...answer},score:null,results:results.slice(0,2)});
+      state.feedback = `已保存第${state.trials.length}次試跑；不加扣分。先比較預測與實際結果，再決定修改。`;
+      return;
+    }
+    score = results.filter(r => r.passed).length * 2;
+  } else {
+    const expected = action === 'prediction' ? simulateExample(sample.id,sample.cases[0],sample.bug) : sample[action].correct;
+    score = answer.choice === expected ? 5 : 0;
+  }
+  state.scores[state.phase] = score;
+  state.feedback = `${stageNames[state.phase]}已提交：${score} / ${stageMax[state.phase]}分。此階段已鎖定。`;
+  state.answers[action] = {...answer};
+  state.history.push({action,answer:{...answer},score,results:action === 'repair' ? results : []});
+  state.phase++;
+}
+</script>
+<script id="example-ui">
+(() => {
+  const offlineSource = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+  const escape = value => String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+  const attempts = exampleBank.map(newExampleAttempt);
+  let selected = 0;
+  const answerBox = document.getElementById('answer'), context = document.getElementById('context');
+  function field(name,label,options,value='') { return `<label>${escape(label)}<select name="${name}" required><option value="">請選擇</option>${options.map(([v,t])=>`<option value="${escape(v)}" ${v===value?'selected':''}>${escape(t)}</option>`).join('')}</select></label>`; }
+  function code(text) { return `<pre>${escape(text).replace(/\[填空 [ABC]\]/g,t=>`<span class="blank">${t}</span>`)}</pre>`; }
+  function tests(results) { return results.map((r,i)=>`<div class="test-row"><strong class="${r.passed?'pass':'error'}">案例${i+1} · ${escape(r.name)}：${r.passed?'通過':'未通過'}</strong><br>實際：${escape(r.actual)}<br>預期：${escape(r.expected)}</div>`).join(''); }
+  function render() {
+    const sample=exampleBank[selected],state=attempts[selected],total=state.scores.reduce((sum,v)=>sum+(v??0),0);
+    document.getElementById('sample-menu').innerHTML=exampleBank.map((s,i)=>`<button type="button" data-index="${i}" aria-pressed="${i===selected}">${escape(s.title)}${attempts[i].phase===4?' ✓':''}</button>`).join('');
+    document.querySelectorAll('[data-index]').forEach(b=>b.onclick=()=>{selected=Number(b.dataset.index);render();});
+    const scoreLine=`<div class="score-strip" aria-label="各階段得分"><strong>示範得分 ${total} / 25</strong>${stageNames.map((n,i)=>`<span>${n}：${state.scores[i]===null?'未作答':`${state.scores[i]}/${stageMax[i]}`}</span>`).join('')}</div>`;
+    context.innerHTML=`<h2>${escape(sample.title)}</h2><p>${escape(sample.goal)}</p><div class="chain" aria-label="初始資料">${sample.initial.map(v=>`<span class="node">${escape(v)}</span>`).join('')}</div><p class="muted">${escape(sample.orientation)}</p>`;
+    if(state.phase>0) context.innerHTML+=`<h3>原錯誤程式的執行結果</h3><div class="feedback">${escape(simulateExample(sample.id,sample.cases[0],sample.bug))}</div><p>對照原題要求，找出「應該發生」與「實際發生」的差異。</p>`;
+    if(state.phase===2) context.innerHTML+=`<h3>公開測試輸入</h3>${sample.cases.slice(0,2).map((c,i)=>`<p>案例${i+1} · ${escape(c.name)}：${escape(JSON.stringify(c.items))}${c.k!==undefined?`，k = ${c.k}`:''}${c.target?`，刪除 ${escape(c.target)}`:''}</p>`).join('')}`;
+    if(state.trials.length) { const trial=state.trials.at(-1);context.innerHTML+=`<h3>最近一次公開試跑</h3><p>你的預測：${escape(yesCases.find(o=>o[0]===trial.rule.hypothesis)[1])}</p>${tests(trial.results)}`; }
+    if(state.phase===4) {
+      answerBox.innerHTML=`<h2>本題練習完成</h2>${scoreLine}<p class="feedback" role="status">${escape(state.feedback)}</p><p>這是示範回饋，不列入正式成績。你可以重做，也可以切換到其他章節。</p><h3>解題說明</h3><p>${escape(sample.explanation)}</p><p>新題答案：${escape(sample.transfer.options.find(o=>o[0]===sample.transfer.correct)[1])}</p><details><summary>查看修正的全部測試與填空答案</summary>${sample.fields.map(f=>`<p>${escape(f.label)}：<strong>${escape(f.options.find(o=>o[0]===sample.correct[f.key])[1])}</strong></p>`).join('')}${tests(state.history.find(h=>h.action==='repair').results)}</details><div class="buttons"><button id="again">重新練習本題</button>${selected<exampleBank.length-1?'<button class="primary" id="next-sample">下一個範例</button>':''}</div>`;
+      document.getElementById('again').onclick=()=>{attempts[selected]=newExampleAttempt();render();};
+      document.getElementById('next-sample')?.addEventListener('click',()=>{selected++;render();});
+    } else {
+      let fields='',buttons='<button type="submit" class="primary">提交並查看得分</button>';
+      if(state.phase===0) fields=code(sample.code)+field('choice',sample.prediction.prompt,sample.prediction.options);
+      if(state.phase===1) fields=field('choice',sample.diagnosis.prompt,sample.diagnosis.options);
+      if(state.phase===2) {
+        const draft=state.answers.draft||sample.bug;
+        fields=`<p>方括號是填空位置。先選擇修正方式，再預測兩個公開案例是否通過。</p>${code(sample.template)}${sample.fields.map(f=>field(f.key,f.label,f.options,draft[f.key])).join('')}${field('hypothesis','本次預期通過哪些公開案例？',yesCases)}<p class="muted">公開案例1：${escape(sample.cases[0].name)}；案例2：${escape(sample.cases[1].name)}。修正以最後提交版本的5種案例計分，各2分；另外3種案例完成本題後揭曉。</p>`;
+        buttons='<button type="submit" value="test">試跑公開案例</button><button type="submit" value="repair" class="primary">提交最後修正版</button>';
+      }
+      if(state.phase===3) fields=field('choice',sample.transfer.prompt,sample.transfer.options)+'<p class="muted">新題只能提交一次，提交後立即顯示得分與解析。</p>';
+      answerBox.innerHTML=`<div class="stage">${state.phase+1}/4 · ${stageNames[state.phase]} · ${stageMax[state.phase]}分</div>${scoreLine}${state.feedback?`<div class="feedback" role="status">${escape(state.feedback)}</div>`:''}<form>${fields}<div class="buttons">${buttons}</div></form><p id="error" class="error" role="alert"></p>`;
+      answerBox.querySelector('form').onsubmit=event=>{
+        event.preventDefault();
+        const action=state.phase===2?(event.submitter?.value||'test'):['prediction','diagnosis','','transfer'][state.phase];
+        try { submitExample(sample,state,action,Object.fromEntries(new FormData(event.currentTarget)));render(); if(action!=='test')answerBox.scrollIntoView({block:'start'}); }
+        catch(error) { document.getElementById('error').textContent=error.message; }
+      };
+    }
+    if(state.history.length) context.innerHTML+=`<details><summary>查看本題作答歷程（${state.history.length}筆）</summary><ol>${state.history.map(h=>{
+      const actionName={prediction:'首次預測',diagnosis:'證據診斷',test:'公開試跑',repair:'最後修正',transfer:'獨立新題'}[h.action];
+      const choice=h.action==='test'||h.action==='repair'?sample.fields.map(f=>`${f.label}：${f.options.find(o=>o[0]===h.answer[f.key])[1]}`).join('；'):sample[h.action].options.find(o=>o[0]===h.answer.choice)[1];
+      return `<li><strong>${actionName}${h.score===null?'（不計分）':`：${h.score}分`}</strong><br>${escape(choice)}${h.answer.hypothesis?`<br>預測：${escape(yesCases.find(o=>o[0]===h.answer.hypothesis)[1])}`:''}${h.action==='test'?`<br>結果：${h.results.map(r=>r.passed?'通過':'未通過').join('／')}`:''}</li>`;
+    }).join('')}</ol></details>`;
+  }
+  document.getElementById('download').onclick=()=>{
+    const url=URL.createObjectURL(new Blob([offlineSource],{type:'text/html;charset=utf-8'}));
+    const a=document.createElement('a');a.href=url;a.download='VisualDS-midterm-examples.html';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+  };
+  render();
+})();
+</script>
+</body>
+</html>
