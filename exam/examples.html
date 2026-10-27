@@ -21,6 +21,16 @@ button:disabled { cursor:default; opacity:.5; } :is(button,select,summary):focus
 .card { border:1px solid var(--border); border-radius:12px; background:var(--bg-panel); padding:22px; min-width:0; }
 .score-strip { border-block:1px solid var(--border); padding:10px 0; margin:12px 0; font-size:.9rem; }
 .score-strip strong { color:var(--amber); } .stage { color:var(--amber); font-size:.9rem; }
+.progress { margin:16px 0; }
+.steps { list-style:none; padding:0; margin:0; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+.steps li { margin:0; padding:10px 12px; border:1px solid var(--border); border-radius:8px; background:#f5f7fa; }
+.step-name,.step-status { display:block; }
+.step-name { font-weight:600; }
+.step-status { font-size:.85rem; color:var(--text-dim); }
+.steps .current { border:2px solid var(--amber); background:#e8f6f5; }
+.steps .current .step-status { color:var(--amber); font-weight:700; }
+.steps .done { background:#edf5ef; }
+@media(max-width:420px) { .steps { grid-template-columns:1fr; } }
 label { display:grid; gap:6px; margin:16px 0; } select { width:100%; min-width:0; font:inherit; padding:10px; color:var(--text); background:var(--bg-input); border:1px solid var(--border); border-radius:8px; }
 pre { white-space:pre-wrap; overflow-wrap:anywhere; padding:14px; background:var(--bg-input); border-radius:8px; font:1rem/1.8 Consolas,'Courier New',monospace; }
 .blank { display:inline-block; white-space:nowrap; padding:0 4px; border:1px solid var(--amber); color:var(--amber); border-radius:4px; font-weight:700; }
@@ -203,6 +213,7 @@ function submitExample(sample, state, action, answer) {
 <script id="example-ui">
 (() => {
   const escape = value => String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+  const stepHints = ['先閱讀下方程式，想一想它實際執行後會得到什麼結果，再選擇答案。', '對照原始程式與執行結果，選出造成錯誤的原因。', '選擇修正方式，透過試跑檢查自己的想法，確定後再提交。', '用剛才練習的觀念回答下方新題，確認自己是否理解。'];
   const attempts = exampleBank.map(newExampleAttempt);
   let selected = 0;
   const answerBox = document.getElementById('answer'), context = document.getElementById('context');
@@ -213,7 +224,8 @@ function submitExample(sample, state, action, answer) {
     const sample=exampleBank[selected],state=attempts[selected],total=state.scores.reduce((sum,v)=>sum+(v??0),0);
     document.getElementById('sample-menu').innerHTML=exampleBank.map((s,i)=>`<button type="button" data-index="${i}" aria-pressed="${i===selected}">${escape(s.title)}${attempts[i].phase===4?' ✓':''}</button>`).join('');
     document.querySelectorAll('[data-index]').forEach(b=>b.onclick=()=>{selected=Number(b.dataset.index);render();});
-    const scoreLine=`<div class="score-strip" aria-label="各階段得分"><strong>本題練習得分 ${total} / 25</strong>${stageNames.map((n,i)=>`<span>${n}：${state.scores[i]===null?'未作答':`${state.scores[i]}/${stageMax[i]}`}</span>`).join('')}</div>`;
+    const scoreLine=`<div class="score-strip"><strong>已獲得 ${total} 分</strong><span>本題滿分25分 · 提交答案後計分</span></div><div class="progress"><h3>這一題的作答進度</h3><ol class="steps" aria-label="四個作答步驟">${stageNames.map((n,i)=>`<li class="${i===state.phase?'current':state.scores[i]!==null?'done':'pending'}" ${i===state.phase?'aria-current="step"':''}><span class="step-name">${i+1}. ${n}</span><span class="step-status">${state.scores[i]!==null?`已完成 · 得分 ${state.scores[i]} / ${stageMax[i]}`:i===state.phase?'目前這一步':'尚未開始'}</span></li>`).join('')}</ol></div>`;
+
     context.innerHTML=`<h2>${escape(sample.title)}</h2><p>${escape(sample.goal)}</p><div class="chain" aria-label="初始資料">${sample.initial.map(v=>`<span class="node">${escape(v)}</span>`).join('')}</div><p class="muted">${escape(sample.orientation)}</p>`;
     if(state.phase>=2) context.innerHTML+='<h3>原始程式碼（含錯誤）</h3>'+code(sample.code);
     if(state.phase>0) context.innerHTML+=`<h3>原本的程式實際會得到什麼？</h3><div class="feedback">${escape(simulateExample(sample.id,sample.cases[0],sample.bug))}</div><p>請對照程式碼：這個結果和題目希望達成的目標有什麼不同？</p>`;
@@ -233,7 +245,7 @@ function submitExample(sample, state, action, answer) {
         buttons='<button type="submit" value="test">試跑公開案例</button><button type="submit" value="repair" class="primary">提交最後修正版</button>';
       }
       if(state.phase===3) fields=field('choice',sample.transfer.prompt,sample.transfer.options)+'<p class="muted">請用剛才學到的觀念自行判斷。這一題提交後不能修改，提交後就能看到得分與解析。</p>';
-      answerBox.innerHTML=`<div class="stage">${state.phase+1}/4 · ${stageNames[state.phase]} · ${stageMax[state.phase]}分</div>${scoreLine}${state.feedback?`<div class="feedback" role="status">${escape(state.feedback)}</div>`:''}<form>${fields}<div class="buttons">${buttons}</div></form><p id="error" class="error" role="alert"></p>`;
+      answerBox.innerHTML=`${scoreLine}<h2 class="stage">現在請完成第 ${state.phase+1} 步：${stageNames[state.phase]}（${stageMax[state.phase]}分）</h2><p>${stepHints[state.phase]}</p>${state.feedback?`<div class="feedback" role="status">${escape(state.feedback)}</div>`:''}<form>${fields}<div class="buttons">${buttons}</div></form><p id="error" class="error" role="alert"></p>`;
       answerBox.querySelector('form').onsubmit=event=>{
         event.preventDefault();
         const action=state.phase===2?(event.submitter?.value||'test'):['prediction','diagnosis','','transfer'][state.phase];
