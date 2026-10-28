@@ -53,7 +53,6 @@ pre .blank { color:#ffdf8d; border-color:#ffdf8d; background:#344354; }
 .question-info { padding:14px; margin:14px 0; background:#eef4fa; border:1px solid #d0dfeb; border-radius:8px; }
 .key-definition { padding:14px; margin:12px 0; background:#fff3ce; border:1px solid #d5af50; border-left:5px solid #9a6600; border-radius:8px; color:#493500; }
 .key-definition strong { display:block; font-size:1.08rem; }
-#trial-results { background:#edf7f1; }
 #step-title,#trial-results { scroll-margin-top:16px; }
 .practice-reading p { line-height:1.85; margin:14px 0; }
 .practice-reading h3 { margin:22px 0 10px; }
@@ -69,12 +68,16 @@ pre .blank { color:#ffdf8d; border-color:#ffdf8d; background:#344354; }
 .solution-panel > h2 { color:#185e37; margin:0 0 14px; }
 .solution-panel .submitted-answer { background:#fff; border:1px solid #c5ddce; border-radius:8px; padding:12px; }
 #answer.review-mode { border-top-color:#25804c; }
-#trial-results { background:#eef4fa; }
+#trial-results { background:#eaf2fc; border-color:#adc8e7; border-left:5px solid #356ea5; }
+#answer:not(.review-mode) .feedback { background:#eaf2fc; border-color:#356ea5; }
 .reasoning-steps { padding-left:26px; }
 .reasoning-steps li { line-height:1.9; margin:16px 0; padding-left:4px; }
 .solution-panel section + section { border-top:1px solid #b8d9d4; margin-top:24px; }
 .solution-panel code { display:inline-block; max-width:100%; white-space:normal; overflow-wrap:anywhere; line-height:1.5; vertical-align:baseline; }
 #step-explanation { scroll-margin-top:18px; }
+.review-actions { position:sticky; bottom:0; z-index:2; padding:12px; background:#f3faf5; border:1px solid #95c5a6; border-radius:10px; box-shadow:0 -4px 16px #193b2914; }
+.review-actions .primary { background:#217346; border-color:#217346; }
+@media(max-width:760px) { .review-actions { bottom:8px; padding-bottom:max(12px,env(safe-area-inset-bottom)); } .review-actions button { flex:1 1 auto; } }
 </style>
 </head>
 <body>
@@ -278,11 +281,11 @@ function submitExample(sample, state, action, answer) {
     context.innerHTML='<h2>需要時再查看</h2><details id="full-instructions"><summary>完整題目與符號說明</summary><p>'+escape(sample.goal)+'</p><p>'+sample.definition.items.map(item=>escape(item)).join('</p><p>')+'</p></details><details id="scoring-details"><summary>計分與提交規則</summary><p>預測5分、找錯5分、修正10分、新題5分。</p><p>提交後停在解析，按「下一題」才會繼續。已提交的答案不能修改；完成四步後可以重做。</p><p>修正以最後提交的版本計分：共5組資料，每組2分。</p><p>試跑會顯示2組，其餘3組在完成後公布。</p><p>試跑與試跑前的預測都不加扣分。</p></details>';
     if(state.phase>=2) context.innerHTML+=`<details id="original-reference" ${state.phase===2?'open':''}><summary>回看原題與錯誤程式</summary>${code(sample.code)}</details>`;
     if(state.phase===4) {
-      answerBox.innerHTML=`<h2 id="step-title" tabindex="-1">${escape(sample.title)}：練習完成</h2>${scoreLine}<p class="feedback" role="status">${escape(state.feedback)}</p>${latestExplanation}<h3>解題重點</h3>${takeaway[sample.id]}<section id="solution-explanation" class="solution-panel" aria-label="全部答案解析"><h2>四個步驟的完整解析</h2><h3>對照正確答案</h3><p>預測執行結果：${escape(sample.prediction.options.find(o=>o[0]===simulateExample(sample.id,sample.cases[0],sample.bug))[1])}</p><p>錯誤原因：${escape(sample.diagnosis.options.find(o=>o[0]===sample.diagnosis.correct)[1])}</p>${sample.explanationSteps.map((_,i)=>explanation(sample,i)).join('')}<p>「換一題試試」的答案：${escape(sample.transfer.options.find(o=>o[0]===sample.transfer.correct)[1])}</p></section><section class="solution-panel"><h2>修正填空與全部測試</h2>${sample.fields.map(f=>`<p>${escape(f.label)}：<strong>${escape(f.options.find(o=>o[0]===sample.correct[f.key])[1])}</strong></p>`).join('')}${sample.snippets ? code(sample.snippets.find(([v])=>v===sample.correct[sample.fields[0].key])[1]) : ''}${tests(state.history.find(h=>h.action==='repair').results)}</section><div class="buttons"><button id="again">重新練習本題</button>${selected<exampleBank.length-1?`<button class="primary" id="next-sample">下一個章節：${escape(exampleBank[selected+1].title.split('｜')[0])}</button>`:''}</div>`;
+      answerBox.innerHTML=`<h2 id="step-title" tabindex="-1">${escape(sample.title)}：練習完成</h2>${scoreLine}<p class="feedback" role="status">${escape(state.feedback)}</p>${latestExplanation}<h3>解題重點</h3>${takeaway[sample.id]}<section id="solution-explanation" class="solution-panel" aria-label="全部答案解析"><h2>四個步驟的完整解析</h2><h3>對照正確答案</h3><p>預測執行結果：${escape(sample.prediction.options.find(o=>o[0]===simulateExample(sample.id,sample.cases[0],sample.bug))[1])}</p><p>錯誤原因：${escape(sample.diagnosis.options.find(o=>o[0]===sample.diagnosis.correct)[1])}</p>${sample.explanationSteps.map((_,i)=>explanation(sample,i)).join('')}<p>「換一題試試」的答案：${escape(sample.transfer.options.find(o=>o[0]===sample.transfer.correct)[1])}</p></section><section class="solution-panel"><h2>修正填空與全部測試</h2>${sample.fields.map(f=>`<p>${escape(f.label)}：<strong>${escape(f.options.find(o=>o[0]===sample.correct[f.key])[1])}</strong></p>`).join('')}${sample.snippets ? code(sample.snippets.find(([v])=>v===sample.correct[sample.fields[0].key])[1]) : ''}${tests(state.history.find(h=>h.action==='repair').results)}</section><div class="buttons review-actions" aria-label="完成後導覽"><button id="again">重新練習本題</button>${selected<exampleBank.length-1?`<button class="primary" id="next-sample">下一個章節：${escape(exampleBank[selected+1].title.split('｜')[0])}</button>`:''}</div>`;
       document.getElementById('again').onclick=()=>{attempts[selected]=newExampleAttempt();render();focusOn('step-title');};
       document.getElementById('next-sample')?.addEventListener('click',()=>{selected++;render();focusOn('step-title');});
     } else if(state.reviewing) {
-      answerBox.innerHTML=`<h2 id="step-title" tabindex="-1">${escape(sample.title)}：第 ${state.phase} 步已提交</h2>${scoreLine}${latestExplanation}<div class="buttons"><button id="next-step" class="primary">下一題（第 ${state.phase+1} 步）：${stageNames[state.phase]}</button></div>`;
+      answerBox.innerHTML=`<h2 id="step-title" tabindex="-1">${escape(sample.title)}：第 ${state.phase} 步已提交</h2>${scoreLine}${latestExplanation}<div class="buttons review-actions" aria-label="解析後導覽"><button id="next-step" class="primary">下一題（第 ${state.phase+1} 步）：${stageNames[state.phase]}</button></div>`;
       document.getElementById('next-step').onclick=()=>{state.reviewing=false;render(true);focusOn('step-title');};
     } else {
       const draft=state.drafts[state.phase]||{};
