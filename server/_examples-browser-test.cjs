@@ -19,9 +19,11 @@ const path = require('node:path');
           switchTo(i); const s=exampleBank[i]; const f=document.querySelector('form');
           check(f.querySelector('.chain').compareDocumentPosition(f.querySelector('select'))&Node.DOCUMENT_POSITION_FOLLOWING,'input must precede choices');
           f.requestSubmit();check(document.querySelectorAll('.done').length===0,'empty submission advanced');
-          const wrong=s.prediction.options.find(o=>o[0]!==simulateExample(s.id,s.cases[0],s.bug))[0];
+          if(s.id==='array') { check(document.querySelector('label').innerText.includes('n 是多少'),'Array asks n'); check([...document.querySelector('select').options].slice(1).every(o=>o.text.startsWith('n = ')),'Array choices include n'); }
+          const wrong=s.id==='array'?'[10,20,30,40]':s.prediction.options.find(o=>o[0]!==simulateExample(s.id,s.cases[0],s.bug))[0];
           set({choice:wrong});switchTo((i+1)%4);switchTo(i);check(document.querySelector('[name=choice]').value===wrong,'lost prediction draft');
           submit({choice:wrong});check(document.querySelector('#answer').innerText.includes('原始程式的實際結果'),'missing evidence');
+          if(s.id==='array')check(document.querySelector('form .feedback').innerText.includes('n = 3；有效內容 [10,20,30]'),'Array evidence includes n and content');
           submit({choice:s.diagnosis.correct});check([...document.querySelectorAll('select')].every(x=>x.value===''),'repair prefilled');
           submit({...s.bug,hypothesis:'neither'},'test');check(document.activeElement.id==='trial-results','trial focus');check(document.querySelector('[name=hypothesis]').value==='neither','lost hypothesis');
           document.querySelector('#back-to-edit').click();check(document.activeElement.tagName==='SELECT','edit focus');
