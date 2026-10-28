@@ -17,6 +17,7 @@ const path = require('node:path');
         const submit=(a,b)=>{set(a);const f=document.querySelector('form');f.requestSubmit(b?f.querySelector('[value="'+b+'"]'):f.querySelector('button'));check(document.documentElement.scrollWidth<=innerWidth,'horizontal overflow');};
         for(let i=0;i<4;i++) {
           switchTo(i); const s=exampleBank[i]; const f=document.querySelector('form');
+          check(f.querySelector('.key-definition strong').textContent===s.definition.title,'visible prerequisite');
           check(f.querySelector('.chain').compareDocumentPosition(f.querySelector('select'))&Node.DOCUMENT_POSITION_FOLLOWING,'input must precede choices');
           f.requestSubmit();check(document.querySelectorAll('.done').length===0,'empty submission advanced');
           if(s.id==='array') { check(f.querySelector('.key-definition strong').textContent.includes('n 表示目前有幾個有效元素'),'Array definition emphasized'); check(document.querySelector('label').innerText.includes('n 是多少'),'Array asks n'); check([...document.querySelector('select').options].slice(1).every(o=>o.text.startsWith('n = ')),'Array choices include n'); }
@@ -30,7 +31,7 @@ const path = require('node:path');
           set({...s.correct,hypothesis:'both'});switchTo((i+1)%4);switchTo(i);
           for(const[k,v]of Object.entries(s.correct))check(document.querySelector('[name="'+k+'"]').value===v,'lost repair draft');
           submit({...s.correct,hypothesis:'both'},'test');check(document.querySelectorAll('#trial-results .pass').length===2,'repair trial');check(document.querySelectorAll('.done').length===2,'trial graded');
-          submit({...s.correct,hypothesis:'both'},'repair');check(!document.querySelector('#context details').open,'old question open on new task');
+          submit({...s.correct,hypothesis:'both'},'repair');check(!document.querySelector('#context details').open,'old question open on new task');check(document.querySelector('form .key-definition strong').textContent===s.definition.title,'new question prerequisite');
           set({choice:s.transfer.correct});switchTo((i+1)%4);switchTo(i);check(document.querySelector('[name=choice]').value===s.transfer.correct,'lost new question draft');
           submit({choice:s.transfer.correct});check(document.querySelector('.score-strip').innerText.includes('20 分'),'partial score');
           check(document.querySelector('#answer').innerText.includes('錯誤原因：'),'missing diagnosis solution');check(!document.querySelector('#answer .feedback').innerText.includes('下一步'),'completion asks next step');

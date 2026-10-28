@@ -75,6 +75,7 @@ const yesCases = [['both','兩個案例都通過'],['first','只有案例1通過
 const exampleBank = [
   {
     id:"array",
+    definition:{"title":"作答前請注意：n 表示目前有幾個有效元素。","items":["本題只看前 n 項，也就是 arr[0] 到 arr[n−1]。n 不是陣列的容量；有效範圍以外的值，即使仍留在陣列裡，也不算進本題的有效內容。"]},
     title:"Array｜刪除後的搬移",
     goal:"這題要刪除陣列中索引 k 的元素，並保留其他元素的順序。索引從0開始。參數 int& n 讓函式內對 n 的修改也會影響原本的 n。",
     initial:["10","20","30","40"],
@@ -92,8 +93,9 @@ const exampleBank = [
   },
   {
     id:"linked-list",
+    definition:{"title":"作答前請注意：本題只看從 head 出發能走到的節點。","items":["head 指向第一個節點；target 指向要刪除的節點；prev 指向 target 的前一個節點。這些指標由題目提供，不需要自行搜尋。","刪除頭節點時 prev 為 nullptr；找不到目標時 target 為 nullptr。Node* 是節點指標，-> 用來存取該節點的欄位；圖中的 null 與程式的 nullptr 都表示沒有指向節點。","「刪除」在本題指從串列連結中移除，不需要清空資料或撰寫 delete。修正函式回傳新的頭指標，呼叫端會用 head = unlink(head, prev, target) 接回結果。"]},
     title:"Linked List｜繞過目標節點",
-    goal:"這題要讓你從 head 開始走訪時跳過 B，仍能依序走到其他節點。請專注在指標該如何修改；題目已提供目標節點，不需要另外搜尋或撰寫釋放記憶體的程式。 Node* 是節點指標，-> 存取指標所指節點的欄位；nullptr 表示空指標。prev 是前驅，刪除頭節點時為 nullptr。",
+    goal:"這題要讓你從 head 開始走訪時跳過目標節點，仍能依序走到其他節點。以下起始範例要刪除 B；測試時請依各案例指定的目標作答。",
     initial:["A","B","C","D"],
     orientation:"head → A → B → C → D → null；target 指向 B，prev 指向 A。圖中的 null 代表 C++ 的 nullptr。",
     code:"struct Node {\n    char data;\n    Node* next;\n};\n\n// target 已指向 B\nvoid unlinkWrong(Node* target) {\n    target->next = target->next->next;\n}",
@@ -109,8 +111,9 @@ const exampleBank = [
   },
   {
     id:"stack",
+    definition:{"title":"作答前請注意：右端是 Stack 頂端，value 才是讀出的數值。","items":["本題用陣列表示 Stack，左端是底部，右端是頂端。n 表示有效元素數量，只看索引0到 n−1；n 不是陣列容量。","peek 只讀取頂端，pop 會取出並移除頂端。請依題目要求區分這兩種操作。","函式的 true／false 只表示是否成功，元素數值放在 value。n = 0 表示空 Stack，此時回傳 false，沒有讀出元素；int& 讓函式能更新呼叫端的 n 或 value。"]},
     title:"Stack｜讀取與移除的差別",
-    goal:"這題要修正 peek，讓它讀取頂端元素後，Stack 的內容保持不變。用 int 陣列表示 Stack，右端是頂端；n 是元素數量。回傳 true 表示成功，讀到的數值放進 value；空 Stack 回傳 false。int& 參數可更新呼叫端變數。",
+    goal:"這題要修正 peek，讓它讀取頂端元素後，Stack 的內容保持不變。請同時觀察 value 與操作後的有效內容。",
     initial:["2","5","9"],
     orientation:"起始 n = 3；底部在左，頂端在右",
     code:"bool peek(int stack[], int& n, int& value) {\n    if (n == 0) return false;\n    value = stack[n - 1];\n    --n;\n    return true;\n}",
@@ -127,8 +130,9 @@ const exampleBank = [
   },
   {
     id:"queue",
+    definition:{"title":"作答前請注意：左端是 Queue 隊首，value 是取出的字元。","items":["本題用陣列表示 Queue，左端是隊首，右端是隊尾。加入元素（enqueue）在隊尾，取出元素（dequeue）從隊首；dequeue 包含移除該元素。","n 表示有效元素數量，只看索引0到 n−1；n 不是陣列容量。有效範圍外的值不計入 Queue 內容。","函式的 true／false 只表示是否成功，取出的字元放在 value。n = 0 表示空 Queue，此時回傳 false，沒有取出元素；int& 和 char& 讓函式能更新呼叫端的變數。"]},
     title:"Queue｜從正確的一端取出",
-    goal:"這題要修正 dequeue，讓它取出並移除最早加入的元素。以 char 陣列表示 Queue，左端是隊首，n 是有效元素數量。回傳 true 表示成功，取出的字元放進 value；空 Queue 回傳 false。int& 與 char& 可更新呼叫端變數。",
+    goal:"這題要修正 dequeue，讓它取出並移除最早加入的元素。請同時觀察 value 與操作後的有效內容。",
     initial:["A","B","C"],
     orientation:"起始 n = 3；隊首在左，新元素加入右端",
     code:"bool dequeue(char queue[], int& n, char& value) {\n    if (n == 0) return false;\n    value = queue[n - 1];\n    --n;\n    return true;\n}",
@@ -233,7 +237,8 @@ function submitExample(sample, state, action, answer) {
     document.querySelectorAll('[data-index]').forEach(b=>b.onclick=()=>{selected=Number(b.dataset.index);render();focusOn('step-title');});
     const scoreLine=`<div class="score-strip"><strong>已獲得 ${total} 分</strong><span>本題滿分25分 · 提交答案後計分</span></div><div class="progress"><h3>這一題的作答進度</h3><ol class="steps" aria-label="四個作答步驟">${stageNames.map((n,i)=>`<li class="${i===state.phase?'current':state.scores[i]!==null?'done':'pending'}" ${i===state.phase?'aria-current="step"':''}><span class="step-name">${i+1}. ${n}</span><span class="step-status">${state.scores[i]!==null?`已完成 · 得分 ${state.scores[i]} / ${stageMax[i]}`:i===state.phase?'目前這一步':'尚未開始'}</span></li>`).join('')}</ol></div>`;
 
-    const intro=`<div class="question-info"><h3>題目目標與起始資料</h3>${sample.id==='array'?'<div class="key-definition"><strong>作答前請注意：n 表示目前有幾個有效元素。</strong><p>本題只看前 n 項，也就是 arr[0] 到 arr[n−1]。n 不是陣列的容量；有效範圍以外的值，即使仍留在陣列裡，也不算進本題的有效內容。</p></div>':''}<p>${escape(sample.goal)}</p><div class="chain" aria-label="初始資料">${sample.initial.map(v=>`<span class="node">${escape(v)}</span>`).join('')}</div><p>${escape(sample.orientation)}</p></div>`;
+    const definition=`<div class="key-definition"><strong>${escape(sample.definition.title)}</strong>${sample.definition.items.map(item=>`<p>${escape(item)}</p>`).join('')}</div>`;
+    const intro=`<div class="question-info"><h3>題目目標與起始資料</h3>${definition}<p>${escape(sample.goal)}</p><div class="chain" aria-label="初始資料">${sample.initial.map(v=>`<span class="node">${escape(v)}</span>`).join('')}</div><p>${escape(sample.orientation)}</p></div>`;
     const originalResult=`<div class="feedback"><strong>原始程式的實際結果</strong><br>${escape(sample.prediction.options.find(o=>o[0]===simulateExample(sample.id,sample.cases[0],sample.bug))[1])}</div>`;
     context.innerHTML='<h2>參考與作答紀錄</h2>';
     if(state.phase>=2) context.innerHTML+=`<details ${state.phase===2?'open':''}><summary>回看原題與錯誤程式</summary>${intro}${code(sample.code)}${originalResult}</details>`;
@@ -248,10 +253,10 @@ function submitExample(sample, state, action, answer) {
       if(state.phase===0) fields=intro+'<h3>請預測這段程式實際會做什麼（程式含有錯誤）</h3>'+code(sample.code)+field('choice',sample.prediction.prompt,sample.prediction.options,draft.choice);
       if(state.phase===1) fields=intro+'<h3>原始程式碼（含錯誤）</h3>'+code(sample.code)+originalResult+field('choice',sample.diagnosis.prompt,sample.diagnosis.options,draft.choice);
       if(state.phase===2) {
-        fields=`<p>請修正下方函式，讓它能符合題目目標，並處理不同的輸入資料。</p><p>請用下拉選單填入 [填空 A] 等位置，不需要自行輸入程式。先選好修正方式，再預測兩個測試是否通過。你可以按「試跑公開案例」查看結果、修改後再試；確定後再按「提交修正版，進入新題」。</p>${code(sample.template)}${sample.snippets ? sample.snippets.map(([v,t],i)=>`<h3>方案 ${i+1}</h3>${code(t)}`).join('') : ''}${sample.fields.map(f=>field(f.key,f.label,f.options,draft[f.key])).join('')}<div class="question-info"><h3>試跑會使用這兩組資料</h3><p>「通過」表示程式執行結果符合題目目標。請先預測，再按試跑確認。</p>${sample.cases.slice(0,2).map((c,i)=>`<p>案例${i+1} · ${escape(c.name)}：${escape(testInput(c))}</p>`).join('')}</div>${field('hypothesis','你預測這次修正能通過哪些測試？',yesCases,draft.hypothesis)}<p class="muted">公開案例1：${escape(sample.cases[0].name)}；案例2：${escape(sample.cases[1].name)}。這個階段會用5組資料測試你最後提交的修正版，每通過一組得2分。試跑次數與測試前的預測不加扣分；另外3組資料會在完成整題後顯示。</p>`;
+        fields=`${definition}<p>請修正下方函式，讓它能符合題目目標，並處理不同的輸入資料。</p><p>請用下拉選單填入 [填空 A] 等位置，不需要自行輸入程式。先選好修正方式，再預測兩個測試是否通過。你可以按「試跑公開案例」查看結果、修改後再試；確定後再按「提交修正版，進入新題」。</p>${code(sample.template)}${sample.snippets ? sample.snippets.map(([v,t],i)=>`<h3>方案 ${i+1}</h3>${code(t)}`).join('') : ''}${sample.fields.map(f=>field(f.key,f.label,f.options,draft[f.key])).join('')}<div class="question-info"><h3>試跑會使用這兩組資料</h3><p>「通過」表示程式執行結果符合題目目標。請先預測，再按試跑確認。</p>${sample.cases.slice(0,2).map((c,i)=>`<p>案例${i+1} · ${escape(c.name)}：${escape(testInput(c))}</p>`).join('')}</div>${field('hypothesis','你預測這次修正能通過哪些測試？',yesCases,draft.hypothesis)}<p class="muted">公開案例1：${escape(sample.cases[0].name)}；案例2：${escape(sample.cases[1].name)}。這個階段會用5組資料測試你最後提交的修正版，每通過一組得2分。試跑次數與測試前的預測不加扣分；另外3組資料會在完成整題後顯示。</p>`;
         buttons='<button type="submit" value="test">試跑公開案例</button><button type="submit" value="repair" class="primary">提交修正版，進入新題</button>';
       }
-      if(state.phase===3) { fields='<p>這是新的輸入資料，請依題目所說的正確操作回答，不要沿用前面錯誤程式的結果。</p>'+field('choice',sample.transfer.prompt,sample.transfer.options,draft.choice)+'<p class="muted">提交後就能看到本題總分與解析；如果想再試一次，可以在完成頁重新練習。</p>'; buttons='<button type="submit" class="primary">完成本題，查看總分與解析</button>'; }
+      if(state.phase===3) { fields=definition+'<p>這是新的輸入資料，請依題目所說的正確操作回答，不要沿用前面錯誤程式的結果。</p>'+field('choice',sample.transfer.prompt,sample.transfer.options,draft.choice)+'<p class="muted">提交後就能看到本題總分與解析；如果想再試一次，可以在完成頁重新練習。</p>'; buttons='<button type="submit" class="primary">完成本題，查看總分與解析</button>'; }
       answerBox.innerHTML=`${scoreLine}<p class="stage">${escape(sample.title)}</p><h2 id="step-title" tabindex="-1">現在請完成第 ${state.phase+1} 步：${stageNames[state.phase]}（${stageMax[state.phase]}分）</h2><p>${stepHints[state.phase]}</p>${state.feedback?`<div class="feedback" role="status">${escape(state.feedback)}</div>`:''}<form>${fields}<div class="buttons">${buttons}</div></form><p id="error" class="error" role="alert"></p>${state.phase===2 && state.trials.length ? `<section id="trial-results" tabindex="-1" class="question-info"><h3>第${state.trials.length}次試跑結果（不計分）</h3><p>你的預測：${escape(yesCases.find(o=>o[0]===state.trials.at(-1).rule.hypothesis)[1])}</p>${tests(state.trials.at(-1).results)}<p>這是上次按下試跑時的結果。更改選項後，請重新試跑；你也可以提交目前修正版，繼續下一步。</p><button type="button" id="back-to-edit">回到修正選項</button></section>` : ''}`;
       const form=answerBox.querySelector('form');
       form.onchange=()=>{state.drafts[state.phase]=Object.fromEntries(new FormData(form));};
