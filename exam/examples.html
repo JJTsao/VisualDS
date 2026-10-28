@@ -39,7 +39,9 @@ pre { white-space:pre-wrap; overflow-wrap:anywhere; padding:14px; background:var
 .error { color:var(--error); } .pass { color:var(--success); } .test-row { border-bottom:1px solid var(--border); padding:10px 0; overflow-wrap:anywhere; }
 summary { cursor:pointer; padding:8px 0; } ol { padding-left:24px; } li { margin:8px 0; } .buttons { margin-top:18px; }
 table { width:100%; border-collapse:collapse; } th,td { text-align:left; padding:8px; border-bottom:1px solid var(--border); } footer { margin-top:24px; font-size:.875rem; color:var(--text-dim); }
-@media(max-width:760px) { .workspace { grid-template-columns:1fr; } main { padding:18px 14px 36px; } .card { padding:16px; } .samples button { min-width:calc(50% - 10px); } }
+@media(min-width:761px) { .workspace { height:calc(100dvh - 32px); min-height:0; scroll-margin-top:16px; } .workspace > .card { height:100%; min-height:0; overflow-y:auto; scrollbar-gutter:stable; overscroll-behavior-y:contain; } }
+.scroll-help { color:var(--text-dim); font-size:.9rem; }
+@media(max-width:760px) { .workspace { grid-template-columns:1fr; } .scroll-help { display:none; } main { padding:18px 14px 36px; } .card { padding:16px; } .samples button { min-width:calc(50% - 10px); } }
 header { background:#e8f3f5; border:1px solid #c4dfe3; border-radius:16px; padding:22px; }
 #answer { border-top:5px solid #087682; box-shadow:0 4px 18px #2135470a; }
 #context { background:#eef2fa; border-color:#ced8e9; border-top:5px solid #667ca4; }
@@ -65,7 +67,8 @@ pre .blank { color:#ffdf8d; border-color:#ffdf8d; background:#344354; }
     <div class="toolbar"><span>每題練習滿分25分，提交各階段答案後就能看到得分。提交後不能修改該階段答案，但完成整題後可以重新練習。</span></div>
   </header>
   <nav id="sample-menu" class="samples" aria-label="選擇範例題"></nav>
-  <div class="workspace"><section id="answer" class="card" aria-label="作答區"></section><aside id="context" class="card" aria-label="題目與測試回饋"></aside></div>
+  <p class="scroll-help">左欄作答，右欄查閱參考與紀錄；兩欄可各自捲動，提交或試跑不會改變右欄位置。</p>
+  <div class="workspace"><section id="answer" class="card" tabindex="0" aria-label="作答區"></section><aside id="context" class="card" tabindex="0" aria-label="題目與測試回饋"></aside></div>
   <footer>你可以直接在這裡練習，不需下載。切換章節時會保留目前進度；關閉或重新整理網頁則會清除進度。你的練習紀錄不會上傳，也不需要繳交。</footer>
 </main>
 <script id="example-model">
@@ -230,8 +233,10 @@ function submitExample(sample, state, action, answer) {
   function code(text) { return `<pre>${escape(text).replace(/\[填空 [ABC]\]/g,t=>`<span class="blank">${t}</span>`)}</pre>`; }
   function testInput(c) { return `${JSON.stringify(c.items)}${c.k!==undefined ? `，k = ${c.k}` : ''}${c.target ? `，刪除 ${c.target}` : ''}`; }
   function tests(results) { return results.map((r,i)=>`<div class="test-row"><strong class="${r.passed?'pass':'error'}">案例${i+1} · ${escape(r.name)}：${r.passed?'通過':'未通過'}</strong><br>測試資料：${escape(testInput(exampleBank[selected].cases[i]))}<br>程式執行結果：${escape(r.actual)}<br>正確結果：${escape(r.expected)}</div>`).join(''); }
-  function focusOn(id) { const el=document.getElementById(id); el?.focus({preventScroll:true}); el?.scrollIntoView({block:'start'}); }
-  function render() {
+  function focusOn(id) { const el=document.getElementById(id); if(!el)return; el.focus({preventScroll:true}); if(matchMedia('(min-width:761px)').matches) { answerBox.scrollTop+=el.getBoundingClientRect().top-answerBox.getBoundingClientRect().top-18; } else el.scrollIntoView({block:'start'}); }
+  function render(preserveContext=false) {
+    const contextTop=preserveContext?context.scrollTop:0;
+    const expanded=preserveContext?new Map([...context.querySelectorAll('details[id]')].map(el=>[el.id,el.open])):new Map();
     const sample=exampleBank[selected],state=attempts[selected],total=state.scores.reduce((sum,v)=>sum+(v??0),0);
     document.getElementById('sample-menu').innerHTML=exampleBank.map((s,i)=>`<button type="button" data-index="${i}" aria-pressed="${i===selected}">${escape(s.title)}${attempts[i].phase===4?' ✓':''}</button>`).join('');
     document.querySelectorAll('[data-index]').forEach(b=>b.onclick=()=>{selected=Number(b.dataset.index);render();focusOn('step-title');});
@@ -241,7 +246,7 @@ function submitExample(sample, state, action, answer) {
     const intro=`<div class="question-info"><h3>題目目標與起始資料</h3>${definition}<p>${escape(sample.goal)}</p><div class="chain" aria-label="初始資料">${sample.initial.map(v=>`<span class="node">${escape(v)}</span>`).join('')}</div><p>${escape(sample.orientation)}</p></div>`;
     const originalResult=`<div class="feedback"><strong>原始程式的實際結果</strong><br>${escape(sample.prediction.options.find(o=>o[0]===simulateExample(sample.id,sample.cases[0],sample.bug))[1])}</div>`;
     context.innerHTML='<h2>參考與作答紀錄</h2>';
-    if(state.phase>=2) context.innerHTML+=`<details ${state.phase===2?'open':''}><summary>回看原題與錯誤程式</summary>${intro}${code(sample.code)}${originalResult}</details>`;
+    if(state.phase>=2) context.innerHTML+=`<details id="original-reference" ${state.phase===2?'open':''}><summary>回看原題與錯誤程式</summary>${intro}${code(sample.code)}${originalResult}</details>`;
     else context.innerHTML+='<p>請先閱讀作答區的題目資料，再選擇答案。每次提交後，這裡會留下你的作答紀錄。</p>';
     if(state.phase===4) {
       answerBox.innerHTML=`<h2 id="step-title" tabindex="-1">${escape(sample.title)}：練習完成</h2>${scoreLine}<p class="feedback" role="status">${escape(state.feedback)}</p><p>你已完成這題的四個步驟。先看看下方解析，對照自己的想法；有不清楚的地方可以重新練習，也可以繼續下一個章節。這裡的得分不計入課程成績。</p><h3>對照正確答案</h3><p>預測執行結果：${escape(sample.prediction.options.find(o=>o[0]===simulateExample(sample.id,sample.cases[0],sample.bug))[1])}</p><p>錯誤原因：${escape(sample.diagnosis.options.find(o=>o[0]===sample.diagnosis.correct)[1])}</p><h3>解題說明</h3><p>${escape(sample.explanation)}</p><p>「換一題試試」的答案：${escape(sample.transfer.options.find(o=>o[0]===sample.transfer.correct)[1])}</p><details><summary>查看修正的全部測試與填空答案</summary>${sample.fields.map(f=>`<p>${escape(f.label)}：<strong>${escape(f.options.find(o=>o[0]===sample.correct[f.key])[1])}</strong></p>`).join('')}${sample.snippets ? code(sample.snippets.find(([v])=>v===sample.correct[sample.fields[0].key])[1]) : ''}${tests(state.history.find(h=>h.action==='repair').results)}</details><div class="buttons"><button id="again">重新練習本題</button>${selected<exampleBank.length-1?'<button class="primary" id="next-sample">下一個範例</button>':''}</div>`;
@@ -260,19 +265,21 @@ function submitExample(sample, state, action, answer) {
       answerBox.innerHTML=`${scoreLine}<p class="stage">${escape(sample.title)}</p><h2 id="step-title" tabindex="-1">現在請完成第 ${state.phase+1} 步：${stageNames[state.phase]}（${stageMax[state.phase]}分）</h2><p>${stepHints[state.phase]}</p>${state.feedback?`<div class="feedback" role="status">${escape(state.feedback)}</div>`:''}<form>${fields}<div class="buttons">${buttons}</div></form><p id="error" class="error" role="alert"></p>${state.phase===2 && state.trials.length ? `<section id="trial-results" tabindex="-1" class="question-info"><h3>第${state.trials.length}次試跑結果（不計分）</h3><p>你的預測：${escape(yesCases.find(o=>o[0]===state.trials.at(-1).rule.hypothesis)[1])}</p>${tests(state.trials.at(-1).results)}<p>這是上次按下試跑時的結果。更改選項後，請重新試跑；你也可以提交目前修正版，繼續下一步。</p><button type="button" id="back-to-edit">回到修正選項</button></section>` : ''}`;
       const form=answerBox.querySelector('form');
       form.onchange=()=>{state.drafts[state.phase]=Object.fromEntries(new FormData(form));};
-      document.getElementById('back-to-edit')?.addEventListener('click',()=>{form.querySelector('select')?.focus();});
+      document.getElementById('back-to-edit')?.addEventListener('click',()=>{const select=form.querySelector('select'); if(select) { select.id='repair-choice'; focusOn('repair-choice'); }});
       answerBox.querySelector('form').onsubmit=event=>{
         event.preventDefault();
         const action=state.phase===2?(event.submitter?.value||'test'):['prediction','diagnosis','','transfer'][state.phase];
-        try { const answer=Object.fromEntries(new FormData(event.currentTarget)); state.drafts[state.phase]=answer; submitExample(sample,state,action,answer);render();focusOn(action==='test'?'trial-results':'step-title'); }
+        try { const answer=Object.fromEntries(new FormData(event.currentTarget)); state.drafts[state.phase]=answer; submitExample(sample,state,action,answer);render(true);focusOn(action==='test'?'trial-results':'step-title'); }
         catch(error) { document.getElementById('error').textContent=error.message; }
       };
     }
-    if(state.history.length) context.innerHTML+=`<details><summary>回顧你的作答與修改（${state.history.length}筆）</summary><ol>${state.history.map(h=>{
+    if(state.history.length) context.innerHTML+=`<details id="answer-history"><summary>回顧你的作答與修改（${state.history.length}筆）</summary><ol>${state.history.map(h=>{
       const actionName={prediction:'預測執行結果',diagnosis:'找出錯誤原因',test:'公開試跑',repair:'最後修正',transfer:'換一題試試'}[h.action];
       const choice=h.action==='test'||h.action==='repair'?sample.fields.map(f=>`${f.label}：${f.options.find(o=>o[0]===h.answer[f.key])[1]}`).join('；'):sample[h.action].options.find(o=>o[0]===h.answer.choice)[1];
       return `<li><strong>${actionName}${h.score===null?'（不計分）':`：${h.score}分`}</strong><br>${escape(choice)}${h.answer.hypothesis?`<br>預測：${escape(yesCases.find(o=>o[0]===h.answer.hypothesis)[1])}`:''}${h.action==='test'?`<br>結果：${h.results.map(r=>r.passed?'通過':'未通過').join('／')}`:''}</li>`;
     }).join('')}</ol></details>`;
+    for(const [id,open] of expanded) { const detail=document.getElementById(id); if(detail)detail.open=open; }
+    context.scrollTop=contextTop;
   }
   render();
 })();
