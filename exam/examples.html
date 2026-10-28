@@ -81,10 +81,10 @@ pre .blank { color:#ffdf8d; border-color:#ffdf8d; background:#344354; }
 <body>
 <main>
   <header>
-    <small>Array · Linked List · Stack · Queue</small>
+    <small>Array · Linked List · Stack</small>
     <h1>期中考作答範例</h1>
     <p>先閱讀程式並預測結果，再找出錯誤、試著修正，最後用另一題確認自己是否理解。</p>
-    <p class="muted">請先選一個章節，熟悉考試的作答方式。這四題不是正式考題，練習不計入課程成績，也不需要輸入學號。正式考題與配分請以考試公告為準。</p>
+    <p class="muted">請先選一個章節，熟悉考試的作答方式。這三題不是正式考題，練習不計入課程成績，也不需要輸入學號。正式考題與配分請以考試公告為準。</p>
     <div class="toolbar"><span>每題練習滿分25分，提交每個步驟後，立即顯示得分與該步解析；看完後按「下一題」繼續同一章節。四步完成後，可前往下一個章節。提交後不能修改該步答案，但完成整題後可以重新練習。</span></div>
   </header>
   <nav id="sample-menu" class="samples" aria-label="選擇範例題"></nav>
@@ -171,7 +171,7 @@ const exampleBank = [
     explanationSteps:[["起始 Queue 是 `[A,B,C]`，`n = 3`，左端 A 是隊首。","原程式讀取 `queue[n - 1]`，也就是隊尾 C，所以 `value` 是 C。","`--n` 後的有效內容是 `[A,B]`。所以答案是取出 C，剩下 `[A,B]`。"],["Queue 採先進先出，A 最早加入。","正確的 `dequeue` 應先取出 A；原程式卻從隊尾取出最後加入的 C。","因此錯誤原因是「移除了最後加入者，而非最早加入者」。"],["選方案2：先把 `queue[0]` 的 A 存入 `value`。","將 B 往左搬到索引0，再將 C 往左搬到索引1。","最後 `--n`，讓有效內容成為 `[B,C]`。","方案1取錯端；方案3雖然讀到 A，卻沒有移除它。空 Queue 則直接回傳 `false`，不取出元素。"],["加入 R、S 後，Queue 是 `[R,S]`。","取出隊首 R，剩下 `[S]`。","再從隊尾加入 T，得到 `[S,T]`，所以順序是 `S → T`。"]],
     snippets:[["pop","value = queue[n - 1]; --n;"],["shift","value = queue[0];\nfor (int i = 0; i < n - 1; ++i) {\n    queue[i] = queue[i + 1];\n}\n--n;"],["peek","value = queue[0];"]]
   }
-];
+].filter(sample => sample.id !== 'queue'); // 本次期中考範圍只到 Stack，保留 Queue 題庫供之後使用。
 
 function simulateExample(kind, test, rule) {
   const items = test.items.slice();
