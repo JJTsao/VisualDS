@@ -55,6 +55,16 @@ pre .blank { color:#ffdf8d; border-color:#ffdf8d; background:#344354; }
 .key-definition strong { display:block; font-size:1.08rem; }
 #trial-results { background:#edf7f1; }
 #step-title,#trial-results { scroll-margin-top:16px; }
+.array-reading p { line-height:1.85; margin:14px 0; }
+.array-reading h3 { margin:22px 0 10px; }
+.array-reading .key-definition strong { line-height:1.7; }
+.array-reading .definition-note { font-size:.9rem; border-top:1px solid #dbc68c; padding-top:10px; }
+.array-reading code { font-family:Consolas,'Courier New',monospace; font-size:.95em; background:#e3ebf2; color:#223d52; border-radius:4px; padding:2px 5px; white-space:nowrap; }
+.array-reading .key-definition code { background:#f4e4b4; color:#493500; }
+.array-reading label { white-space:pre-line; line-height:1.85; margin:22px 0; }
+.array-reading label select { white-space:normal; }
+.array-reading details { margin:12px 0; }
+.array-reading .test-row { line-height:1.9; padding:14px 0; }
 </style>
 </head>
 <body>
@@ -87,7 +97,7 @@ const exampleBank = [
     template:"void eraseAt(int arr[], int& n, int k) {\n    if (k < 0 || k >= n) return;\n    for (int i = k; i <= [填空 A]; ++i) {\n        arr[i] = arr[i + [填空 B]];\n    }\n    --n;\n}",
     bug:{"end":"n-2","shift":"0"},
     correct:{"end":"n-2","shift":"1"},
-    prediction:{"prompt":"起始 n = 4。呼叫 eraseAt(arr, n, 1) 後，n 是多少？arr[0] 到 arr[n−1] 的有效內容為何？","options":[["[10,30,40]","n = 3；有效內容 [10,30,40]"],["[10,20,30]","n = 3；有效內容 [10,20,30]"],["[10,20,30,40]","n = 4；有效內容 [10,20,30,40]"],["[20,30,40]","n = 3；有效內容 [20,30,40]"]]},
+    prediction:{"prompt":"起始 n = 4，呼叫 eraseAt(arr, n, 1) 後：\n① n 是多少？\n② arr[0] 到 arr[n−1] 的有效內容為何？","options":[["[10,30,40]","n = 3；有效內容 [10,30,40]"],["[10,20,30]","n = 3；有效內容 [10,20,30]"],["[10,20,30,40]","n = 4；有效內容 [10,20,30,40]"],["[20,30,40]","n = 3；有效內容 [20,30,40]"]]},
     diagnosis:{"prompt":"為什麼執行後的有效範圍仍有20，卻不包含40？","options":[["self","每格只複製自己，沒有把右邊元素搬過來"],["index","索引必須從1開始"],["reverse","刪除前應先反轉陣列"]],"correct":"self"},
     fields:[{"key":"end","label":"填空 A：最後一個搬移目的位置","options":[["n-2","n - 2"],["n-1","n - 1"],["k","k"]]},{"key":"shift","label":"填空 B：來源相對於目的位置的距離","options":[["0","0"],["1","1"],["2","2"]]}],
     cases:[{"name":"中間刪除","items":[10,20,30,40],"k":1,"expected":"[10,30,40]"},{"name":"刪除第一項","items":[3,6,9],"k":0,"expected":"[6,9]"},{"name":"刪除最後一項","items":[7,8],"k":1,"expected":"[7]"},{"name":"唯一元素","items":[5],"k":0,"expected":"[]"},{"name":"索引不存在","items":[2,4],"k":2,"expected":"[2,4]"}],
@@ -241,16 +251,18 @@ function submitExample(sample, state, action, answer) {
     document.getElementById('sample-menu').innerHTML=exampleBank.map((s,i)=>`<button type="button" data-index="${i}" aria-pressed="${i===selected}">${escape(s.title)}${attempts[i].phase===4?' ✓':''}</button>`).join('');
     document.querySelectorAll('[data-index]').forEach(b=>b.onclick=()=>{selected=Number(b.dataset.index);render();focusOn('step-title');});
     const compact=sample.id==='array';
+    answerBox.classList.toggle('array-reading',compact);
+    context.classList.toggle('array-reading',compact);
     const scoreLine=`<div class="score-strip"><strong>已獲得 ${total} 分</strong><span>本題滿分25分 · 提交答案後計分</span></div><div class="progress"><h3>這一題的作答進度</h3><ol class="steps" aria-label="四個作答步驟">${stageNames.map((n,i)=>`<li class="${i===state.phase?'current':state.scores[i]!==null?'done':'pending'}" ${i===state.phase?'aria-current="step"':''}><span class="step-name">${i+1}. ${n}</span><span class="step-status">${state.scores[i]!==null?`已完成 · 得分 ${state.scores[i]} / ${stageMax[i]}`:i===state.phase?'目前這一步':'尚未開始'}</span></li>`).join('')}</ol></div>`;
 
-    const definition=compact?'<div class="key-definition"><strong>作答前請注意：n 表示目前有幾個有效元素。</strong><p>只看前 n 項（索引0到 n−1），不是陣列容量。</p></div>':`<div class="key-definition"><strong>${escape(sample.definition.title)}</strong>${sample.definition.items.map(item=>`<p>${escape(item)}</p>`).join('')}</div>`;
-    const intro=`<div class="question-info"><h3>題目目標與起始資料</h3>${definition}<p>${compact?'目標：刪除索引 k 的元素，保留其餘順序。':escape(sample.goal)}</p><div class="chain" aria-label="初始資料">${sample.initial.map(v=>`<span class="node">${escape(v)}</span>`).join('')}</div><p>${escape(sample.orientation)}</p></div>`;
+    const definition=compact?'<div class="key-definition"><strong>作答前請注意：<code>n</code> 表示目前有幾個有效元素。</strong><p>本題只看陣列的前 <code>n</code> 項。</p><p>範圍是 <code>arr[0]</code> 到 <code>arr[n−1]</code>。</p><p class="definition-note">注意：<code>n</code> 不代表陣列容量。</p></div>':`<div class="key-definition"><strong>${escape(sample.definition.title)}</strong>${sample.definition.items.map(item=>`<p>${escape(item)}</p>`).join('')}</div>`;
+    const intro=`<div class="question-info"><h3>題目目標與起始資料</h3>${definition}<p>${compact?'目標：刪除索引 <code>k</code> 的元素。<br>其餘元素保持原本的順序。':escape(sample.goal)}</p><div class="chain" aria-label="初始資料">${sample.initial.map(v=>`<span class="node">${escape(v)}</span>`).join('')}</div><p>${compact?'索引從 <code>0</code> 開始。<br>起始 <code>n = 4</code>，<code>k = 1</code>（要刪除20）。':escape(sample.orientation)}</p></div>`;
     const originalResult=`<div class="feedback"><strong>原始程式的實際結果</strong><br>${escape(sample.prediction.options.find(o=>o[0]===simulateExample(sample.id,sample.cases[0],sample.bug))[1])}</div>`;
-    context.innerHTML=compact?'<h2>需要時再查看</h2><details id="full-instructions"><summary>完整題目與符號說明</summary><p>'+escape(sample.goal)+'</p><p>'+escape(sample.definition.items[0])+'</p></details><details id="scoring-details"><summary>計分與提交規則</summary><p>預測5分、找錯5分、修正10分、新題5分。提交後不能修改；完成整題後可重做。</p><p>修正依最後提交版本測試5組資料，每組2分；其餘3組在完成後公布。試跑與試跑前的預測不加扣分。</p></details>':'<h2>參考與作答紀錄</h2>';
+    context.innerHTML=compact?'<h2>需要時再查看</h2><details id="full-instructions"><summary>完整題目與符號說明</summary><p>'+escape(sample.goal)+'</p><p>'+escape(sample.definition.items[0])+'</p></details><details id="scoring-details"><summary>計分與提交規則</summary><p>預測5分、找錯5分、修正10分、新題5分。</p><p>提交後不能修改。完成整題後可以重做。</p><p>修正以最後提交的版本計分：共5組資料，每組2分。</p><p>試跑會顯示2組，其餘3組在完成後公布。</p><p>試跑與試跑前的預測都不加扣分。</p></details>':'<h2>參考與作答紀錄</h2>';
     if(state.phase>=2) context.innerHTML+=`<details id="original-reference" ${state.phase===2?'open':''}><summary>回看原題與錯誤程式</summary>${compact?'':intro}${code(sample.code)}${compact?'':originalResult}</details>`;
     else if(!compact) context.innerHTML+='<p>請先閱讀作答區的題目資料，再選擇答案。每次提交後，這裡會留下你的作答紀錄。</p>';
     if(state.phase===4) {
-      answerBox.innerHTML=`<h2 id="step-title" tabindex="-1">${escape(sample.title)}：練習完成</h2>${scoreLine}<p class="feedback" role="status">${escape(state.feedback)}</p>${compact?'':"<p>你已完成這題的四個步驟。先看看下方解析，對照自己的想法；有不清楚的地方可以重新練習，也可以繼續下一個章節。這裡的得分不計入課程成績。</p>"}${compact?'<details><summary>查看各步正確答案與解析</summary>':''}<h3>對照正確答案</h3><p>預測執行結果：${escape(sample.prediction.options.find(o=>o[0]===simulateExample(sample.id,sample.cases[0],sample.bug))[1])}</p><p>錯誤原因：${escape(sample.diagnosis.options.find(o=>o[0]===sample.diagnosis.correct)[1])}</p><h3>解題說明</h3><p>${escape(sample.explanation)}</p><p>「換一題試試」的答案：${escape(sample.transfer.options.find(o=>o[0]===sample.transfer.correct)[1])}</p>${compact?'</details><p>重點：自己指定給自己不會搬移元素；--n 仍會縮小有效範圍。正確搬移須使用 arr[i + 1]。</p>':''}<details><summary>查看修正的全部測試與填空答案</summary>${sample.fields.map(f=>`<p>${escape(f.label)}：<strong>${escape(f.options.find(o=>o[0]===sample.correct[f.key])[1])}</strong></p>`).join('')}${sample.snippets ? code(sample.snippets.find(([v])=>v===sample.correct[sample.fields[0].key])[1]) : ''}${tests(state.history.find(h=>h.action==='repair').results)}</details><div class="buttons"><button id="again">重新練習本題</button>${selected<exampleBank.length-1?'<button class="primary" id="next-sample">下一個範例</button>':''}</div>`;
+      answerBox.innerHTML=`<h2 id="step-title" tabindex="-1">${escape(sample.title)}：練習完成</h2>${scoreLine}<p class="feedback" role="status">${escape(state.feedback)}</p>${compact?'':"<p>你已完成這題的四個步驟。先看看下方解析，對照自己的想法；有不清楚的地方可以重新練習，也可以繼續下一個章節。這裡的得分不計入課程成績。</p>"}${compact?'<details><summary>查看各步正確答案與解析</summary>':''}<h3>對照正確答案</h3><p>預測執行結果：${escape(sample.prediction.options.find(o=>o[0]===simulateExample(sample.id,sample.cases[0],sample.bug))[1])}</p><p>錯誤原因：${escape(sample.diagnosis.options.find(o=>o[0]===sample.diagnosis.correct)[1])}</p><h3>解題說明</h3><p>${escape(sample.explanation)}</p><p>「換一題試試」的答案：${escape(sample.transfer.options.find(o=>o[0]===sample.transfer.correct)[1])}</p>${compact?'</details><p><strong>解題重點</strong></p><p><code>arr[i] = arr[i]</code> 不會搬移元素。</p><p><code>--n</code> 仍會縮小有效範圍。</p><p>正確搬移須使用 <code>arr[i + 1]</code>。</p>':''}<details><summary>查看修正的全部測試與填空答案</summary>${sample.fields.map(f=>`<p>${escape(f.label)}：<strong>${escape(f.options.find(o=>o[0]===sample.correct[f.key])[1])}</strong></p>`).join('')}${sample.snippets ? code(sample.snippets.find(([v])=>v===sample.correct[sample.fields[0].key])[1]) : ''}${tests(state.history.find(h=>h.action==='repair').results)}</details><div class="buttons"><button id="again">重新練習本題</button>${selected<exampleBank.length-1?'<button class="primary" id="next-sample">下一個範例</button>':''}</div>`;
       document.getElementById('again').onclick=()=>{attempts[selected]=newExampleAttempt();render();focusOn('step-title');};
       document.getElementById('next-sample')?.addEventListener('click',()=>{selected++;render();focusOn('step-title');});
     } else {
