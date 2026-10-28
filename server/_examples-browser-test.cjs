@@ -21,7 +21,7 @@ const path = require('node:path');
           check(f.querySelector('.key-definition strong').textContent===s.definition.title,'visible prerequisite');
           check(f.querySelector('.chain').compareDocumentPosition(f.querySelector('select'))&Node.DOCUMENT_POSITION_FOLLOWING,'input must precede choices');
           f.requestSubmit();check(document.querySelectorAll('.done').length===0,'empty submission advanced');
-          if(s.id==='array') { check(f.querySelector('.key-definition strong').textContent.includes('n 表示目前有幾個有效元素'),'Array definition emphasized'); check(document.querySelector('label').innerText.includes('n 是多少'),'Array asks n'); check([...document.querySelector('select').options].slice(1).every(o=>o.text.startsWith('n = ')),'Array choices include n'); }
+          if(s.id==='array') { check(!document.querySelector('#full-instructions').open && !document.querySelector('#scoring-details').open,'optional text collapsed'); check(!f.querySelector('.question-info').innerText.includes('int&'),'technical detail moved aside'); check(f.querySelector('.key-definition strong').textContent.includes('n 表示目前有幾個有效元素'),'Array definition emphasized'); check(document.querySelector('label').innerText.includes('n 是多少'),'Array asks n'); check([...document.querySelector('select').options].slice(1).every(o=>o.text.startsWith('n = ')),'Array choices include n'); }
           const wrong=s.id==='array'?'[10,20,30,40]':s.prediction.options.find(o=>o[0]!==simulateExample(s.id,s.cases[0],s.bug))[0];
           set({choice:wrong});switchTo((i+1)%4);switchTo(i);check(document.querySelector('[name=choice]').value===wrong,'lost prediction draft');
           submit({choice:wrong});check(document.querySelector('#answer').innerText.includes('原始程式的實際結果'),'missing evidence');
@@ -36,7 +36,7 @@ const path = require('node:path');
           const beforeSubmit=right.scrollTop;submit({...s.correct,hypothesis:'both'},'repair');check(Math.abs(right.scrollTop-beforeSubmit)<1,'right scroll moved after submit');check(document.querySelector('#original-reference').open,'reference stays open after submit');check(document.querySelector('form .key-definition strong').textContent===s.definition.title,'new question prerequisite');
           set({choice:s.transfer.correct});switchTo((i+1)%4);switchTo(i);check(document.querySelector('[name=choice]').value===s.transfer.correct,'lost new question draft');
           submit({choice:s.transfer.correct});check(document.querySelector('.score-strip').innerText.includes('20 分'),'partial score');
-          check(document.querySelector('#answer').innerText.includes('錯誤原因：'),'missing diagnosis solution');check(!document.querySelector('#answer .feedback').innerText.includes('下一步'),'completion asks next step');
+          check(document.querySelector('#answer').textContent.includes('錯誤原因：'),'missing diagnosis solution');check(!document.querySelector('#answer .feedback').innerText.includes('下一步'),'completion asks next step');
           check(document.querySelectorAll('#answer .test-row').length===5,'missing final test cases');
           document.querySelector('#again').click();check(document.querySelector('[name=choice]').value==='','reset draft');check(document.querySelector('.score-strip').innerText.includes('0 分'),'reset score');
           submit({choice:simulateExample(s.id,s.cases[0],s.bug)});submit({choice:s.diagnosis.correct});submit({...s.correct,hypothesis:'both'},'repair');submit({choice:s.transfer.correct});check(document.querySelector('.score-strip').innerText.includes('25 分'),'full score');
