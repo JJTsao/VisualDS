@@ -56,6 +56,18 @@ const path = require('node:path');
       await page.screenshot({path:path.resolve(__dirname,`.preview-data/examples-audit-${width}.png`),fullPage:true});
       await page.reload();
       if(!await page.locator('.score-strip').innerText().then(t=>t.includes('0 分')))throw Error('refresh should reset');
+      if(width>760) {
+        for(const id of ['answer','context']) {
+          for(const direction of [-1,1]) {
+            await page.evaluate(({id,direction})=>{const pane=document.getElementById(id);pane.scrollTop=direction<0?0:pane.scrollHeight;window.scrollTo(0,document.querySelector('.workspace').offsetTop-100);},{id,direction});
+            const before=await page.evaluate(()=>scrollY);
+            await page.locator('#'+id).hover({position:{x:100,y:150}});
+            await page.mouse.wheel(0,direction*450);
+            await page.waitForFunction(({before,direction})=>direction<0?scrollY<before:scrollY>before,{before,direction},{timeout:3000});
+          }
+        }
+        console.log('PASS wheel handoff: both panes, top and bottom');
+      }
       await page.close();
     }
   } finally { await browser.close(); }

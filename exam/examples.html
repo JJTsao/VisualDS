@@ -39,7 +39,7 @@ pre { white-space:pre-wrap; overflow-wrap:anywhere; padding:14px; background:var
 .error { color:var(--error); } .pass { color:var(--success); } .test-row { border-bottom:1px solid var(--border); padding:10px 0; overflow-wrap:anywhere; }
 summary { cursor:pointer; padding:8px 0; } ol { padding-left:24px; } li { margin:8px 0; } .buttons { margin-top:18px; }
 table { width:100%; border-collapse:collapse; } th,td { text-align:left; padding:8px; border-bottom:1px solid var(--border); } footer { margin-top:24px; font-size:.875rem; color:var(--text-dim); }
-@media(min-width:761px) { .workspace { height:calc(100dvh - 32px); min-height:0; scroll-margin-top:16px; } .workspace > .card { height:100%; min-height:0; overflow-y:auto; scrollbar-gutter:stable; overscroll-behavior-y:contain; } }
+@media(min-width:761px) { .workspace { height:calc(100dvh - 32px); min-height:0; scroll-margin-top:16px; } .workspace > .card { height:100%; min-height:0; overflow-y:auto; scrollbar-gutter:stable; overscroll-behavior-y:auto; } }
 .scroll-help { color:var(--text-dim); font-size:.9rem; }
 @media(max-width:760px) { .workspace { grid-template-columns:1fr; } .scroll-help { display:none; } main { padding:18px 14px 36px; } .card { padding:16px; } .samples button { min-width:calc(50% - 10px); } }
 header { background:#e8f3f5; border:1px solid #c4dfe3; border-radius:16px; padding:22px; }
@@ -75,9 +75,9 @@ pre .blank { color:#ffdf8d; border-color:#ffdf8d; background:#344354; }
 .solution-panel section + section { border-top:1px solid #b8d9d4; margin-top:24px; }
 .solution-panel code { display:inline-block; max-width:100%; white-space:normal; overflow-wrap:anywhere; line-height:1.5; vertical-align:baseline; }
 #step-explanation { scroll-margin-top:18px; }
-.review-actions { position:sticky; bottom:0; z-index:2; padding:12px; background:#f3faf5; border:1px solid #95c5a6; border-radius:10px; box-shadow:0 -4px 16px #193b2914; }
+.review-actions { position:sticky; bottom:-22px; margin-bottom:-22px; z-index:2; padding:12px 12px 22px; background:#f3faf5; border:1px solid #95c5a6; border-radius:10px; box-shadow:0 -4px 16px #193b2914; }
 .review-actions .primary { background:#217346; border-color:#217346; }
-@media(max-width:760px) { .review-actions { bottom:8px; padding-bottom:max(12px,env(safe-area-inset-bottom)); } .review-actions button { flex:1 1 auto; } }
+@media(max-width:760px) { .review-actions { bottom:0; margin-bottom:-16px; padding-bottom:max(16px,env(safe-area-inset-bottom)); } .review-actions button { flex:1 1 auto; } }
 </style>
 </head>
 <body>
@@ -275,8 +275,8 @@ function submitExample(sample, state, action, answer) {
     const definition=isArray?'<div class="key-definition"><strong>作答前請注意：<code>n</code> 表示目前有幾個有效元素。</strong><p>本題只看陣列的前 <code>n</code> 項。</p><p>範圍是 <code>arr[0]</code> 到 <code>arr[n−1]</code>。</p><p class="definition-note">注意：<code>n</code> 不代表陣列容量。</p></div>':`<div class="key-definition"><strong>${escape(sample.definition.title)}</strong>${definitionNotes[sample.id]}</div>`;
     const intro=`<div class="question-info"><h3>題目目標與起始資料</h3>${definition}<p>${isArray?'目標：刪除索引 <code>k</code> 的元素。<br>其餘元素保持原本的順序。':escape(sample.goal)}</p><div class="chain" aria-label="初始資料">${sample.initial.map(v=>`<span class="node">${escape(v)}</span>`).join('')}</div><p>${isArray?'索引從 <code>0</code> 開始。<br>起始 <code>n = 4</code>，<code>k = 1</code>（要刪除20）。':escape(sample.orientation)}</p></div>`;
     const submitted=state.history.filter(entry=>entry.score!==null).at(-1);
-    const submittedAnswer=submitted?(submitted.action==='repair'?sample.fields.map(f=>f.label+'：'+f.options.find(o=>o[0]===submitted.answer[f.key])[1]).join('；'):sample[submitted.action].options.find(o=>o[0]===submitted.answer.choice)[1]):'';
-    const latestExplanation=(state.reviewing||state.phase===4)?`<section id="step-explanation" class="solution-panel" tabindex="-1" aria-label="本題答案解析"><h2>答案解析</h2><p>已提交第 ${state.phase} 步 · 得分 ${state.scores[state.phase-1]} / ${stageMax[state.phase-1]}</p><p class="submitted-answer"><strong>你提交的答案：</strong>${escape(submittedAnswer)}</p>${explanation(sample,state.phase-1)}</section>`:'';
+    const submittedAnswer=submitted?(submitted.action==='repair'?sample.fields.map(f=>`<p>${escape(f.label)}：<code>${escape(f.options.find(o=>o[0]===submitted.answer[f.key])[1])}</code></p>`).join(''):`<p>${escape(sample[submitted.action].options.find(o=>o[0]===submitted.answer.choice)[1])}</p>`):'';
+    const latestExplanation=(state.reviewing||state.phase===4)?`<section id="step-explanation" class="solution-panel" tabindex="-1" aria-label="本題答案解析"><h2>答案解析</h2><p>已提交第 ${state.phase} 步 · 得分 ${state.scores[state.phase-1]} / ${stageMax[state.phase-1]}</p><div class="submitted-answer"><strong>你提交的答案：</strong>${submittedAnswer}</div>${explanation(sample,state.phase-1)}</section>`:'';
     const originalResult=`<div class="feedback"><strong>原始程式的實際結果</strong><br>${escape(sample.prediction.options.find(o=>o[0]===simulateExample(sample.id,sample.cases[0],sample.bug))[1])}</div>`;
     context.innerHTML='<h2>需要時再查看</h2><details id="full-instructions"><summary>完整題目與符號說明</summary><p>'+escape(sample.goal)+'</p><p>'+sample.definition.items.map(item=>escape(item)).join('</p><p>')+'</p></details><details id="scoring-details"><summary>計分與提交規則</summary><p>預測5分、找錯5分、修正10分、新題5分。</p><p>提交後停在解析，按「下一題」才會繼續。已提交的答案不能修改；完成四步後可以重做。</p><p>修正以最後提交的版本計分：共5組資料，每組2分。</p><p>試跑會顯示2組，其餘3組在完成後公布。</p><p>試跑與試跑前的預測都不加扣分。</p></details>';
     if(state.phase>=2) context.innerHTML+=`<details id="original-reference" ${state.phase===2?'open':''}><summary>回看原題與錯誤程式</summary>${code(sample.code)}</details>`;
