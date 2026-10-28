@@ -19,6 +19,8 @@ const path = require('node:path');
         for(let i=0;i<4;i++) {
           switchTo(i); const s=exampleBank[i]; const f=document.querySelector('form');
           check(f.querySelector('.key-definition strong').textContent===s.definition.title,'visible prerequisite');
+          check(!document.querySelector('#full-instructions').open && !document.querySelector('#scoring-details').open,'reference collapsed for every chapter');
+          check(f.querySelector('.key-definition code'),'styled prerequisite symbols');
           check(f.querySelector('.chain').compareDocumentPosition(f.querySelector('select'))&Node.DOCUMENT_POSITION_FOLLOWING,'input must precede choices');
           f.requestSubmit();check(document.querySelectorAll('.done').length===0,'empty submission advanced');
           if(s.id==='array') { check(!document.querySelector('#full-instructions').open && !document.querySelector('#scoring-details').open,'optional text collapsed'); check(!f.querySelector('.question-info').innerText.includes('int&'),'technical detail moved aside'); check(f.querySelector('.key-definition strong').textContent.includes('n 表示目前有幾個有效元素'),'Array definition emphasized'); check(document.querySelector('label').innerText.includes('n 是多少'),'Array asks n'); check([...document.querySelector('select').options].slice(1).every(o=>o.text.startsWith('n = ')),'Array choices include n'); }
@@ -27,6 +29,7 @@ const path = require('node:path');
           submit({choice:wrong});check(document.querySelector('#answer').innerText.includes('原始程式的實際結果'),'missing evidence');
           if(s.id==='array')check(document.querySelector('form .feedback').innerText.includes('n = 3；有效內容 [10,20,30]'),'Array evidence includes n and content');
           submit({choice:s.diagnosis.correct});check([...document.querySelectorAll('select')].every(x=>x.value===''),'repair prefilled');
+          if(s.snippets)check(document.querySelectorAll('form pre').length===4,'all repair code options remain visible');
           const right=document.querySelector('#context'); right.querySelector('#answer-history').open=true; right.scrollTop=100; const rightTop=right.scrollTop, windowTop=scrollY;
           submit({...s.bug,hypothesis:'neither'},'test');check(Math.abs(right.scrollTop-rightTop)<1,'right scroll moved after test');check(right.querySelector('#answer-history').open,'history collapsed after test');if(innerWidth>760)check(scrollY===windowTop,'page moved after test');check(document.activeElement.id==='trial-results','trial focus');check(document.querySelector('[name=hypothesis]').value==='neither','lost hypothesis');
           document.querySelector('#back-to-edit').click();check(document.activeElement.tagName==='SELECT','edit focus');
