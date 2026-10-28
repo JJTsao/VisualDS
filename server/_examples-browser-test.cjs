@@ -19,7 +19,7 @@ const path = require('node:path');
           switchTo(i); const s=exampleBank[i]; const f=document.querySelector('form');
           check(f.querySelector('.chain').compareDocumentPosition(f.querySelector('select'))&Node.DOCUMENT_POSITION_FOLLOWING,'input must precede choices');
           f.requestSubmit();check(document.querySelectorAll('.done').length===0,'empty submission advanced');
-          if(s.id==='array') { check(document.querySelector('label').innerText.includes('n 是多少'),'Array asks n'); check([...document.querySelector('select').options].slice(1).every(o=>o.text.startsWith('n = ')),'Array choices include n'); }
+          if(s.id==='array') { check(f.querySelector('.key-definition strong').textContent.includes('n 表示目前有幾個有效元素'),'Array definition emphasized'); check(document.querySelector('label').innerText.includes('n 是多少'),'Array asks n'); check([...document.querySelector('select').options].slice(1).every(o=>o.text.startsWith('n = ')),'Array choices include n'); }
           const wrong=s.id==='array'?'[10,20,30,40]':s.prediction.options.find(o=>o[0]!==simulateExample(s.id,s.cases[0],s.bug))[0];
           set({choice:wrong});switchTo((i+1)%4);switchTo(i);check(document.querySelector('[name=choice]').value===wrong,'lost prediction draft');
           submit({choice:wrong});check(document.querySelector('#answer').innerText.includes('原始程式的實際結果'),'missing evidence');

@@ -49,6 +49,8 @@ pre .blank { color:#ffdf8d; border-color:#ffdf8d; background:#344354; }
 .score-strip { background:#fff5db; border-radius:8px; padding:12px; border-color:#ead9aa; }
 #context .node { background:#fff; }
 .question-info { padding:14px; margin:14px 0; background:#eef4fa; border:1px solid #d0dfeb; border-radius:8px; }
+.key-definition { padding:14px; margin:12px 0; background:#fff3ce; border:1px solid #d5af50; border-left:5px solid #9a6600; border-radius:8px; color:#493500; }
+.key-definition strong { display:block; font-size:1.08rem; }
 #trial-results { background:#edf7f1; }
 #step-title,#trial-results { scroll-margin-top:16px; }
 </style>
@@ -74,7 +76,7 @@ const exampleBank = [
   {
     id:"array",
     title:"Array｜刪除後的搬移",
-    goal:"這題要刪除陣列中索引 k 的元素，並保留其他元素的順序。請注意：索引從0開始，n 表示目前有幾個有效元素，只需觀察前 n 項。參數 int& n 讓函式內對 n 的修改也會影響原本的 n。",
+    goal:"這題要刪除陣列中索引 k 的元素，並保留其他元素的順序。索引從0開始。參數 int& n 讓函式內對 n 的修改也會影響原本的 n。",
     initial:["10","20","30","40"],
     orientation:"索引 0 → 3；起始 n = 4，k = 1（要刪除20）",
     code:"void eraseAt(int arr[], int& n, int k) {\n    if (k < 0 || k >= n) return;\n    for (int i = k; i <= n - 2; ++i) {\n        arr[i] = arr[i];\n    }\n    --n;\n}",
@@ -231,7 +233,7 @@ function submitExample(sample, state, action, answer) {
     document.querySelectorAll('[data-index]').forEach(b=>b.onclick=()=>{selected=Number(b.dataset.index);render();focusOn('step-title');});
     const scoreLine=`<div class="score-strip"><strong>已獲得 ${total} 分</strong><span>本題滿分25分 · 提交答案後計分</span></div><div class="progress"><h3>這一題的作答進度</h3><ol class="steps" aria-label="四個作答步驟">${stageNames.map((n,i)=>`<li class="${i===state.phase?'current':state.scores[i]!==null?'done':'pending'}" ${i===state.phase?'aria-current="step"':''}><span class="step-name">${i+1}. ${n}</span><span class="step-status">${state.scores[i]!==null?`已完成 · 得分 ${state.scores[i]} / ${stageMax[i]}`:i===state.phase?'目前這一步':'尚未開始'}</span></li>`).join('')}</ol></div>`;
 
-    const intro=`<div class="question-info"><h3>題目目標與起始資料</h3><p>${escape(sample.goal)}</p><div class="chain" aria-label="初始資料">${sample.initial.map(v=>`<span class="node">${escape(v)}</span>`).join('')}</div><p>${escape(sample.orientation)}</p></div>`;
+    const intro=`<div class="question-info"><h3>題目目標與起始資料</h3>${sample.id==='array'?'<div class="key-definition"><strong>作答前請注意：n 表示目前有幾個有效元素。</strong><p>本題只看前 n 項，也就是 arr[0] 到 arr[n−1]。n 不是陣列的容量；有效範圍以外的值，即使仍留在陣列裡，也不算進本題的有效內容。</p></div>':''}<p>${escape(sample.goal)}</p><div class="chain" aria-label="初始資料">${sample.initial.map(v=>`<span class="node">${escape(v)}</span>`).join('')}</div><p>${escape(sample.orientation)}</p></div>`;
     const originalResult=`<div class="feedback"><strong>原始程式的實際結果</strong><br>${escape(sample.prediction.options.find(o=>o[0]===simulateExample(sample.id,sample.cases[0],sample.bug))[1])}</div>`;
     context.innerHTML='<h2>參考與作答紀錄</h2>';
     if(state.phase>=2) context.innerHTML+=`<details ${state.phase===2?'open':''}><summary>回看原題與錯誤程式</summary>${intro}${code(sample.code)}${originalResult}</details>`;
