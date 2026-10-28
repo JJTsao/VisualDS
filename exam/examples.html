@@ -65,11 +65,11 @@ pre .blank { color:#ffdf8d; border-color:#ffdf8d; background:#344354; }
 .practice-reading label select { white-space:normal; }
 .practice-reading details { margin:12px 0; }
 .practice-reading .test-row { line-height:1.9; padding:14px 0; }
-.solution-panel { border:2px solid var(--amber); border-radius:10px; background:#edf7f6; padding:0 14px; }
-.solution-panel > summary { padding:16px 0; color:#075e68; font-weight:700; }
-.solution-panel .when-open,.solution-panel[open] .when-closed { display:none; }
-.solution-panel[open] .when-open { display:inline; }
-.solution-hint { color:var(--text-dim); }
+.solution-panel { border:1px solid #95c5a6; border-left:5px solid #25804c; border-radius:10px; background:#e9f5ed; padding:18px; margin:18px 0; color:#193b29; }
+.solution-panel > h2 { color:#185e37; margin:0 0 14px; }
+.solution-panel .submitted-answer { background:#fff; border:1px solid #c5ddce; border-radius:8px; padding:12px; }
+#answer.review-mode { border-top-color:#25804c; }
+#trial-results { background:#eef4fa; }
 .reasoning-steps { padding-left:26px; }
 .reasoning-steps li { line-height:1.9; margin:16px 0; padding-left:4px; }
 .solution-panel section + section { border-top:1px solid #b8d9d4; margin-top:24px; }
@@ -263,6 +263,7 @@ function submitExample(sample, state, action, answer) {
     document.querySelectorAll('[data-index]').forEach(b=>b.onclick=()=>{selected=Number(b.dataset.index);render();focusOn('step-title');});
     const isArray=sample.id==='array';
     answerBox.classList.add('practice-reading');
+    answerBox.classList.toggle('review-mode',state.reviewing||state.phase===4);
     context.classList.add('practice-reading');
     const scoreLine=`<div class="score-strip"><strong>已獲得 ${total} 分</strong><span>本題滿分25分 · 提交答案後計分</span></div><div class="progress"><h3>這一題的作答進度</h3><ol class="steps" aria-label="四個作答步驟">${stageNames.map((n,i)=>`<li class="${i===state.phase&&!state.reviewing?'current':state.scores[i]!==null?'done':'pending'}" ${i===state.phase&&!state.reviewing?'aria-current="step"':''}><span class="step-name">${i+1}. ${n}</span><span class="step-status">${state.scores[i]!==null?`已完成 · 得分 ${state.scores[i]} / ${stageMax[i]}`:i===state.phase&&!state.reviewing?'目前這一步':'尚未開始'}</span></li>`).join('')}</ol></div>`;
 
@@ -272,12 +273,12 @@ function submitExample(sample, state, action, answer) {
     const intro=`<div class="question-info"><h3>題目目標與起始資料</h3>${definition}<p>${isArray?'目標：刪除索引 <code>k</code> 的元素。<br>其餘元素保持原本的順序。':escape(sample.goal)}</p><div class="chain" aria-label="初始資料">${sample.initial.map(v=>`<span class="node">${escape(v)}</span>`).join('')}</div><p>${isArray?'索引從 <code>0</code> 開始。<br>起始 <code>n = 4</code>，<code>k = 1</code>（要刪除20）。':escape(sample.orientation)}</p></div>`;
     const submitted=state.history.filter(entry=>entry.score!==null).at(-1);
     const submittedAnswer=submitted?(submitted.action==='repair'?sample.fields.map(f=>f.label+'：'+f.options.find(o=>o[0]===submitted.answer[f.key])[1]).join('；'):sample[submitted.action].options.find(o=>o[0]===submitted.answer.choice)[1]):'';
-    const latestExplanation=(state.reviewing||state.phase===4)?`<details id="step-explanation" class="solution-panel" open tabindex="-1"><summary>已提交第 ${state.phase} 步：${state.scores[state.phase-1]} / ${stageMax[state.phase-1]}分 · 解析（可收合）</summary><p class="submitted-answer"><strong>你提交的答案：</strong>${escape(submittedAnswer)}</p>${explanation(sample,state.phase-1)}</details>`:'';
+    const latestExplanation=(state.reviewing||state.phase===4)?`<section id="step-explanation" class="solution-panel" tabindex="-1" aria-label="本題答案解析"><h2>答案解析</h2><p>已提交第 ${state.phase} 步 · 得分 ${state.scores[state.phase-1]} / ${stageMax[state.phase-1]}</p><p class="submitted-answer"><strong>你提交的答案：</strong>${escape(submittedAnswer)}</p>${explanation(sample,state.phase-1)}</section>`:'';
     const originalResult=`<div class="feedback"><strong>原始程式的實際結果</strong><br>${escape(sample.prediction.options.find(o=>o[0]===simulateExample(sample.id,sample.cases[0],sample.bug))[1])}</div>`;
     context.innerHTML='<h2>需要時再查看</h2><details id="full-instructions"><summary>完整題目與符號說明</summary><p>'+escape(sample.goal)+'</p><p>'+sample.definition.items.map(item=>escape(item)).join('</p><p>')+'</p></details><details id="scoring-details"><summary>計分與提交規則</summary><p>預測5分、找錯5分、修正10分、新題5分。</p><p>提交後停在解析，按「下一題」才會繼續。已提交的答案不能修改；完成四步後可以重做。</p><p>修正以最後提交的版本計分：共5組資料，每組2分。</p><p>試跑會顯示2組，其餘3組在完成後公布。</p><p>試跑與試跑前的預測都不加扣分。</p></details>';
     if(state.phase>=2) context.innerHTML+=`<details id="original-reference" ${state.phase===2?'open':''}><summary>回看原題與錯誤程式</summary>${code(sample.code)}</details>`;
     if(state.phase===4) {
-      answerBox.innerHTML=`<h2 id="step-title" tabindex="-1">${escape(sample.title)}：練習完成</h2>${scoreLine}<p class="feedback" role="status">${escape(state.feedback)}</p>${latestExplanation}<h3>解題重點</h3>${takeaway[sample.id]}<p class="solution-hint">想知道原因？點下方色框，查看逐步例子。</p><details id="solution-explanation" class="solution-panel"><summary><span class="when-closed">點這裡展開：答案與逐步解析</span><span class="when-open">收合答案與逐步解析</span></summary><h3>對照正確答案</h3><p>預測執行結果：${escape(sample.prediction.options.find(o=>o[0]===simulateExample(sample.id,sample.cases[0],sample.bug))[1])}</p><p>錯誤原因：${escape(sample.diagnosis.options.find(o=>o[0]===sample.diagnosis.correct)[1])}</p>${sample.explanationSteps.map((_,i)=>explanation(sample,i)).join('')}<p>「換一題試試」的答案：${escape(sample.transfer.options.find(o=>o[0]===sample.transfer.correct)[1])}</p></details><details><summary>查看修正的全部測試與填空答案</summary>${sample.fields.map(f=>`<p>${escape(f.label)}：<strong>${escape(f.options.find(o=>o[0]===sample.correct[f.key])[1])}</strong></p>`).join('')}${sample.snippets ? code(sample.snippets.find(([v])=>v===sample.correct[sample.fields[0].key])[1]) : ''}${tests(state.history.find(h=>h.action==='repair').results)}</details><div class="buttons"><button id="again">重新練習本題</button>${selected<exampleBank.length-1?`<button class="primary" id="next-sample">下一個章節：${escape(exampleBank[selected+1].title.split('｜')[0])}</button>`:''}</div>`;
+      answerBox.innerHTML=`<h2 id="step-title" tabindex="-1">${escape(sample.title)}：練習完成</h2>${scoreLine}<p class="feedback" role="status">${escape(state.feedback)}</p>${latestExplanation}<h3>解題重點</h3>${takeaway[sample.id]}<section id="solution-explanation" class="solution-panel" aria-label="全部答案解析"><h2>四個步驟的完整解析</h2><h3>對照正確答案</h3><p>預測執行結果：${escape(sample.prediction.options.find(o=>o[0]===simulateExample(sample.id,sample.cases[0],sample.bug))[1])}</p><p>錯誤原因：${escape(sample.diagnosis.options.find(o=>o[0]===sample.diagnosis.correct)[1])}</p>${sample.explanationSteps.map((_,i)=>explanation(sample,i)).join('')}<p>「換一題試試」的答案：${escape(sample.transfer.options.find(o=>o[0]===sample.transfer.correct)[1])}</p></section><section class="solution-panel"><h2>修正填空與全部測試</h2>${sample.fields.map(f=>`<p>${escape(f.label)}：<strong>${escape(f.options.find(o=>o[0]===sample.correct[f.key])[1])}</strong></p>`).join('')}${sample.snippets ? code(sample.snippets.find(([v])=>v===sample.correct[sample.fields[0].key])[1]) : ''}${tests(state.history.find(h=>h.action==='repair').results)}</section><div class="buttons"><button id="again">重新練習本題</button>${selected<exampleBank.length-1?`<button class="primary" id="next-sample">下一個章節：${escape(exampleBank[selected+1].title.split('｜')[0])}</button>`:''}</div>`;
       document.getElementById('again').onclick=()=>{attempts[selected]=newExampleAttempt();render();focusOn('step-title');};
       document.getElementById('next-sample')?.addEventListener('click',()=>{selected++;render();focusOn('step-title');});
     } else if(state.reviewing) {
